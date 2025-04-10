@@ -1,0 +1,132 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Add custom base styles or component styles here if needed */
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  height: 100vh; /* Ensure body takes full height */
+  width: 100vw;  /* Ensure body takes full width */
+  overflow: hidden; /* Prevent body scrollbars */
+}
+
+#root {
+  height: 100%;
+  width: 100%;
+}
+
+/* React Flow Customizations (can add later) */
+.react-flow__node {
+  /* Example: Remove default focus outline */
+  /* &:focus {
+    outline: none;
+  } */
+}
+
+/* Add custom animation keyframes */
+.node-bouncing-in {
+  animation: bounceIn 0.35s ease-out forwards; /* Even faster duration */
+}
+
+@keyframes bounceIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  30% { /* First big overshoot */
+    opacity: 1;
+    transform: scale(1.12);
+  }
+  50% { /* First dip */
+    transform: scale(0.97);
+  }
+  70% { /* Second smaller overshoot */
+    transform: scale(1.05);
+  }
+  85% { /* Second smaller dip */
+    transform: scale(0.99);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.node-fade-scale-out {
+  animation: fadeScaleOut 0.5s ease-out forwards;
+  pointer-events: none; /* Prevent interaction during fade */
+}
+
+@keyframes fadeScaleOut {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+}
+
+/* Custom Node Styling */
+.node-wrapper {
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+/* Add transition to image inside wrapper */
+.node-wrapper img {
+  transition: filter 0.2s ease-in-out; /* Transition for drop-shadow */
+}
+
+/* Hover Effect */
+.react-flow__node:hover .node-wrapper {
+  transform: scale(1.05);
+  /* Ensure hover effect appears on top */
+  z-index: 10;
+}
+
+/* Apply drop-shadow to the image inside the wrapper on hover */
+.react-flow__node:hover .node-wrapper img {
+  filter: drop-shadow(0px 5px 15px var(--node-color));
+  /* Add transition for the filter */
+  transition: filter 0.2s ease-in-out;
+}
+
+/* Selected Effect (Persist hover styles) */
+.react-flow__node.selected .node-wrapper {
+  transform: scale(1.05);
+  z-index: 10; /* Keep selected node on top */
+}
+
+/* Apply drop-shadow to the image inside the wrapper when selected */
+.react-flow__node.selected .node-wrapper img {
+  filter: drop-shadow(0px 5px 15px var(--node-color));
+  transition: filter 0.2s ease-in-out;
+}
+
+/* Optional: Add slight dimming to non-selected nodes when one is selected */
+.react-flow__node:not(.selected) {
+  /* transition: opacity 0.2s ease-in-out; */ /* Add transition if desired */
+  /* opacity: 0.8; */ /* Dim slightly */
+}
+
+/* Info Panel Animation */
+.panel-fade-out {
+  animation: panelFadeOut 0.3s ease-out forwards;
+}
+
+@keyframes panelFadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    /* Optional: add slight scale or translation */
+    /* transform: scale(0.95); */ 
+  }
+} 
