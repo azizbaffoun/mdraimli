@@ -15,7 +15,7 @@ interface ContentNodeData {
   canAddChild?: boolean; // Flag to control child creation
 }
 
-const PodcastNode: React.FC<NodeProps<ContentNodeData>> = ({ id, data }) => {
+const PodcastNode: React.FC<NodeProps<ContentNodeData>> = ({ data }) => {
   const animationClass = data?.isEntering ? 'node-bouncing-in' : ''; // Use bouncing animation
   const nodeColor = '#A362E4'; // Define color directly
 

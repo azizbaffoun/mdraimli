@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="64.575" height="23" viewBox="0 0 64.575 23">
+    <defs>
+      <linearGradient id="linear-gradient" y1="0.365" x2="1" y2="0.058" gradientUnits="objectBoundingBox">
+        <stop offset="0" stop-color="#3799db"/>
+        <stop offset="1" stop-color="#2db4a6"/>
+      </linearGradient>
+    </defs>
+    <g id="Group_3862" data-name="Group 3862" transform="translate(-280.839 -687.526)">
+      <text id="Tools" transform="translate(307.414 705.526)" fill="#222" stroke="rgba(0,0,0,0)" stroke-width="1" font-size="16" font-family="SegoeUI, Segoe UI"><tspan x="0" y="0">Tools</tspan></text>
+      <path id="setting-2bold" d="M18.35,8.578c-1.635,0-2.3-1.156-1.49-2.574a1.713,1.713,0,0,0-.632-2.34l-1.563-.894a1.508,1.508,0,0,0-2.06.542l-.1.172c-.813,1.418-2.15,1.418-2.972,0l-.1-.172a1.483,1.483,0,0,0-2.041-.542L5.83,3.664A1.724,1.724,0,0,0,5.2,6.012c.822,1.409.154,2.565-1.481,2.565A1.721,1.721,0,0,0,2,10.294v1.59A1.721,1.721,0,0,0,3.716,13.6c1.635,0,2.3,1.156,1.481,2.574a1.713,1.713,0,0,0,.632,2.34l1.563.894a1.508,1.508,0,0,0,2.06-.542l.1-.172c.813-1.418,2.15-1.418,2.972,0l.1.172a1.508,1.508,0,0,0,2.06.542l1.563-.894a1.715,1.715,0,0,0,.632-2.34c-.822-1.418-.154-2.574,1.481-2.574a1.721,1.721,0,0,0,1.716-1.716v-1.59A1.735,1.735,0,0,0,18.35,8.578Zm-7.317,5.447a2.936,2.936,0,1,1,2.936-2.936A2.941,2.941,0,0,1,11.033,14.024Z" transform="translate(279.339 688.438)" stroke="rgba(0,0,0,0)" stroke-width="1" fill="url(#linear-gradient)"/>
+    </g>
+  </svg>
+  

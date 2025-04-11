@@ -23,7 +23,7 @@ interface TopicalKeywordNodeData {
 // Define ContentType locally if not imported
 type ContentType = 'article' | 'video' | 'podcast';
 
-const TopicalKeywordNode: React.FC<NodeProps<TopicalKeywordNodeData>> = ({ data, id }) => {
+const TopicalKeywordNode: React.FC<NodeProps<TopicalKeywordNodeData>> = ({ data }) => {
   const nodeColor = '#3799DB'; // Keep color if needed elsewhere, otherwise remove
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);

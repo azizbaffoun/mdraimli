@@ -15,7 +15,7 @@ interface ContentNodeData {
   canAddChild?: boolean; // Flag to control child creation
 }
 
-const VideoNode: React.FC<NodeProps<ContentNodeData>> = ({ id, data }) => {
+const VideoNode: React.FC<NodeProps<ContentNodeData>> = ({ data }) => {
   const animationClass = data?.isEntering ? 'node-bouncing-in' : ''; // Use bouncing animation
   const nodeColor = '#3799DB'; // Match Topical Keyword color
 
@@ -92,4 +92,4 @@ const VideoNode: React.FC<NodeProps<ContentNodeData>> = ({ id, data }) => {
   );
 };
 
-export default VideoNode; 
+export default VideoNode;

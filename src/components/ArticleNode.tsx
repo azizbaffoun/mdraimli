@@ -16,7 +16,7 @@ interface ContentNodeData {
 }
 
 // Node component
-const ArticleNode: React.FC<NodeProps<ContentNodeData>> = ({ id, data }) => {
+const ArticleNode: React.FC<NodeProps<ContentNodeData>> = ({ data }) => {
   const animationClass = data.isEntering ? 'node-bouncing-in' : '';
   const nodeColor = '#2C93EA'; // Define color directly
 

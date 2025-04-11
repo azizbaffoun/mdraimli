@@ -7,33 +7,28 @@ import ReactFlow, {
   addEdge,
   Node,
   Edge,
-  Position,
-  Connection,
   ReactFlowProvider,
-  ReactFlowInstance,
-  NodeProps,
   ConnectionMode,
-  OnConnect,
   XYPosition,
   useReactFlow,
   applyNodeChanges,
   applyEdgeChanges,
   OnNodesChange,
   OnEdgesChange,
-  NodeChange,
   getOutgoers,
-  getIncomers,
+  Connection
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { v4 as uuidv4 } from 'uuid';
 
-// Import Node Components using alias
+// Import Node Components
 import StartNode from '@/components/StartNode';
 import TopicalKeywordNode from '@/components/TopicalKeywordNode';
 import ArticleNode from '@/components/ArticleNode';
 import VideoNode from '@/components/VideoNode';
 import PodcastNode from '@/components/PodcastNode';
 import SocialMediaNode from '@/components/SocialMediaNode';
+import NoteNode from '@/components/NoteNode';
 
 // Import ItemsBar
 import ItemsBar from '@/components/ItemsBar';
@@ -41,31 +36,32 @@ import ItemsBar from '@/components/ItemsBar';
 // Import Info Panel
 import WorkflowInfoPanel from '@/components/WorkflowInfoPanel';
 
-// Import Custom Edge and its types definition
-import CustomEdge, { edgeTypes } from '@/components/CustomEdge';
+// Import Custom Edge types
+import { edgeTypes as customEdgeTypesImport } from '@/components/CustomEdge';
 
-// Define ContentType again for use here
+// --- Define Types and Constants OUTSIDE the component --- 
 export type ContentType = 'article' | 'video' | 'podcast' | 'socialMedia';
 
-// Re-add interfaces for node data to include animation flags
 interface BaseNodeData {
-  isEntering?: boolean;
+  isEntering?: boolean; 
   isExiting?: boolean;
 }
-
 interface StartNodeData extends BaseNodeData {
-  onInitiateWorkflow: (type: string) => void; 
+  onInitiateWorkflow: (type: string) => void;
 }
-
 interface TopicalKeywordNodeData extends BaseNodeData {
   onAddChildNode: (parentId: string, childType: ContentType) => void; 
 }
-
 interface ContentNodeData extends BaseNodeData {
-  canAddChild?: boolean; // Flag to control child creation
+  canAddChild?: boolean; 
 }
+interface NoteNodeFlowData extends BaseNodeData { 
+  title?: string;
+  content?: string;
+}
+type WorkflowNodeData = StartNodeData | TopicalKeywordNodeData | ContentNodeData | NoteNodeFlowData;
 
-// Define nodeTypes map
+// Define nodeTypes map OUTSIDE the component
 const nodeTypes = {
   start: StartNode,
   topicalKeyword: TopicalKeywordNode,
@@ -73,22 +69,127 @@ const nodeTypes = {
   video: VideoNode,
   podcast: PodcastNode,
   socialMedia: SocialMediaNode,
+  note: NoteNode, 
 };
 
-const initialNodeId = 'start-node'; // Consistent ID for the initial node
+// Define edgeTypes OUTSIDE the component
+const edgeTypes = {
+  ...customEdgeTypesImport, // Rely on the spread from CustomEdge.tsx
+};
 
-// Main logic component
+const initialNodeId = 'start-node';
+// --- End Definitions OUTSIDE the component --- 
+
 const WorkflowEditorContent: React.FC = () => {
-  const [nodes, setNodes, onNodesChange] = useNodesState<BaseNodeData>([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [nodes, setNodes] = useNodesState<WorkflowNodeData>([]);
+  const [edges, setEdges] = useEdgesState([]);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
-  const { getNode, getNodes, getEdges } = useReactFlow();
+  const { getNode, getNodes, getEdges, project } = useReactFlow();
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [showInfoPanel, setShowInfoPanel] = useState(true);
   const [isInfoPanelExiting, setIsInfoPanelExiting] = useState(false);
-
+  
+  // Add a history stack to store previous states
+  const [history, setHistory] = useState<{nodes: string, edges: string}[]>([]);
+  
+  // We need to use refs to store the function references to avoid circular dependencies
+  const onAddChildNodeRef = useRef<Function | null>(null);
+  const handleInitiateWorkflowRef = useRef<Function | null>(null);
+  
+  // Record state changes to history
+  const recordHistory = useCallback((nodes: Node<WorkflowNodeData>[], edges: Edge[]) => {
+    if (nodes.length === 0) return; // Don't record empty states
+    
+    // Store the state as a JSON string to ensure deep copying
+    const nodesWithoutFunctions = nodes.map(node => {
+      const { data, ...rest } = node;
+      // Create a new data object without function properties
+      let newData: any = { ...data };
+      if (node.type === 'topicalKeyword') {
+        // Remove the function property from topical keyword nodes
+        const { onAddChildNode, ...dataRest } = newData;
+        newData = dataRest;
+      }
+      if (node.type === 'start') {
+        // Remove the function property from start nodes
+        const { onInitiateWorkflow, ...dataRest } = newData;
+        newData = dataRest;
+      }
+      return { ...rest, data: newData };
+    });
+    
+    setHistory(prev => {
+      // Don't add duplicate states
+      const newStateStr = JSON.stringify({ nodes: nodesWithoutFunctions, edges });
+      const lastStateStr = prev.length > 0 ? prev[prev.length - 1].nodes : '';
+      
+      if (lastStateStr === newStateStr) return prev;
+      return [...prev, { nodes: JSON.stringify(nodesWithoutFunctions), edges: JSON.stringify(edges) }];
+    });
+  }, []);
+  
+  // Handle undo button click
+  const handleUndo = useCallback(() => {
+    if (history.length === 0) {
+      console.log("No history to undo");
+      return;
+    }
+    
+    // Get the previous state
+    const prevState = history[history.length - 1];
+    console.log("Undoing to previous state");
+    
+    // Parse the saved state
+    const parsedNodes = JSON.parse(prevState.nodes) as Node[];
+    const parsedEdges = JSON.parse(prevState.edges) as Edge[];
+    
+    // Restore function references
+    const restoredNodes = parsedNodes.map(node => {
+      if (node.type === 'topicalKeyword') {
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            onAddChildNode: (childType: string) => {
+              if (onAddChildNodeRef.current) {
+                (onAddChildNodeRef.current as Function)(node.id, childType);
+              }
+            }
+          }
+        };
+      }
+      if (node.type === 'start') {
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            onInitiateWorkflow: (type: string) => {
+              if (handleInitiateWorkflowRef.current) {
+                (handleInitiateWorkflowRef.current as Function)(type);
+              }
+            }
+          }
+        };
+      }
+      return node;
+    });
+    
+    // Update the state
+    setNodes(restoredNodes as Node<WorkflowNodeData>[]);
+    setEdges(parsedEdges);
+    
+    // Remove the used state from history
+    setHistory(prev => prev.slice(0, -1));
+  }, [history, setNodes, setEdges]);
+  
+  // Custom nodes change handler that records history
   const onNodesChangeHandler: OnNodesChange = useCallback(
     (changes) => {
+      if (changes.some(change => change.type !== 'select')) {
+        // Only record history for non-selection changes
+        recordHistory(getNodes(), getEdges());
+      }
+      
       setNodes((nds) => applyNodeChanges(changes, nds));
       changes.forEach((change) => {
         if (change.type === 'select') {
@@ -96,144 +197,150 @@ const WorkflowEditorContent: React.FC = () => {
         }
       });
     },
-    [setNodes]
+    [setNodes, recordHistory, getNodes, getEdges]
   );
 
+  // Custom edges change handler that records history
   const onEdgesChangeHandler: OnEdgesChange = useCallback(
-    (changes) => setEdges((eds) => applyEdgeChanges(changes, eds)),
-    [setEdges]
+    (changes) => {
+      // Record current state before applying changes
+      recordHistory(getNodes(), getEdges());
+      
+      setEdges((eds) => applyEdgeChanges(changes, eds));
+    },
+    [setEdges, recordHistory, getNodes, getEdges]
   );
 
-  // Function to organize the layout
+  // Add Note function creates a React Flow node
+  const handleAddNote = useCallback(() => {
+    if (!reactFlowWrapper.current) return;
+    
+    // Record current state before adding a note
+    recordHistory(getNodes(), getEdges());
+    
+    // Count existing notes to calculate offset
+    const existingNoteCount = getNodes().filter(n => n.type === 'note').length;
+    const yOffset = existingNoteCount * 40; // Offset each new note vertically
+
+    const position = project({
+      x: 50, // Keep X offset relatively fixed 
+      y: 50 + yOffset, // Add vertical offset based on note count
+    });
+
+    const newNoteId = `note-${uuidv4()}`;
+    const newNode: Node<NoteNodeFlowData> = { 
+      id: newNoteId,
+      type: 'note',
+      position,
+      data: { 
+        title: "New Note", 
+        content: "",
+      },
+      width: 295, 
+      height: 235,
+      dragHandle: `#note-header-${newNoteId}`, 
+    };
+
+    setNodes((nds) => nds.concat(newNode));
+  }, [project, setNodes, getNodes, getEdges, recordHistory]);
+
+  // organizeLayout function
   const organizeLayout = useCallback(() => {
     console.log("Organizing layout...");
-    const allNodes = getNodes(); // Use hook to get current nodes
-    const allEdges = getEdges(); // Get edges too
-
-    const topicalKeywordNode = allNodes.find(n => n.type === 'topicalKeyword');
+    
+    // Record current state before organizing layout
+    recordHistory(getNodes(), getEdges());
+    
+    const allNodes = getNodes();
+    const allEdges = getEdges();
+    const layoutableNodes = allNodes.filter(n => n.type !== 'note');
+    const noteNodes = allNodes.filter(n => n.type === 'note');
+    const topicalKeywordNode = layoutableNodes.find(n => n.type === 'topicalKeyword');
     if (!topicalKeywordNode) {
       console.warn("Cannot organize layout: Topical Keyword node not found.");
       return;
     }
-
-    // --- Layout Constants ---
     const nodeWidth = 128;
     const nodeHeight = 128;
     const horizontalGap = 120;
-    const verticalGap = 50; // Gap between rows
-    const rootX = 100; // X position for the root node
-    const firstColX = rootX + nodeWidth + horizontalGap; // X position for the first node in each row
-
-    // --- Build Row Structure --- 
-    const rows: Node[][] = []; // Array to hold nodes for each row
+    const verticalGap = 50; 
+    const rootX = 100;
+    const firstColX = rootX + nodeWidth + horizontalGap;
+    const rows: Node[][] = [];
     const processedNodes = new Set<string>();
-    processedNodes.add(topicalKeywordNode.id); // Mark root as processed
-
-    const directChildren = getOutgoers(topicalKeywordNode, allNodes, allEdges);
-
+    processedNodes.add(topicalKeywordNode.id);
+    const directChildren = getOutgoers(topicalKeywordNode, layoutableNodes, allEdges);
     directChildren.forEach(rowStartNode => {
         if (processedNodes.has(rowStartNode.id)) return; 
         const currentRow: Node[] = [];
         let currentNode: Node | undefined = rowStartNode;
-        
         while(currentNode) {
-            if (processedNodes.has(currentNode.id)) break; // Avoid cycles / already processed
+            if (processedNodes.has(currentNode.id)) break;
             currentRow.push(currentNode);
             processedNodes.add(currentNode.id);
-            // Find the next node in the sequence *within this potential row*
-            const children: Node[] = getOutgoers(currentNode, allNodes, allEdges);
+            const children: Node[] = getOutgoers(currentNode, layoutableNodes, allEdges);
             currentNode = children.find((n: Node) => !processedNodes.has(n.id)); 
         }
         if (currentRow.length > 0) {
             rows.push(currentRow);
         }
     });
-
-    // --- Calculate Positions --- 
     const numRows = rows.length;
     const totalLayoutHeight = numRows * nodeHeight + Math.max(0, numRows - 1) * verticalGap;
-    const startY = 100; // Starting Y coordinate for the layout block
-    const rootY = startY + totalLayoutHeight / 2 - nodeHeight / 2; // Center the root vertically
-
-    const layoutNodes: Node[] = [];
-
-    // Position root
-    layoutNodes.push({ ...topicalKeywordNode, position: { x: rootX, y: rootY } });
-
-    // Position rows and columns
+    const startY = 100; 
+    const rootY = startY + totalLayoutHeight / 2 - nodeHeight / 2;
+    const finalNodes: Node[] = [];
+    finalNodes.push({ ...topicalKeywordNode, position: { x: rootX, y: rootY } });
     rows.forEach((row, rowIndex) => {
         const currentRowY = startY + rowIndex * (nodeHeight + verticalGap);
         row.forEach((node: Node, colIndex: number) => {
             const nodeX = firstColX + colIndex * (nodeWidth + horizontalGap);
-            layoutNodes.push({ ...node, position: { x: nodeX, y: currentRowY } });
+            finalNodes.push({ ...node, position: { x: nodeX, y: currentRowY } });
         });
     });
-
-    // Add back any nodes not part of the main layout (e.g., StartNode if still present)
-    allNodes.forEach((node: Node) => {
+    layoutableNodes.forEach((node: Node) => {
         if (!processedNodes.has(node.id)) {
-            layoutNodes.push(node); // Keep original position
+            finalNodes.push(node); 
         }
     });
+    finalNodes.push(...noteNodes);
+    console.log("Applying full layout:", finalNodes);
+    setNodes(finalNodes);
 
-    console.log("Applying full layout:", layoutNodes);
-    setNodes(layoutNodes); // Apply the updated positions
+  }, [getNodes, getEdges, setNodes, recordHistory]);
 
-  }, [getNodes, getEdges, setNodes]);
-
-  // Callback for adding child nodes (passed to TopicalKeywordNode or Content Nodes)
+  // onAddChildNode function 
   const onAddChildNode = useCallback((parentId: string, childTypeOrNext: ContentType | 'next') => {
+    // Record current state before adding a child node
+    recordHistory(getNodes(), getEdges());
+    
     const parentNode = getNode(parentId);
-    if (!parentNode) return;
-
-    // Rule: Check if parent (non-TopicalKeyword) can add more children
+    if (!parentNode || parentNode.type === 'note') return; 
     if (parentNode.type !== 'topicalKeyword' && parentNode.data?.canAddChild === false) {
         console.log(`[Workflow Rule] Node ${parentId} (${parentNode.type}) cannot add more children.`);
         return;
     }
-
     let requestedChildType: ContentType;
-    let nextNodeTypeAfterChild: ContentType | null = null; 
-
-    // --- Determine requested child type and the type that would come *after* it ---
     if (childTypeOrNext === 'next') {
-      // Determine strictly next node based on parent type
       switch (parentNode.type) {
-        case 'article': requestedChildType = 'video'; nextNodeTypeAfterChild = 'podcast'; break;
-        case 'video': requestedChildType = 'podcast'; nextNodeTypeAfterChild = 'socialMedia'; break;
-        case 'podcast': requestedChildType = 'socialMedia'; nextNodeTypeAfterChild = null; break; 
+        case 'article': requestedChildType = 'video'; break;
+        case 'video': requestedChildType = 'podcast'; break;
+        case 'podcast': requestedChildType = 'socialMedia'; break; 
         default: 
           console.error('[onAddChildNode - next] Invalid parent type for sequential add:', parentNode.type);
           return;
       }
     } else {
-      // Specific type requested (from TopicalKeyword or ItemsBar)
       requestedChildType = childTypeOrNext;
-      switch (requestedChildType) {
-        case 'article': nextNodeTypeAfterChild = 'video'; break;
-        case 'video': nextNodeTypeAfterChild = 'podcast'; break;
-        case 'podcast': nextNodeTypeAfterChild = 'socialMedia'; break;
-        case 'socialMedia': nextNodeTypeAfterChild = null; break; 
-      }
     }
-
-    // --- Apply Workflow Rules --- 
-    // Rule: Cannot create Social Media directly from Topical Keyword
     if (parentNode.type === 'topicalKeyword' && requestedChildType === 'socialMedia') {
         console.log('[Workflow Rule] Social Media cannot be created directly from Topical Keyword.');
-        // TODO: Consider showing a user-facing message (e.g., toast notification)
         return;
     }
-
-    // Keep rules preventing adding from Social Media and duplicates
-
-    // Prevent adding children from social media node 
     if (parentNode.type === 'socialMedia') {
         console.log('[Workflow Rule] Cannot add children to Social Media node.');
         return;
     }
-
-    // Rule: Prevent duplicate direct connections *unless* parent is Topical Keyword
     if (parentNode.type !== 'topicalKeyword') {
         const childExists = edges.some(edge => 
             (edge.source === parentId && nodes.find(n => n.id === edge.target)?.type === requestedChildType) ||
@@ -244,38 +351,27 @@ const WorkflowEditorContent: React.FC = () => {
             return;
         }
     }
-
-    // Hide info panel after first node is added from Topical Keyword
     if (parentNode?.type === 'topicalKeyword') {
-        // Start exit animation if panel is currently shown
         if (showInfoPanel) {
             setIsInfoPanelExiting(true);
         }
     }
-
-    // --- Create Node and Edge --- 
     const childNodeId = `${requestedChildType}-${uuidv4()}`;
-
-    // Calculate position based on parent type
     let newNodePosition: XYPosition;
     const horizontalOffset = (parentNode.width ?? 128) + 120;
-    const verticalOffset = (parentNode.height ?? 128) + 50; // Spacing between rows
-
+    const verticalOffset = (parentNode.height ?? 128) + 50;
     if (parentNode.type === 'topicalKeyword') {
-        // Calculate how many direct children this TopicalKeyword node already has
         const directChildrenCount = edges.filter(e => e.source === parentId).length;
         newNodePosition = {
             x: parentNode.position.x + horizontalOffset, 
-            y: parentNode.position.y + (directChildrenCount * verticalOffset) // Stack vertically
+            y: parentNode.position.y + (directChildrenCount * verticalOffset)
         };
     } else {
-        // Content node: Add sequentially to the right
         newNodePosition = {
             x: parentNode.position.x + horizontalOffset,
-            y: parentNode.position.y, // Keep same row
+            y: parentNode.position.y,
         };
     }
-
     const childNode: Node<ContentNodeData> = {
         id: childNodeId,
         type: requestedChildType,
@@ -297,11 +393,8 @@ const WorkflowEditorContent: React.FC = () => {
         type: 'customGradientEdge',
         data: {}, 
     };
-
     setNodes((nds) => nds.concat(childNode));
-    setEdges((eds) => addEdge(newEdge, eds));
-    
-    // If the parent wasn't Topical Keyword, mark it as unable to add more children
+    setEdges((eds) => addEdge(newEdge, eds)); 
     if (parentNode.type !== 'topicalKeyword') {
         setNodes((nds) => 
             nds.map(node => 
@@ -311,62 +404,80 @@ const WorkflowEditorContent: React.FC = () => {
             )
         );
     }
-  }, [getNode, setNodes, setEdges, nodes, edges, showInfoPanel, setIsInfoPanelExiting]); // Updated dependencies
+  }, [getNode, getNodes, getEdges, nodes, edges, setNodes, setEdges, showInfoPanel, setIsInfoPanelExiting, recordHistory]);
 
-  // Effect to hide panel after exit animation
+  // Store the latest version of onAddChildNode in the ref
+  useEffect(() => {
+    onAddChildNodeRef.current = onAddChildNode;
+  }, [onAddChildNode]);
+
+  // Add onConnect handler
+  const onConnect = useCallback((connection: Connection) => {
+    // Record current state before adding connection
+    recordHistory(getNodes(), getEdges());
+    
+    setEdges((eds) => addEdge({
+      ...connection,
+      type: 'customGradientEdge'
+    }, eds));
+  }, [setEdges, recordHistory, getNodes, getEdges]);
+
+  // ... useEffect for hiding info panel ...
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (isInfoPanelExiting) {
-      // Wait for animation duration (300ms) then hide
       timer = setTimeout(() => {
         setShowInfoPanel(false);
       }, 300); 
     }
-    return () => clearTimeout(timer); // Cleanup timer
+    return () => clearTimeout(timer);
   }, [isInfoPanelExiting, setShowInfoPanel]);
 
-  // Callback for StartNode to initiate the workflow
+  // handleInitiateWorkflow function
   const handleInitiateWorkflow = useCallback((type: string) => {
+    // Record current state before initiating workflow
+    recordHistory(getNodes(), getEdges());
+    
     setShowInfoPanel(true);
-    setIsInfoPanelExiting(false); // Reset exit state too
+    setIsInfoPanelExiting(false);
     if (type !== 'topical') {
       console.log(`Workflow type "${type}" initiation not implemented yet.`);
       return;
     }
     const startNode = getNode(initialNodeId);
     if (!startNode) return;
-
     const position = startNode.position; 
     const newNodeId = 'tk-' + uuidv4();
-
     const topicalKeywordNode: Node<TopicalKeywordNodeData> = {
       id: newNodeId,
       type: 'topicalKeyword',
       position: position, 
       data: {
         isEntering: true, 
+        // Pass necessary props for TopicalKeywordNode
         onAddChildNode: (childType: string) => { 
             onAddChildNode(newNodeId, childType as ContentType);
         },
       },
     };
-
-    // Set fade-out animation directly on the StartNode data
     setNodes((nds) => 
         nds.map(n => n.id === initialNodeId ? { ...n, data: { ...n.data, isExiting: true } } : n)
     );
-    // Add new node shortly after animation starts
     setTimeout(() => {
       setNodes((nds) => nds.concat(topicalKeywordNode));
     }, 10); 
-    // Remove old node after animation duration
     setTimeout(() => {
         setNodes((nds) => nds.filter((node) => node.id !== initialNodeId));
-    }, 150); // Ensure this matches node-fade-scale-out duration
+    }, 150);
 
-  }, [getNode, setNodes, setEdges, onAddChildNode, setShowInfoPanel, setIsInfoPanelExiting]); // Updated dependencies
+  }, [getNode, setNodes, getEdges, onAddChildNode, setShowInfoPanel, setIsInfoPanelExiting, recordHistory, getNodes]);
 
-  // Effect to set the initial StartNode
+  // Store the latest version of handleInitiateWorkflow in the ref
+  useEffect(() => {
+    handleInitiateWorkflowRef.current = handleInitiateWorkflow;
+  }, [handleInitiateWorkflow]);
+
+  // useEffect for initial StartNode
   useEffect(() => {
     if (nodes.length === 0 && reactFlowWrapper.current) { 
       const centerX = reactFlowWrapper.current.clientWidth / 2 - 64; 
@@ -375,32 +486,34 @@ const WorkflowEditorContent: React.FC = () => {
         id: initialNodeId,
         type: 'start',
         position: { x: centerX, y: centerY },
+        // Pass the actual function for the data prop
         data: { onInitiateWorkflow: handleInitiateWorkflow }, 
       };
       setNodes([initialNode]);
     }
   }, [nodes, setNodes, handleInitiateWorkflow]);
 
-  // Determine ItemsBar visibility
   const isItemsBarVisible = !nodes.some(node => node.id === initialNodeId);
-  const isNodeSelected = !!selectedNodeId;
+  const isNodeSelected = !!selectedNodeId; 
 
   return (
     <>
-      {showInfoPanel && <WorkflowInfoPanel isExiting={isInfoPanelExiting} />} {/* Pass exiting state */}
+      {showInfoPanel && <WorkflowInfoPanel isExiting={isInfoPanelExiting} />}
+      
       <div ref={reactFlowWrapper} className="w-full h-full">
         <ReactFlow
           nodes={nodes}
           edges={edges}
           onNodesChange={onNodesChangeHandler}
           onEdgesChange={onEdgesChangeHandler}
-          nodeTypes={nodeTypes}
-          edgeTypes={edgeTypes} // Register custom edge types
-          defaultEdgeOptions={{ type: 'customGradientEdge' }} // Set default edge type
+          onConnect={onConnect}
+          nodeTypes={nodeTypes} // Use nodeTypes defined outside
+          edgeTypes={edgeTypes} // Use edgeTypes defined outside
+          defaultEdgeOptions={{ type: 'customGradientEdge' }} 
           connectionMode={ConnectionMode.Loose}
           fitView 
           fitViewOptions={{ padding: 2.0 }}
-          nodesConnectable={false}
+          nodesConnectable={true} 
           nodesDraggable={true}
           selectNodesOnDrag={false}
         >
@@ -408,13 +521,15 @@ const WorkflowEditorContent: React.FC = () => {
           <Background />
         </ReactFlow>
       </div>
-      {/* Render ItemsBar outside the ReactFlow container */}
+      
       {nodes.length > 0 && <ItemsBar 
         isVisible={isItemsBarVisible} 
         isNodeSelected={isNodeSelected} 
         selectedNodeId={selectedNodeId}
         onIconClick={onAddChildNode}
         onOrganizeLayout={organizeLayout}
+        onAddNote={handleAddNote}
+        onUndo={handleUndo}
       />}
     </>
   );
@@ -429,4 +544,4 @@ const WorkflowEditor: React.FC = () => {
   );
 };
 
-export default WorkflowEditor; 
+export default WorkflowEditor;

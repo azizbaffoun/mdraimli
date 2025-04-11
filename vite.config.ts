@@ -11,4 +11,24 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'), 
     },
   },
+  build: {
+    // Output directory (default is 'dist')
+    // outDir: 'dist',
+    rollupOptions: {
+      output: {
+        // Ensure JS output is a single file named 'main.js'
+        entryFileNames: `assets/main.js`,
+        // Ensure CSS output is a single file named 'style.css'
+        assetFileNames: (assetInfo) => {
+          if (assetInfo.name && assetInfo.name.endsWith('.css')) {
+            return 'assets/style.css';
+          }
+          // Keep other assets (like images) in their default structure
+          return `assets/[name].[ext]`;
+        },
+      },
+    },
+    // Ensure CSS is not split into multiple files
+    cssCodeSplit: false,
+  },
 }) 
