@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="15.449" height="19.07" viewBox="0 0 15.449 19.07">
+  <defs>
+    <linearGradient id="linear-gradient" y1="0.365" x2="1" y2="0.058" gradientUnits="objectBoundingBox">
+      <stop offset="0" stop-color="#3799db"/>
+      <stop offset="1" stop-color="#2db4a6"/>
+    </linearGradient>
+  </defs>
+  <g id="Group_4665" data-name="Group 4665" transform="translate(-4079.5 1513.5)">
+    <path id="Path_187" data-name="Path 187" d="M12.78,18.07H1.67a1.662,1.662,0,0,1-.934-.285,1.675,1.675,0,0,1-.6-.735A1.659,1.659,0,0,1,0,16.4V11.7H1.306v2.537a1.672,1.672,0,0,0,1.67,1.67h8.481a1.672,1.672,0,0,0,1.67-1.67V3.158a1.672,1.672,0,0,0-1.67-1.67H2.976a1.672,1.672,0,0,0-1.67,1.67v2.7H0V1.67A1.662,1.662,0,0,1,.285.736a1.675,1.675,0,0,1,.735-.6A1.659,1.659,0,0,1,1.67,0H12.78a1.662,1.662,0,0,1,.934.285,1.675,1.675,0,0,1,.6.735,1.659,1.659,0,0,1,.131.65V16.4a1.662,1.662,0,0,1-.285.934,1.675,1.675,0,0,1-.735.6A1.659,1.659,0,0,1,12.78,18.07ZM7.225,16.5a.513.513,0,1,0,.512.513A.513.513,0,0,0,7.225,16.5Z" transform="translate(4080 -1513)" stroke="rgba(0,0,0,0)" stroke-miterlimit="10" stroke-width="1" fill="url(#linear-gradient)"/>
+    <path id="Exclusion_9" data-name="Exclusion 9" d="M27198.271-1719.545h-3.473v-4.8h3.473v4.8Zm-4.627-.812h-2.881v-3.986h2.881v3.985Zm-4.033-2.635h-2.648v-3.727h2.648v3.726Zm8.66-2.505h-3.473v-4.8h3.473v4.8Zm-4.627,0h-2.881v-3.986h2.881v3.985Z" transform="translate(-23106.963 220.633)" stroke="rgba(0,0,0,0)" stroke-miterlimit="10" stroke-width="1" fill="url(#linear-gradient)"/>
+  </g>
+</svg>

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="110" height="139" viewBox="0 0 110 139">
+  <defs>
+    <linearGradient id="linear-gradient" x1="0.878" y1="0.172" x2="0.239" y2="0.934" gradientUnits="objectBoundingBox">
+      <stop offset="0" stop-color="#2c93ea"/>
+      <stop offset="1" stop-color="#456fe8"/>
+    </linearGradient>
+  </defs>
+  <g id="Group_5307" data-name="Group 5307" transform="translate(-901.01 -268)">
+    <rect id="Rectangle_1653" data-name="Rectangle 1653" width="110" height="110" rx="40" transform="translate(901.01 268)" fill="url(#linear-gradient)"/>
+    <text id="Article" transform="translate(931.002 403)" fill="#222" font-size="16" font-family="SegoeUI, Segoe UI"><tspan x="0" y="0">Article</tspan></text>
+    <g id="Group_3971" data-name="Group 3971" transform="translate(-3143.99 1811)">
+      <path id="Path_187" data-name="Path_187" d="M35.411,50.07H4.627a4.6,4.6,0,0,1-2.587-.79A4.64,4.64,0,0,1,.364,47.244,4.6,4.6,0,0,1,0,45.443V32.413H3.619v7.03a4.632,4.632,0,0,0,4.627,4.627h23.5a4.632,4.632,0,0,0,4.627-4.627V8.75a4.632,4.632,0,0,0-4.627-4.627H8.246A4.632,4.632,0,0,0,3.619,8.75v7.472H0V4.627A4.6,4.6,0,0,1,.79,2.04,4.641,4.641,0,0,1,2.826.364,4.6,4.6,0,0,1,4.627,0H35.411A4.6,4.6,0,0,1,38,.79a4.641,4.641,0,0,1,1.676,2.036,4.6,4.6,0,0,1,.364,1.8V45.443a4.605,4.605,0,0,1-.79,2.587,4.641,4.641,0,0,1-2.036,1.676A4.6,4.6,0,0,1,35.411,50.07ZM20.019,45.718a1.42,1.42,0,1,0,1.42,1.42A1.422,1.422,0,0,0,20.019,45.718Z" transform="translate(4080 -1513)" fill="#fff" stroke="rgba(0,0,0,0)" stroke-miterlimit="10" stroke-width="1"/>
+      <path id="Exclusion_9" data-name="Exclusion 9" d="M31.336,29.79H21.711v-13.3h9.625v13.3Zm-12.82-2.251H10.531V16.493h7.984V27.539Zm-11.18-7.3H0V9.911H7.336V20.238Zm24-6.941H21.711V0h9.625V13.3Zm-12.82,0H10.531V2.251h7.984V13.3Z" transform="translate(4080 -1503.754)" fill="#fff" stroke="rgba(0,0,0,0)" stroke-miterlimit="10" stroke-width="1"/>
+    </g>
+  </g>
+</svg> 
