@@ -17,7 +17,8 @@ import ReactFlow, {
   OnEdgesChange,
   getOutgoers,
   Connection,
-  ReactFlowInstance
+  ReactFlowInstance,
+  Viewport
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { v4 as uuidv4 } from 'uuid';
@@ -42,12 +43,21 @@ import { edgeTypes as customEdgeTypesImport } from '@/components/CustomEdge';
 
 // --- Define Types and Constants OUTSIDE the component --- 
 
-// Extend the global Window interface to include passData
+// Extend the global Window interface to include passData AND loadDataIntoReact
 declare global {
   interface Window {
     passData?: (data: string) => void;
+    loadDataIntoReact?: (workflowData: WorkflowData) => void;
   }
 }
+
+// --- Add WorkflowData Interface ---
+interface WorkflowData {
+  nodes: Node[]; // Uses the imported Node type
+  edges: Edge[]; // Uses the imported Edge type
+  viewport?: Viewport; // Optional viewport
+}
+// --- End WorkflowData Interface ---
 
 export type ContentType = 'article' | 'video' | 'podcast' | 'socialMedia';
 
@@ -93,7 +103,7 @@ const WorkflowEditorContent: React.FC = () => {
   const [nodes, setNodes] = useNodesState<WorkflowNodeData>([]);
   const [edges, setEdges] = useEdgesState([]);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
-  const { getNode, getNodes, getEdges, project } = useReactFlow();
+  const { getNode, getNodes, getEdges, project, setViewport } = useReactFlow();
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [showInfoPanel, setShowInfoPanel] = useState(true);
   const [isInfoPanelExiting, setIsInfoPanelExiting] = useState(false);
@@ -592,6 +602,65 @@ const WorkflowEditorContent: React.FC = () => {
 
   const isItemsBarVisible = !nodes.some(node => node.id === initialNodeId);
   const isNodeSelected = !!selectedNodeId; 
+
+  // --- Add useEffect for loading data ---
+  useEffect(() => {
+    // Define the function globally on the window object
+    window.loadDataIntoReact = (workflowData: WorkflowData) => {
+      console.log("React App: Received data via loadDataIntoReact", workflowData);
+
+      if (workflowData && workflowData.nodes && workflowData.edges) {
+        // Restore function references just like in handleUndo (important if you save/load complex data)
+        const restoredNodes = workflowData.nodes.map(node => {
+          let nodeData = { ...node.data };
+          if (node.type === 'topicalKeyword' && handleInitiateWorkflowRef.current) {
+             nodeData = {
+               ...nodeData,
+               onAddChildNode: (childType: string) => {
+                 if (onAddChildNodeRef.current) {
+                   (onAddChildNodeRef.current as Function)(node.id, childType);
+                 }
+               }
+             };
+          }
+          if (node.type === 'start' && handleInitiateWorkflowRef.current) {
+             nodeData = {
+               ...nodeData,
+               onInitiateWorkflow: (type: string) => {
+                 if (handleInitiateWorkflowRef.current) {
+                   (handleInitiateWorkflowRef.current as Function)(type);
+                 }
+               }
+             };
+          }
+          return { ...node, data: nodeData };
+        });
+
+        // Update the state using the setters
+        setNodes(restoredNodes as Node<WorkflowNodeData>[]); // Cast back to specific type if needed
+        setEdges(workflowData.edges);
+
+        // Optional: Update viewport if you save/load it
+        if (workflowData.viewport) {
+           setViewport(workflowData.viewport);
+        }
+
+        // Clear history after loading, as it represents a new starting point
+        setHistory([]);
+        console.log('Workflow loaded into React!'); // Log instead of alert
+      } else {
+        console.error("React App: Invalid data received", workflowData);
+        // alert('Error: Invalid workflow data received.'); // Avoid alerts
+      }
+    };
+
+    // Cleanup function to remove the global function when the component unmounts
+    return () => {
+      delete window.loadDataIntoReact;
+    };
+    // Add setters and setViewport to dependency array
+  }, [setNodes, setEdges, setViewport, setHistory]);
+  // --- End of useEffect for loading data ---
 
   return (
     <>
