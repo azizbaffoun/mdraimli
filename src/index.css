@@ -92,7 +92,6 @@ body {
 
 /* Apply drop-shadow to the image inside the wrapper on hover */
 .react-flow__node:hover .node-wrapper img {
-  filter: drop-shadow(0px 5px 15px var(--node-color));
   /* Add transition for the filter */
   transition: filter 0.2s ease-in-out;
 }
@@ -105,7 +104,6 @@ body {
 
 /* Apply drop-shadow to the image inside the wrapper when selected */
 .react-flow__node.selected .node-wrapper img {
-  filter: drop-shadow(0px 5px 15px var(--node-color));
   transition: filter 0.2s ease-in-out;
 }
 
@@ -114,6 +112,158 @@ body {
   /* transition: opacity 0.2s ease-in-out; */ /* Add transition if desired */
   /* opacity: 0.8; */ /* Dim slightly */
 }
+
+/* --- Topical Keyword Node Hover Effects --- */
+/* Initially hide background and plus button */
+.node-type-topicalKeyword .topical-keyword-background,
+.node-type-topicalKeyword .topical-keyword-plus-button {
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+}
+
+/* Connector defaults to hidden */
+.node-type-topicalKeyword .topical-keyword-connector {
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out; /* Add transition */
+}
+
+/* Show connector only when .is-connected class is present */
+.node-type-topicalKeyword .topical-keyword-connector.is-connected {
+  opacity: 1;
+}
+
+/* Show background and plus button on parent node hover */
+.react-flow__node:hover .node-type-topicalKeyword .topical-keyword-background {
+  opacity: 0.28; /* Set specific hover opacity */
+}
+
+.react-flow__node:hover .node-type-topicalKeyword .topical-keyword-plus-button {
+  opacity: 1; /* Plus button becomes fully opaque on hover */
+}
+/* --- End Topical Keyword Node Hover Effects --- */
+
+/* --- Video Node Hover/Select Effects --- */
+/* Initially hide glow and left connector (unless connected) */
+.node-type-video .video-node-glow,
+.node-type-video .video-node-connector-left:not(.is-connected) {
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+  pointer-events: none; 
+}
+
+/* Make connector-plus visible by default when rendered (opacity 1), ensure clickable */
+.node-type-video .video-node-connector-plus { 
+  opacity: 1; /* Default to visible */
+  transition: opacity 0.2s ease-in-out; /* Keep transition for potential future use */
+  pointer-events: auto; /* Make it clickable */
+}
+
+/* Show ONLY glow on hover */
+.react-flow__node:hover .node-type-video .video-node-glow {
+  opacity: 0.28; 
+}
+/* REMOVE hover rule for connector-plus */
+/* .react-flow__node:hover .node-type-video .video-node-connector-plus { ... } */
+
+
+/* Show ONLY glow on selection */
+.react-flow__node.selected .node-type-video .video-node-glow {
+  opacity: 0.28; 
+}
+/* REMOVE selection rule for connector-plus */
+/* .react-flow__node.selected .node-type-video .video-node-connector-plus { ... } */
+
+
+/* Show left connector ONLY when is-connected class is present */
+.node-type-video .video-node-connector-left.is-connected {
+  opacity: 1;
+}
+
+/* No specific rules needed for .video-node-connector-right-connected */
+/* Its visibility is handled by conditional rendering in the component */
+
+/* --- End Video Node Hover/Select Effects --- */
+
+/* --- Podcast Node Hover/Select Effects --- */
+/* Initially hide glow and left connector (unless connected) */
+.node-type-podcast .podcast-node-glow,
+.node-type-podcast .podcast-node-connector-left:not(.is-connected) {
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+  pointer-events: none; 
+}
+/* Make connector-plus visible by default when rendered */
+.node-type-podcast .podcast-node-connector-plus { 
+  opacity: 1; 
+  transition: opacity 0.2s ease-in-out; 
+  pointer-events: auto; 
+}
+/* Show ONLY glow on hover */
+.react-flow__node:hover .node-type-podcast .podcast-node-glow {
+  opacity: 0.28; 
+}
+/* Show ONLY glow on selection */
+.react-flow__node.selected .node-type-podcast .podcast-node-glow {
+  opacity: 0.28; 
+}
+/* Show left connector ONLY when is-connected class is present */
+.node-type-podcast .podcast-node-connector-left.is-connected {
+  opacity: 1;
+}
+/* --- End Podcast Node Hover/Select Effects --- */
+
+/* --- Article Node Hover/Select Effects --- */
+/* Initially hide glow and left connector (unless connected) */
+.node-type-article .article-node-glow,
+.node-type-article .article-node-connector-left:not(.is-connected) {
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+  pointer-events: none; 
+}
+/* Make connector-plus visible by default when rendered */
+.node-type-article .article-node-connector-plus { 
+  opacity: 1; 
+  transition: opacity 0.2s ease-in-out; 
+  pointer-events: auto; 
+}
+/* Show ONLY glow on hover */
+.react-flow__node:hover .node-type-article .article-node-glow {
+  opacity: 0.28; 
+}
+/* Show ONLY glow on selection */
+.react-flow__node.selected .node-type-article .article-node-glow {
+  opacity: 0.28; 
+}
+/* Show left connector ONLY when is-connected class is present */
+.node-type-article .article-node-connector-left.is-connected {
+  opacity: 1;
+}
+/* --- End Article Node Hover/Select Effects --- */
+
+/* --- Social Media Node Hover/Select Effects --- */
+/* Initially hide glow and left connector (unless connected) */
+.node-type-socialMedia .socialMedia-node-glow,
+.node-type-socialMedia .socialMedia-node-connector-left:not(.is-connected) {
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+  pointer-events: none; 
+}
+
+/* Show ONLY glow on hover */
+.react-flow__node:hover .node-type-socialMedia .socialMedia-node-glow {
+  opacity: 0.28; 
+}
+
+/* Show ONLY glow on selection */
+.react-flow__node.selected .node-type-socialMedia .socialMedia-node-glow {
+  opacity: 0.28; 
+}
+
+/* Show left connector ONLY when is-connected class is present */
+.node-type-socialMedia .socialMedia-node-connector-left.is-connected {
+  opacity: 1;
+}
+/* --- End Social Media Node Hover/Select Effects --- */
 
 /* Info Panel Animation */
 .panel-fade-out {
@@ -129,4 +279,54 @@ body {
     /* Optional: add slight scale or translation */
     /* transform: scale(0.95); */ 
   }
+}
+
+/* TopicalKeywordNode Styles */
+.node-type-topicalKeyword {
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.node-type-topicalKeyword .topical-keyword-background {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.node-type-topicalKeyword .topical-keyword-plus-button {
+  opacity: 0;
+  transition: all 0.2s ease;
+}
+
+/* Show plus button on hover */
+.node-type-topicalKeyword:hover .topical-keyword-plus-button {
+  opacity: 1;
+}
+
+/* Connected state styles */
+.node-type-topicalKeyword.is-connected .topical-keyword-connector {
+  opacity: 1;
+  transform: translate(0, -50%) scale(1.1);
+}
+
+/* Hover effects */
+.node-type-topicalKeyword:hover {
+  transform: scale(1.02);
+}
+
+.node-type-topicalKeyword:hover .topical-keyword-background {
+  opacity: 0.3;
+}
+
+/* Selected state styles */
+.node-type-topicalKeyword.selected {
+  transform: scale(1.05);
+  z-index: 10;
+}
+
+.node-type-topicalKeyword.selected .topical-keyword-background {
+  opacity: 0.3;
+}
+
+.node-type-topicalKeyword.selected .topical-keyword-plus-button {
+  opacity: 1;
 } 

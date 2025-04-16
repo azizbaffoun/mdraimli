@@ -45,10 +45,22 @@ const CustomEdge: React.FC<EdgeProps> = ({
     }
 
     // Calculate absolute coordinates of the handles using LIVE node positions
-    const calcSourceX = sourceNode.positionAbsolute.x + sourceNodeWidth + connectorOffset;
-    const calcSourceY = sourceNode.positionAbsolute.y + (sourceNodeHeight * 0.45);
-    const calcTargetX = targetNode.positionAbsolute.x - connectorOffset;
-    const calcTargetY = targetNode.positionAbsolute.y + (targetNodeHeight * 0.45);
+    let calcSourceX = sourceNode.positionAbsolute.x + sourceNodeWidth + connectorOffset; // Default calculation
+    const calcSourceY = sourceNode.positionAbsolute.y + (sourceNodeHeight * 0.4);
+    let calcTargetX = targetNode.positionAbsolute.x - connectorOffset; // Default calculation
+    const calcTargetY = targetNode.positionAbsolute.y + (targetNodeHeight * 0.4);
+
+    // Adjust source X specifically for TopicalKeywordNode
+    if (sourceNode.type === 'topicalKeyword') {
+        const customOffset = 14; // New offset, closer to the right edge of the connector visual
+        calcSourceX = sourceNode.positionAbsolute.x + sourceNodeWidth + customOffset;
+    }
+
+    // TODO: Add similar check for targetNode if other nodes have custom left connectors
+    // if (targetNode.type === 'someOtherNodeTypeWithLeftConnector') {
+    //     const leftConnectorVisualWidth = ...;
+    //     calcTargetX = targetNode.positionAbsolute.x - (leftConnectorVisualWidth / 2);
+    // }
 
     // Calculate angle and distance between the CALCULATED points
     const deltaX = calcTargetX - calcSourceX;
@@ -68,8 +80,40 @@ const CustomEdge: React.FC<EdgeProps> = ({
     const sourceColor = nodeColors[sourceNode.type as keyof typeof nodeColors] || nodeColors.default;
     const targetColor = nodeColors[targetNode.type as keyof typeof nodeColors] || sourceColor;
 
-    // Remove NaN check if confident, or keep if needed
-    // if (isNaN(visualSourceX) || ...) { ... }
+    // Define constants for dash calculation *before* the return statement
+    const shortDashPath = "M2,0 H10.79 A2,2 0 0 1 12.79,2 V5.089 A2,2 0 0 1 10.79,7.089 H2 A2,2 0 0 1 0,5.089 V2 A2,2 0 0 1 2,0 Z";
+    const longDashPath = "M2,0 H14.794 A2,2 0 0 1 16.794,2 V5.089 A2,2 0 0 1 14.794,7.089 H2 A2,2 0 0 1 0,5.089 V2 A2,2 0 0 1 2,0 Z";
+    const shortDashWidth = 12.79;
+    const longDashWidth = 16.794;
+    const dashGap = 8; // Desired gap between dashes
+    const pairWidth = shortDashWidth + dashGap + longDashWidth + dashGap; // Width of short+gap+long+gap
+
+    // Calculate the exact number of dashes that fit
+    let numDashes = 0;
+    let currentDistance = 0;
+    while (currentDistance < finalVisualDistance) {
+        const isShort = numDashes % 2 === 0;
+        const currentSegmentWidth = isShort ? shortDashWidth : longDashWidth;
+        if (currentDistance + currentSegmentWidth <= finalVisualDistance) {
+            currentDistance += currentSegmentWidth;
+            numDashes++;
+            // Add gap if there's space for it and another dash might follow
+            if (currentDistance + dashGap <= finalVisualDistance && (currentDistance + dashGap + (isShort ? longDashWidth : shortDashWidth)) <= finalVisualDistance) {
+                 currentDistance += dashGap;
+            } else if (currentDistance < finalVisualDistance && numDashes > 0) {
+                // Add gap if it fits, even if another dash doesn't
+                if (currentDistance + dashGap <= finalVisualDistance) {
+                    currentDistance += dashGap;
+                } 
+            }
+        } else {
+            break; // Can't fit the next dash
+        }
+    }
+    numDashes = Math.max(1, numDashes); // Ensure at least one dash if distance > 0
+
+    // Determine color split index
+    const colorSplitIndex = Math.ceil(numDashes / 2);
 
     return (
         <g>
@@ -87,15 +131,15 @@ const CustomEdge: React.FC<EdgeProps> = ({
                 </linearGradient>
             </defs>
 
-            {/* Background shadow path - Use CALCULATED points */}
+            {/* Background shadow path - Use CALCULATED points, adjusted style */}
             <path
                 d={`M${visualSourceX},${visualSourceY} L${visualTargetX},${visualTargetY}`}
                 stroke={`url(#edge-gradient-${id})`}
-                strokeWidth="24" 
+                strokeWidth="20" // Increased width
                 fill="none"
                 strokeLinecap="round"
             >
-                {/* Pulsing animation */}
+                {/* Pulsing animation from provided code */}
                 <animate
                     attributeName="stroke-opacity"
                     values="0.2;0.4;0.2"
@@ -104,39 +148,61 @@ const CustomEdge: React.FC<EdgeProps> = ({
                 />
             </path>
 
-            {/* Main line composed of small rectangles - positioned at CALCULATED source, rotated */}
+            {/* Main line composed of alternating small PATHS */}
             <g
-                transform={`translate(${visualSourceX},${visualSourceY}) rotate(${angleDegrees})`} 
+                transform={`translate(${visualSourceX},${visualSourceY}) rotate(${angleDegrees})`}
                 style={{ pointerEvents: 'none' }}
             >
-                {/* Draw fixed rectangles along the distance */}
-                {Array.from({ length: Math.max(1, Math.ceil(finalVisualDistance / 26)) }).map((_, index) => (
-                    <rect
-                        key={index}
-                        x={index * 26} 
-                        y="-2.5" 
-                        width="20"
-                        height="5"
-                        fill={index < Math.ceil(finalVisualDistance / 52) ? sourceColor : targetColor}
-                        stroke="white"
-                        strokeWidth="1"
-                    />
-                ))}
+                {/* Draw fixed PATHS along the distance */}
+                {Array.from({ length: numDashes }).map((_, index) => {
+                    let currentX = 0;
+                    const pairIndex = Math.floor(index / 2);
+                    const isShortDash = index % 2 === 0;
 
-                {/* Animated overlay rectangle - covers distance */}
+                    currentX = pairIndex * pairWidth;
+                    if (!isShortDash) {
+                        currentX += shortDashWidth + dashGap;
+                    }
+
+                    const pathData = isShortDash ? shortDashPath : longDashPath;
+                    const fillColor = index < colorSplitIndex ? sourceColor : targetColor;
+                    const verticalOffset = -3.5445; // Center the 7.089 height
+
+                    // Return a fragment containing both the white background and the colored foreground
+                    return (
+                        <React.Fragment key={index}>
+                            {/* White Background/Border Path */}
+                            <path
+                                d={pathData}
+                                transform={`translate(${currentX}, ${verticalOffset})`}
+                                fill="#fff"
+                                // No stroke needed if the fill covers the area
+                            />
+                            {/* Colored Foreground Path (drawn on top) */}
+                            <path
+                                d={pathData}
+                                transform={`translate(${currentX}, ${verticalOffset})`} 
+                                fill={fillColor}
+                                // No stroke here
+                            />
+                        </React.Fragment>
+                    );
+                })}
+
+                {/* Animated overlay rectangle - covers distance (keep as simple rect) */}
                 <rect
                     x="0"
-                    y="-2.5"
-                    width={finalVisualDistance} 
-                    height="5"
+                    y="-10" // Adjust y to cover the thicker background
+                    width={finalVisualDistance}
+                    height="20" // Adjust height to cover the thicker background
                     fill="white"
-                    opacity="0.3" 
+                    opacity="0.5" // Keep increased opacity
                 >
-                    {/* Animate along the distance */}
+                    {/* Animate along the distance - Use animation values/duration from provided code */}
                     <animate
                         attributeName="x"
-                        values={`-20;${finalVisualDistance}`} 
-                        dur="1.5s"
+                        values={`-20;${finalVisualDistance}`} // Use values from provided code
+                        dur="1.5s" // Use duration from provided code
                         repeatCount="indefinite"
                     />
                 </rect>

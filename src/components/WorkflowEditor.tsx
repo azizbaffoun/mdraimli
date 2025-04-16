@@ -70,9 +70,13 @@ interface StartNodeData extends BaseNodeData {
 }
 interface TopicalKeywordNodeData extends BaseNodeData {
   onAddChildNode: (parentId: string, childType: ContentType) => void; 
+  isRightConnected?: boolean;
 }
 interface ContentNodeData extends BaseNodeData {
   canAddChild?: boolean; 
+  onAddChildNode?: (parentId: string, childType: ContentType) => void; 
+  isLeftConnected?: boolean;
+  isRightConnected?: boolean;
 }
 interface NoteNodeFlowData extends BaseNodeData { 
   title?: string;
@@ -100,8 +104,8 @@ const initialNodeId = 'start-node';
 // --- End Definitions OUTSIDE the component --- 
 
 const WorkflowEditorContent: React.FC = () => {
-  const [nodes, setNodes] = useNodesState<WorkflowNodeData>([]);
-  const [edges, setEdges] = useEdgesState([]);
+  const [nodes, setNodes, onNodesChange] = useNodesState<WorkflowNodeData>([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { getNode, getNodes, getEdges, project, setViewport } = useReactFlow();
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -109,126 +113,94 @@ const WorkflowEditorContent: React.FC = () => {
   const [isInfoPanelExiting, setIsInfoPanelExiting] = useState(false);
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
   
-  // Add a history stack to store previous states
-  const [history, setHistory] = useState<{nodes: string, edges: string}[]>([]);
+  // Add state for undo/redo history
+  const [history, setHistory] = useState<{nodes: Node[]; edges: Edge[]}[]>([]);
+  const [currentHistoryIndex, setCurrentHistoryIndex] = useState(-1);
   
   // We need to use refs to store the function references to avoid circular dependencies
   const onAddChildNodeRef = useRef<Function | null>(null);
   const handleInitiateWorkflowRef = useRef<Function | null>(null);
   
-  // Record state changes to history
-  const recordHistory = useCallback((nodes: Node<WorkflowNodeData>[], edges: Edge[]) => {
-    if (nodes.length === 0) return; // Don't record empty states
-    
-    // Store the state as a JSON string to ensure deep copying
-    const nodesWithoutFunctions = nodes.map(node => {
-      const { data, ...rest } = node;
-      // Create a new data object without function properties
-      let newData: any = { ...data };
-      if (node.type === 'topicalKeyword') {
-        // Remove the function property from topical keyword nodes
-        const { onAddChildNode, ...dataRest } = newData;
-        newData = dataRest;
-      }
-      if (node.type === 'start') {
-        // Remove the function property from start nodes
-        const { onInitiateWorkflow, ...dataRest } = newData;
-        newData = dataRest;
-      }
-      return { ...rest, data: newData };
-    });
-    
+  // Record history function
+  const recordHistory = useCallback((nodes: Node[], edges: Edge[]) => {
     setHistory(prev => {
-      // Don't add duplicate states
-      const newStateStr = JSON.stringify({ nodes: nodesWithoutFunctions, edges });
-      const lastStateStr = prev.length > 0 ? prev[prev.length - 1].nodes : '';
-      
-      if (lastStateStr === newStateStr) return prev;
-      return [...prev, { nodes: JSON.stringify(nodesWithoutFunctions), edges: JSON.stringify(edges) }];
+      // If we're not at the end of the history, remove future states
+      const newHistory = prev.slice(0, currentHistoryIndex + 1);
+      // Add new state
+      return [...newHistory, {nodes: [...nodes], edges: [...edges]}];
     });
-  }, []);
-  
-  // Handle undo button click
+    setCurrentHistoryIndex(prev => prev + 1);
+  }, [currentHistoryIndex]);
+
+  // Handle undo
   const handleUndo = useCallback(() => {
-    if (history.length === 0) {
-      console.log("No history to undo");
-      return;
+    if (currentHistoryIndex > 0) {
+      const previousState = history[currentHistoryIndex - 1];
+      setNodes(previousState.nodes);
+      setEdges(previousState.edges);
+      setCurrentHistoryIndex(prev => prev - 1);
     }
-    
-    // Get the previous state
-    const prevState = history[history.length - 1];
-    console.log("Undoing to previous state");
-    
-    // Parse the saved state
-    const parsedNodes = JSON.parse(prevState.nodes) as Node[];
-    const parsedEdges = JSON.parse(prevState.edges) as Edge[];
-    
-    // Restore function references
-    const restoredNodes = parsedNodes.map(node => {
-      if (node.type === 'topicalKeyword') {
-        return {
-          ...node,
-          data: {
-            ...node.data,
-            onAddChildNode: (childType: string) => {
-              if (onAddChildNodeRef.current) {
-                (onAddChildNodeRef.current as Function)(node.id, childType);
-              }
-            }
-          }
-        };
+  }, [currentHistoryIndex, history, setNodes, setEdges]);
+
+  // Handle redo
+  const handleRedo = useCallback(() => {
+    if (currentHistoryIndex < history.length - 1) {
+      const nextState = history[currentHistoryIndex + 1];
+      setNodes(nextState.nodes);
+      setEdges(nextState.edges);
+      setCurrentHistoryIndex(prev => prev + 1);
+    }
+  }, [currentHistoryIndex, history, setNodes, setEdges]);
+
+  // Add keyboard shortcuts for undo/redo
+  useEffect(() => {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === 'z') {
+        if (event.shiftKey) {
+          handleRedo();
+        } else {
+          handleUndo();
+        }
+      } else if ((event.ctrlKey || event.metaKey) && event.key === 'y') {
+        handleRedo();
       }
-      if (node.type === 'start') {
-        return {
-          ...node,
-          data: {
-            ...node.data,
-            onInitiateWorkflow: (type: string) => {
-              if (handleInitiateWorkflowRef.current) {
-                (handleInitiateWorkflowRef.current as Function)(type);
-              }
-            }
-          }
-        };
-      }
-      return node;
-    });
-    
-    // Update the state
-    setNodes(restoredNodes as Node<WorkflowNodeData>[]);
-    setEdges(parsedEdges);
-    
-    // Remove the used state from history
-    setHistory(prev => prev.slice(0, -1));
-  }, [history, setNodes, setEdges]);
-  
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [handleUndo, handleRedo]);
+
   // Custom nodes change handler that records history
   const onNodesChangeHandler: OnNodesChange = useCallback(
     (changes) => {
+      // Only record history for non-selection changes
       if (changes.some(change => change.type !== 'select')) {
-        // Only record history for non-selection changes
-        recordHistory(getNodes(), getEdges());
+        const currentNodes = getNodes();
+        const currentEdges = getEdges();
+        onNodesChange(changes);
+        recordHistory(currentNodes, currentEdges);
+      } else {
+        onNodesChange(changes);
       }
       
-      setNodes((nds) => applyNodeChanges(changes, nds));
       changes.forEach((change) => {
         if (change.type === 'select') {
           setSelectedNodeId(change.selected ? change.id : null);
         }
       });
     },
-    [setNodes, recordHistory, getNodes, getEdges]
+    [onNodesChange, recordHistory, getNodes, getEdges]
   );
 
   // Custom edges change handler that records history
   const onEdgesChangeHandler: OnEdgesChange = useCallback(
     (changes) => {
-      // Record current state before applying changes
-      recordHistory(getNodes(), getEdges());
-      
-      setEdges((eds) => applyEdgeChanges(changes, eds));
+      const currentNodes = getNodes();
+      const currentEdges = getEdges();
+      onEdgesChange(changes);
+      recordHistory(currentNodes, currentEdges);
     },
-    [setEdges, recordHistory, getNodes, getEdges]
+    [onEdgesChange, recordHistory, getNodes, getEdges]
   );
 
   // Add Note function creates a React Flow node
@@ -236,10 +208,11 @@ const WorkflowEditorContent: React.FC = () => {
     if (!reactFlowWrapper.current) return;
     
     // Record current state before adding a note
-    recordHistory(getNodes(), getEdges());
+    const currentNodes = getNodes();
+    const currentEdges = getEdges();
     
     // Count existing notes to calculate offset
-    const existingNoteCount = getNodes().filter(n => n.type === 'note').length;
+    const existingNoteCount = currentNodes.filter(n => n.type === 'note').length;
     const yOffset = existingNoteCount * 40; // Offset each new note vertically
 
     const position = project({
@@ -261,7 +234,14 @@ const WorkflowEditorContent: React.FC = () => {
       dragHandle: `#note-header-${newNoteId}`, 
     };
 
-    setNodes((nds) => nds.concat(newNode));
+    // Create a new state that includes the new node
+    const newNodes = [...currentNodes, newNode];
+    
+    // Update the state
+    setNodes(newNodes);
+    
+    // Record the state change as a single history entry
+    recordHistory(currentNodes, currentEdges);
   }, [project, setNodes, getNodes, getEdges, recordHistory]);
 
   // organizeLayout function
@@ -353,10 +333,15 @@ const WorkflowEditorContent: React.FC = () => {
     } else {
       requestedChildType = childTypeOrNext;
     }
+    
+    // Comment out the check preventing Social Media node creation from Topical Keyword
+    /*
     if (parentNode.type === 'topicalKeyword' && requestedChildType === 'socialMedia') {
         console.log('[Workflow Rule] Social Media cannot be created directly from Topical Keyword.');
         return;
     }
+    */
+
     if (parentNode.type === 'socialMedia') {
         console.log('[Workflow Rule] Cannot add children to Social Media node.');
         return;
@@ -398,10 +383,14 @@ const WorkflowEditorContent: React.FC = () => {
         position: newNodePosition,
         width: 128, 
         height: 128, 
-        selectable: requestedChildType !== 'socialMedia',
+        selectable: true,
         data: { 
             isEntering: true,
             canAddChild: requestedChildType !== 'socialMedia',
+            onAddChildNode: (parentId: string, childType: ContentType) => {
+              onAddChildNode(parentId, childType);
+            },
+            ...(requestedChildType === 'video' && { isLeftConnected: true, isRightConnected: false })
         },
     };
     const newEdge: Edge = {
@@ -474,9 +463,9 @@ const WorkflowEditorContent: React.FC = () => {
       position: position, 
       data: {
         isEntering: true, 
-        // Pass necessary props for TopicalKeywordNode
-        onAddChildNode: (childType: string) => { 
-            onAddChildNode(newNodeId, childType as ContentType);
+        isRightConnected: false,
+        onAddChildNode: (parentId: string, childType: ContentType) => { 
+            onAddChildNode(parentId, childType); 
         },
       },
     };
@@ -661,6 +650,76 @@ const WorkflowEditorContent: React.FC = () => {
     // Add setters and setViewport to dependency array
   }, [setNodes, setEdges, setViewport, setHistory]);
   // --- End of useEffect for loading data ---
+
+  // useEffect to update connection status on nodes when edges change
+  useEffect(() => {
+    if (!nodes || nodes.length === 0 || !edges) return; // Guard clause
+
+    const connectedTargets = new Set(
+      edges.map(edge => `${edge.target}-${edge.targetHandle}`)
+    );
+    const connectedSources = new Set(
+      edges.map(edge => `${edge.source}-${edge.sourceHandle}`)
+    );
+
+    let nodesChanged = false;
+    const updatedNodes = nodes.map(node => {
+      let dataChanged = false;
+      let newData = { ...node.data };
+
+      // Handle Video, Article, Podcast, SocialMedia left connection status
+      if (node.type === 'video' || node.type === 'article' || node.type === 'podcast' || node.type === 'socialMedia') {
+        const targetHandleId = `${node.id}-left-target`;
+        const currentIsLeftConnected = (newData as ContentNodeData).isLeftConnected ?? false;
+        const newIsLeftConnected = connectedTargets.has(targetHandleId);
+        
+        // Handle Right connection only for relevant types
+        let currentIsRightConnected = false;
+        let newIsRightConnected = false;
+        let rightStatusChanged = false;
+        if (node.type !== 'socialMedia') { // Only check right for non-social media
+            const sourceHandleId = `${node.id}-right-source`;
+            currentIsRightConnected = (newData as ContentNodeData).isRightConnected ?? false;
+            newIsRightConnected = connectedSources.has(sourceHandleId);
+            rightStatusChanged = newIsRightConnected !== currentIsRightConnected;
+        }
+
+        if (newIsLeftConnected !== currentIsLeftConnected || rightStatusChanged) {
+          newData = {
+            ...newData,
+            isLeftConnected: newIsLeftConnected,
+            // Only set isRightConnected if it's not social media
+            ...(node.type !== 'socialMedia' && { isRightConnected: newIsRightConnected }), 
+          };
+          dataChanged = true;
+        }
+      } else if (node.type === 'topicalKeyword') {
+        // Keep existing logic for topicalKeyword right connection
+        const sourceHandleId = `${node.id}-right-source`;
+        const currentIsRightConnected = (newData as TopicalKeywordNodeData).isRightConnected ?? false;
+        const newIsRightConnected = connectedSources.has(sourceHandleId);
+
+        if (newIsRightConnected !== currentIsRightConnected) {
+          newData = {
+            ...newData,
+            isRightConnected: newIsRightConnected,
+          };
+          dataChanged = true;
+        }
+      }
+
+      if (dataChanged) {
+        nodesChanged = true;
+        return { ...node, data: newData };
+      }
+      return node;
+    });
+
+    // Only update state if connection status actually changed for any relevant node
+    if (nodesChanged) {
+      setNodes(updatedNodes); 
+    }
+  }, [edges, nodes, setNodes]); // Rerun when edges or nodes change
 
   return (
     <>

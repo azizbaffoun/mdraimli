@@ -1,3 +1,15 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3799DB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <polygon points="5 3 19 12 5 21 5 3"></polygon>
-</svg> 
+<svg xmlns="http://www.w3.org/2000/svg" width="132.5" height="141.017" viewBox="0 0 132.5 141.017">
+  <g id="Group_5336" data-name="Group 5336" transform="translate(-680 -313)">
+    <rect id="Rectangle_1632" data-name="Rectangle 1632" width="116" height="116" rx="40" transform="translate(680 313)" fill="#3799db" opacity="0.28"/>
+    <rect id="Rectangle_1635" data-name="Rectangle 1635" width="110" height="110" rx="40" transform="translate(683 316)" fill="#3799db" stroke="rgba(0,0,0,0)" stroke-miterlimit="10" stroke-width="1"/>
+    <text id="Start" transform="translate(719.001 450.017)" fill="#3799db" font-size="16" font-family="SegoeUI, Segoe UI"><tspan x="0" y="0">Start</tspan></text>
+    <path id="si_play-fill" d="M7.475,3.779,35.641,19.625a1.661,1.661,0,0,1,0,2.894L7.475,38.364A1.661,1.661,0,0,1,5,36.915V5.228A1.664,1.664,0,0,1,7.475,3.779Z" transform="translate(719.999 350.432)" fill="#fff" stroke="rgba(0,0,0,0)" stroke-miterlimit="10" stroke-width="1"/>
+    <g id="Group_3855" data-name="Group 3855" transform="translate(411.54 -16)">
+      <path id="Rectangle_1636" data-name="Rectangle 1636" d="M0,0H4A12,12,0,0,1,16,12v0A12,12,0,0,1,4,24H0a0,0,0,0,1,0,0V0A0,0,0,0,1,0,0Z" transform="translate(384.46 372)" fill="#86c1e9" stroke="rgba(0,0,0,0)" stroke-miterlimit="10" stroke-width="1"/>
+      <g id="add-circle" transform="translate(380.741 372.281)">
+        <path id="Path_687" data-name="Path 687" d="M15.609,12.656H7.828a.828.828,0,0,1,0-1.656h7.781a.828.828,0,0,1,0,1.656Z" transform="translate(0 -0.11)" fill="#fff"/>
+        <path id="Path_688" data-name="Path 688" d="M11.828,16.437A.828.828,0,0,1,11,15.609V7.828a.828.828,0,1,1,1.656,0v7.781A.828.828,0,0,1,11.828,16.437Z" transform="translate(-0.11)" fill="#fff"/>
+      </g>
+    </g>
+  </g>
+</svg>
