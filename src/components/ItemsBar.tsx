@@ -13,7 +13,6 @@ import podcastIcon from '@/assets/icons/podcast icon.svg';
 import socialMediaIcon from '@/assets/icons/social media icon.svg';
 
 // Import other necessary components/icons
-// import organizeIcon from '@/assets/icons/organize_icon.svg'; // No longer used directly here
 import toolsIcon from '@/assets/icons/tools.svg'; 
 import BottomMenuBackground from './BottomMenuBackground';
 import IconButton from './IconButton';
@@ -24,7 +23,6 @@ interface ItemsBarProps {
   isNodeSelected: boolean;
   selectedNodeId: string | null;
   onIconClick: (parentId: string, childType: ContentType | "next") => void;
-  // Add props for new utility buttons if they need actions
   onSave?: () => void;
   onAddNote?: () => void;
   onOrganizeLayout?: () => void;
@@ -32,13 +30,12 @@ interface ItemsBarProps {
 }
 
 // Define Separator component for reuse
-const Separator: React.FC = () => (
-  <div className="h-8 border-l border-gray-300 mx-1"></div>
+const Separator = () => (
+  <div className="w-px h-6 bg-[#ccd6df] mx-1" />
 );
 
 const ItemsBar: React.FC<ItemsBarProps> = ({
   isVisible,
-  
   selectedNodeId,
   onIconClick,
   onSave, 
@@ -46,12 +43,11 @@ const ItemsBar: React.FC<ItemsBarProps> = ({
   onOrganizeLayout,
   onUndo
 }) => {
-
   // Define the utility icons and their labels/actions
   const utilityItems = [
     { icon: saveIcon, label: 'Save', action: onSave },
     { icon: pasteIcon, label: 'Add Note', action: onAddNote },
-    { icon: alignIcon, label: 'Align Layout', action: onOrganizeLayout }, // Assuming align action
+    { icon: alignIcon, label: 'Align Layout', action: onOrganizeLayout },
     { icon: undoIcon, label: 'Undo', action: onUndo },
   ];
 
@@ -80,38 +76,36 @@ const ItemsBar: React.FC<ItemsBarProps> = ({
         <BottomMenuBackground />
         
         <div className="relative z-10 flex items-center space-x-2">
-            
-            {/* Tools Icon and Text */}
-            <div className="flex items-center mr-1">
-              <img src={toolsIcon} alt="Tools" className="h-[23px]" />
-            </div>
+          {/* Tools Icon and Text */}
+          <div className="flex items-center mr-1">
+            <img src={toolsIcon} alt="Tools" className="h-[23px]" />
+          </div>
 
-            <Separator />
+          <Separator />
 
-            {/* Utility Buttons */}
-            {utilityItems.map((item) => (
-              <IconButton
-                key={item.label}
-                iconSrc={item.icon}
-                altText={item.label}
-                onClick={item.action}
-                title={item.label}
-              />
-            ))}
+          {/* Utility Buttons */}
+          {utilityItems.map((item) => (
+            <IconButton
+              key={item.label}
+              iconSrc={item.icon}
+              altText={item.label}
+              onClick={item.action}
+              title={item.label}
+            />
+          ))}
 
-            <Separator />
+          <Separator />
 
-            {/* Creation Buttons */}
-            {creationItems.map((item) => (
-              <IconButton
-                key={item.type}
-                iconSrc={item.icon}
-                altText={item.label}
-                onClick={() => handleCreationIconClick(item.type)}
-                title={`Add ${item.label} Node`}
-              />
-            ))}
-            
+          {/* Creation Buttons */}
+          {creationItems.map((item) => (
+            <IconButton
+              key={item.type}
+              iconSrc={item.icon}
+              altText={item.label}
+              onClick={() => handleCreationIconClick(item.type)}
+              title={`Add ${item.label} Node`}
+            />
+          ))}
         </div>
       </div>
     </div>

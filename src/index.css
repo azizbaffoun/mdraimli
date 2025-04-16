@@ -329,4 +329,104 @@ body {
 
 .node-type-topicalKeyword.selected .topical-keyword-plus-button {
   opacity: 1;
+}
+
+/* Tools Bar Animations */
+@keyframes toolsToggle {
+  0% {
+    transform: translate(-50%, 0) scale(0.95);
+  }
+  50% {
+    transform: translate(-50%, 0) scale(0.5);
+  }
+  100% {
+    transform: translate(-50%, 0) scale(0.95);
+  }
+}
+
+@keyframes toolsIconSpin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-tools-toggle {
+  animation: toolsToggle 0.3s ease-in-out;
+}
+
+.animate-tools-icon {
+  animation: toolsIconSpin 0.3s ease-in-out;
+}
+
+/* TipTap Editor Styles */
+.ProseMirror {
+  @apply p-0 focus:outline-none min-h-[100px];
+}
+
+.ProseMirror p {
+  @apply my-1;
+}
+
+.ProseMirror > * + * {
+  @apply mt-2;
+}
+
+.ProseMirror ul,
+.ProseMirror ol {
+  @apply pl-4;
+}
+
+.ProseMirror ul {
+  @apply list-disc;
+}
+
+.ProseMirror ol {
+  @apply list-decimal;
+}
+
+.ProseMirror h1 {
+  @apply text-2xl font-bold;
+}
+
+.ProseMirror h2 {
+  @apply text-xl font-bold;
+}
+
+.ProseMirror h3 {
+  @apply text-lg font-bold;
+}
+
+.ProseMirror a {
+  @apply text-blue-500 underline;
+}
+
+.ProseMirror blockquote {
+  @apply pl-4 border-l-4 border-gray-300 italic;
+}
+
+.ProseMirror code {
+  @apply bg-gray-100 rounded px-1;
+}
+
+.ProseMirror pre {
+  @apply bg-gray-100 rounded p-2;
+}
+
+.ProseMirror img {
+  @apply max-w-full h-auto;
+}
+
+.ProseMirror hr {
+  @apply my-4 border-t border-gray-300;
+}
+
+.ProseMirror p.is-editor-empty:first-child::before {
+  @apply text-gray-400;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
 } 

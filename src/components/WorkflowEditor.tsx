@@ -41,6 +41,9 @@ import WorkflowInfoPanel from '@/components/WorkflowInfoPanel';
 // Import Custom Edge types
 import { edgeTypes as customEdgeTypesImport } from '@/components/CustomEdge';
 
+// Import ZoomControl
+import ZoomControl from './ZoomControl';
+
 // --- Define Types and Constants OUTSIDE the component --- 
 
 // Extend the global Window interface to include passData AND loadDataIntoReact
@@ -107,7 +110,7 @@ const WorkflowEditorContent: React.FC = () => {
   const [nodes, setNodes, onNodesChange] = useNodesState<WorkflowNodeData>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
-  const { getNode, getNodes, getEdges, project, setViewport } = useReactFlow();
+  const { getNode, getNodes, getEdges, project, setViewport, zoomIn, zoomOut } = useReactFlow();
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [showInfoPanel, setShowInfoPanel] = useState(true);
   const [isInfoPanelExiting, setIsInfoPanelExiting] = useState(false);
@@ -589,7 +592,6 @@ const WorkflowEditorContent: React.FC = () => {
     }
   }, [reactFlowInstance]);
 
-  const isItemsBarVisible = !nodes.some(node => node.id === initialNodeId);
   const isNodeSelected = !!selectedNodeId; 
 
   // --- Add useEffect for loading data ---
@@ -721,6 +723,21 @@ const WorkflowEditorContent: React.FC = () => {
     }
   }, [edges, nodes, setNodes]); // Rerun when edges or nodes change
 
+  const [zoomLevel, setZoomLevel] = useState(1);
+
+  const handleZoomIn = useCallback(() => {
+    zoomIn();
+  }, [zoomIn]);
+
+  const handleZoomOut = useCallback(() => {
+    zoomOut();
+  }, [zoomOut]);
+
+  // Update zoom level when viewport changes
+  const handleViewportChange = useCallback((_: any, viewport: Viewport) => {
+    setZoomLevel(viewport.zoom);
+  }, []);
+
   return (
     <>
       {showInfoPanel && <WorkflowInfoPanel isExiting={isInfoPanelExiting} />}
@@ -736,14 +753,16 @@ const WorkflowEditorContent: React.FC = () => {
           edgeTypes={edgeTypes}
           defaultEdgeOptions={{ type: 'customGradientEdge' }} 
           connectionMode={ConnectionMode.Loose}
+          defaultViewport={{ x: 0, y: 0, zoom: 1 }}
           fitView 
-          fitViewOptions={{ padding: 2.0 }}
+          fitViewOptions={{ padding: 2.0, maxZoom: 1 }}
           nodesConnectable={true} 
           nodesDraggable={true}
           selectNodesOnDrag={false}
           onNodeClick={onNodeClick}
           onPaneClick={onPaneClick}
           onInit={setReactFlowInstance}
+          onMove={handleViewportChange}
         >
           <Controls />
           <Background />
@@ -751,7 +770,7 @@ const WorkflowEditorContent: React.FC = () => {
       </div>
       
       {nodes.length > 0 && <ItemsBar 
-        isVisible={isItemsBarVisible} 
+        isVisible={true} 
         isNodeSelected={isNodeSelected} 
         selectedNodeId={selectedNodeId}
         onIconClick={onAddChildNode}
@@ -760,6 +779,12 @@ const WorkflowEditorContent: React.FC = () => {
         onUndo={handleUndo}
         onSave={saveWorkflow}
       />}
+
+      <ZoomControl
+        zoomLevel={zoomLevel}
+        onZoomIn={handleZoomIn}
+        onZoomOut={handleZoomOut}
+      />
     </>
   );
 };
