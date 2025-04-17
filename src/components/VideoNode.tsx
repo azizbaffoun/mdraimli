@@ -29,7 +29,6 @@ interface ContentNodeData {
 
 const VideoNode: React.FC<NodeProps<ContentNodeData>> = ({ id, data }) => {
   const animationClass = data.isEntering ? 'node-bouncing-in' : ''; // Use bouncing animation
-  const nodeColor = '#1DA1F2'; // This might not be needed if gradient is fixed
   const [showPlusButton, setShowPlusButton] = useState(data.canAddChild ?? true);
   const [menuOpen, setMenuOpen] = useState(false); // State for menu visibility
 

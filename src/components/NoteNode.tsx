@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { NodeProps, useReactFlow, useUpdateNodeInternals, Handle, Position } from 'reactflow';
+import React, { useState, useEffect, useRef } from 'react';
+import { NodeProps, useReactFlow, Handle, Position } from 'reactflow';
 import { v4 as uuidv4 } from 'uuid';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
@@ -23,14 +23,12 @@ const defaultTitle = "Note Title Here";
 const defaultContent = "Add Your Note...";
 
 // Constants for layout
-const HEADER_HEIGHT = 35;
 const LINE_HEIGHT = 21;
 const MIN_CONTENT_HEIGHT = LINE_HEIGHT + 24; // Base height + padding
 const MAX_CONTENT_HEIGHT = LINE_HEIGHT * 7; // 7 lines max
 
 const NoteNode: React.FC<NodeProps<NoteNodeData>> = ({ id, data }) => {
   const { setNodes, getNode } = useReactFlow();
-  const updateNodeInternals = useUpdateNodeInternals();
   const menuRef = useRef<HTMLDivElement>(null);
   const optionsMenuRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -70,12 +68,18 @@ const NoteNode: React.FC<NodeProps<NoteNodeData>> = ({ id, data }) => {
       setIsPlaceholderActive(false);
     },
     onSelectionUpdate: ({ editor }) => {
-      const { from, to } = editor.state.selection;
-      if (from !== to) {
-        const view = editor.view;
-        const { left, top, bottom } = view.coordsAtPos(from);
-        const height = bottom - top;
-        setToolbarPosition({ x: left, y: top + height / 2 });
+      if (!editor.state.selection.empty) {
+        const { from } = editor.state.selection;
+        const node = editor.view.domAtPos(from);
+        const element = node.node as HTMLElement;
+        const editorElement = editor.view.dom as HTMLElement;
+        const elementRect = element.getBoundingClientRect();
+        const editorRect = editorElement.getBoundingClientRect();
+        
+        setToolbarPosition({
+          x: elementRect.left + (elementRect.width / 2) - editorRect.left,
+          y: elementRect.top - editorRect.top
+        });
       } else {
         setToolbarPosition(null);
       }
