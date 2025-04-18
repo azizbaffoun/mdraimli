@@ -5,6 +5,7 @@ import { Handle, Position, NodeProps } from 'reactflow';
 // import videoSvg from '@/assets/nodes/video.svg'; 
 
 import NodeAddMenu from './NodeAddMenu';
+import PopupSelect from './PopupSelect';
 
 // Remove connector config import
 // import { nodeConnectors } from '@/config/nodeConnectors'; 
@@ -22,12 +23,13 @@ interface ContentNodeData {
   // Add connection status props
   isLeftConnected?: boolean;
   isRightConnected?: boolean;
+  onDelete?: (nodeId: string) => void; // Add onDelete handler
 }
 
 // Remove connector config usage
 // const connectors = nodeConnectors.video;
 
-const VideoNode: React.FC<NodeProps<ContentNodeData>> = ({ id, data }) => {
+const VideoNode: React.FC<NodeProps<ContentNodeData>> = ({ id, data, selected, xPos, yPos }) => {
   const animationClass = data.isEntering ? 'node-bouncing-in' : ''; // Use bouncing animation
   const [showPlusButton, setShowPlusButton] = useState(data.canAddChild ?? true);
   const [menuOpen, setMenuOpen] = useState(false); // State for menu visibility
@@ -44,13 +46,37 @@ const VideoNode: React.FC<NodeProps<ContentNodeData>> = ({ id, data }) => {
       data.onAddChildNode(parentId, type); 
       setShowPlusButton(false); 
     }
+    setMenuOpen(false);
   };
 
   // Define options available from Video node - Show all
   const availableMenuOptions: ContentType[] = ['article', 'video', 'podcast', 'socialMedia'];
 
+  const handleDocumentClick = () => {
+    console.log('Document clicked');
+  };
+
+  const handleSettingsClick = () => {
+    console.log('Settings clicked');
+  };
+
+  const handleDeleteClick = () => {
+    console.log('Delete clicked');
+    if (data.onDelete) {
+      data.onDelete(id);
+    }
+  };
+
   return (
     <div className={`relative flex flex-col items-center ${animationClass}`}>
+      {selected && (
+        <PopupSelect
+          onDocumentClick={handleDocumentClick}
+          onSettingsClick={handleSettingsClick}
+          onDeleteClick={handleDeleteClick}
+          notificationCount={9}
+        />
+      )}
       <div
         className={`relative node-wrapper node-type-video w-32 h-32`}
         // Remove style if nodeColor isn't used
@@ -129,9 +155,7 @@ const VideoNode: React.FC<NodeProps<ContentNodeData>> = ({ id, data }) => {
             </svg>
         </div>
 
-        {/* --- Right Side Elements --- */} 
-
-        {/* Render Combined Connector/Plus Button ONLY if showPlusButton is true AND NOT connected */}
+        {/* Right Side Elements */}
         {showPlusButton && !data.isRightConnected && (
           <>
             <div 
@@ -148,7 +172,6 @@ const VideoNode: React.FC<NodeProps<ContentNodeData>> = ({ id, data }) => {
                </svg>
             </div>
 
-            {/* Add Menu Component - Only shown when plus button is clicked */}
             <NodeAddMenu
               parentId={id}
               isOpen={menuOpen}
@@ -160,20 +183,15 @@ const VideoNode: React.FC<NodeProps<ContentNodeData>> = ({ id, data }) => {
           </>
         )}
 
-        {/* Render Connector-Only Visual ONLY if isRightConnected is true */}
         {data.isRightConnected && (
             <div 
               className={`video-node-connector-right-connected absolute right-[-16.5px] top-1/2 transform -translate-y-1/2 pointer-events-none z-20`}
-              // No onClick needed here
             >
               <svg width="17" height="25" viewBox="0 0 17 25" >
-                 {/* Same shape and color as the combined one, just without the plus group */}
                  <path d="M0,0H4A12,12,0,0,1,16,12v0A12,12,0,0,1,4,24H0a0,0,0,0,1,0,0V0A0,0,0,0,1,0,0Z" transform="translate(0.5 0.5)" fill="#82ced1" stroke="rgba(0,0,0,0)" strokeMiterlimit="10" strokeWidth="1"/>
                </svg>
             </div>
         )}
-        {/* --- End Right Side Elements --- */} 
-
       </div>
       <div className="mt-2 text-sm text-black">Video</div>
     </div>

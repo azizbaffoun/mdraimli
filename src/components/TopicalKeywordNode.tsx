@@ -7,6 +7,7 @@ import { Handle, Position, NodeProps } from 'reactflow';
 // import rightTopicalKeywordSvg from '@/assets/component to link the nodes/right topical keyword.svg';
 
 import NodeAddMenu from './NodeAddMenu';
+import PopupSelect from './PopupSelect';
 
 type ContentType = 'article' | 'video' | 'podcast' | 'socialMedia';
 
@@ -17,7 +18,7 @@ interface TopicalKeywordNodeData {
   isSelected?: boolean;
 }
 
-const TopicalKeywordNode: React.FC<NodeProps<TopicalKeywordNodeData>> = ({ id, data, selected }) => {
+const TopicalKeywordNode: React.FC<NodeProps<TopicalKeywordNodeData>> = ({ id, data, selected, xPos, yPos }) => {
   const nodeColor = '#3799DB';
   const [menuOpen, setMenuOpen] = useState(false);
   // RESTORE showPlusButton state
@@ -37,12 +38,33 @@ const TopicalKeywordNode: React.FC<NodeProps<TopicalKeywordNodeData>> = ({ id, d
     setMenuOpen(false);
   };
 
+  const handleDocumentClick = () => {
+    console.log('Document clicked');
+  };
+
+  const handleSettingsClick = () => {
+    console.log('Settings clicked');
+  };
+
+  const handleDeleteClick = () => {
+    console.log('Delete clicked');
+  };
+
   const animationClass = data.isEntering ? 'node-bouncing-in' : '';
 
   return (
     <div
       className={`relative flex flex-col items-center ${animationClass}`}
     >
+      {selected && (
+        <PopupSelect
+          position={{ x: xPos + 64, y: yPos + 128 }}
+          onDocumentClick={handleDocumentClick}
+          onSettingsClick={handleSettingsClick}
+          onDeleteClick={handleDeleteClick}
+          notificationCount={9}
+        />
+      )}
       <div
         className={`relative node-wrapper node-type-topicalKeyword w-32 h-32 transition-transform duration-200 ${selected ? 'selected' : ''} ${data.isRightConnected ? 'is-connected' : ''}`}
         style={{ '--node-color': nodeColor } as React.CSSProperties}

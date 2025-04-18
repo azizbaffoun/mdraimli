@@ -8,6 +8,7 @@ import { Handle, Position, NodeProps } from 'reactflow';
 // import plusButtonSvg from '@/assets/component to link the nodes/plusbutton.svg';
 
 import NodeAddMenu from './NodeAddMenu';
+import PopupSelect from './PopupSelect';
 
 type ContentType = 'article' | 'video' | 'podcast' | 'socialMedia';
 
@@ -19,9 +20,10 @@ interface PodcastNodeData {
   canAddChild?: boolean;
   isLeftConnected?: boolean;
   isRightConnected?: boolean;
+  onDelete?: (nodeId: string) => void;
 }
 
-const PodcastNode: React.FC<NodeProps<PodcastNodeData>> = ({ id, data }) => {
+const PodcastNode: React.FC<NodeProps<PodcastNodeData>> = ({ id, data, selected, xPos, yPos }) => {
   const animationClass = data.isEntering ? 'node-bouncing-in' : '';
   const [showPlusButton, setShowPlusButton] = useState(data.canAddChild ?? true);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -36,6 +38,7 @@ const PodcastNode: React.FC<NodeProps<PodcastNodeData>> = ({ id, data }) => {
       data.onAddChildNode(parentId, type);
       setShowPlusButton(false);
     }
+    setMenuOpen(false);
   };
 
   const availableMenuOptions: ContentType[] = ['article', 'video', 'podcast', 'socialMedia'];
@@ -52,8 +55,31 @@ const PodcastNode: React.FC<NodeProps<PodcastNodeData>> = ({ id, data }) => {
     </g>
   );
 
+  const handleDocumentClick = () => {
+    console.log('Document clicked');
+  };
+
+  const handleSettingsClick = () => {
+    console.log('Settings clicked');
+  };
+
+  const handleDeleteClick = () => {
+    console.log('Delete clicked');
+    if (data.onDelete) {
+      data.onDelete(id);
+    }
+  };
+
   return (
     <div className={`relative flex flex-col items-center ${animationClass}`}>
+      {selected && (
+        <PopupSelect
+          onDocumentClick={handleDocumentClick}
+          onSettingsClick={handleSettingsClick}
+          onDeleteClick={handleDeleteClick}
+          notificationCount={9}
+        />
+      )}
       <div
         className={`relative node-wrapper node-type-podcast w-32 h-32`}
         onMouseDown={(e) => e.stopPropagation()}

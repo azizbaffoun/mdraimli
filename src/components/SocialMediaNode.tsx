@@ -1,27 +1,49 @@
 import React from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
+import PopupSelect from './PopupSelect';
 
 // Remove SVG imports
 // import socialMediaSvg from '@/assets/nodes/social media.svg';
 // import leftSocialMediaSvg from '@/assets/component to link the nodes/left social media.svg';
 
+type ContentType = 'article' | 'video' | 'podcast' | 'socialMedia';
+
 // Define expected data structure (Add isLeftConnected)
 interface SocialMediaNodeData {
   label?: string;
   isEntering?: boolean;
-  isLeftConnected?: boolean; // Add this prop
+  onAddChildNode?: (parentId: string, childType: ContentType) => void;
+  canAddChild?: boolean;
+  isLeftConnected?: boolean;
+  isRightConnected?: boolean;
+  onDelete?: (nodeId: string) => void;
 }
 
 // Node component
-const SocialMediaNode: React.FC<NodeProps<SocialMediaNodeData>> = ({ data }) => {
+const SocialMediaNode: React.FC<NodeProps<SocialMediaNodeData>> = ({ id, data, selected, xPos, yPos }) => {
   const animationClass = data.isEntering ? 'node-bouncing-in' : '';
   // Remove nodeColor if not used
   // const nodeColor = '#FC8500';
+
+  const handleDeleteClick = () => {
+    console.log('Delete clicked');
+    if (data.onDelete) {
+      data.onDelete(id);
+    }
+  };
 
   return (
     <div
       className={`relative flex flex-col items-center ${animationClass}`}
     >
+      {selected && (
+        <PopupSelect
+          onDocumentClick={() => console.log('Document clicked')}
+          onSettingsClick={() => console.log('Settings clicked')}
+          onDeleteClick={handleDeleteClick}
+          notificationCount={9}
+        />
+      )}
       <div
         className={`relative node-wrapper node-type-socialMedia w-32 h-32`}
         onMouseDown={(e) => e.stopPropagation()}

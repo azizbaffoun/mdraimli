@@ -79,6 +79,7 @@ interface ContentNodeData extends BaseNodeData {
   onAddChildNode?: (parentId: string, childType: ContentType) => void; 
   isLeftConnected?: boolean;
   isRightConnected?: boolean;
+  onDelete?: (nodeId: string) => void;
 }
 interface NoteNodeFlowData extends BaseNodeData { 
   title?: string;
@@ -154,7 +155,80 @@ const WorkflowEditorContent: React.FC = () => {
     }
   }, [currentHistoryIndex, history, setNodes, setEdges]);
 
-  // Add keyboard shortcuts for undo/redo
+  // Handle node deletion
+  const handleDeleteNode = useCallback((nodeId: string) => {
+    const currentNodes = getNodes();
+    const currentEdges = getEdges();
+    
+    // Get the node to be deleted
+    const nodeToDelete = currentNodes.find(n => n.id === nodeId);
+    if (!nodeToDelete) {
+      console.log('[Delete] Node not found:', nodeId);
+      return;
+    }
+
+    // Don't allow deletion of the topical keyword node
+    if (nodeToDelete.type === 'topicalKeyword') {
+      console.log('[Workflow Rule] Cannot delete the topical keyword node.');
+      return;
+    }
+
+    console.log('[Delete] Deleting node:', nodeId);
+
+    // Find edges connected to the node being deleted
+    const incomingEdge = currentEdges.find(edge => edge.target === nodeId);
+    const outgoingEdge = currentEdges.find(edge => edge.source === nodeId);
+
+    // Create a new edge connecting the nodes before and after if they exist
+    let newEdges = currentEdges.filter(
+      edge => edge.source !== nodeId && edge.target !== nodeId
+    );
+
+    if (incomingEdge && outgoingEdge) {
+      const newEdge = {
+        id: `e-${incomingEdge.source}-${outgoingEdge.target}`,
+        source: incomingEdge.source,
+        target: outgoingEdge.target,
+        sourceHandle: 'right-source',
+        targetHandle: 'left-target',
+        type: 'customGradientEdge',
+        data: {},
+      };
+      newEdges.push(newEdge);
+    }
+
+    // Reset canAddChild for previously connected nodes
+    const newNodes = currentNodes.map(node => {
+      if (node.id === nodeId) return node; // Skip the node being deleted
+      
+      // If this node was connected to the deleted node
+      if (incomingEdge?.source === node.id || outgoingEdge?.target === node.id) {
+        // Reset canAddChild to true if it's not a socialMedia node
+        if (node.type !== 'socialMedia' && node.type !== 'topicalKeyword') {
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              canAddChild: true
+            }
+          };
+        }
+      }
+      return node;
+    }).filter(n => n.id !== nodeId); // Remove the deleted node
+
+    // Update state
+    setNodes([...newNodes]);
+    setEdges([...newEdges]);
+    setSelectedNodeId(null);
+
+    // Record the deletion in history AFTER making changes
+    recordHistory(newNodes, newEdges);
+
+    console.log('[Delete] Node deleted, new node count:', newNodes.length);
+  }, [getNodes, getEdges, setNodes, setEdges, recordHistory]);
+
+  // Add keyboard shortcuts for undo/redo and delete
   useEffect(() => {
     const handleKeyPress = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key === 'z') {
@@ -165,12 +239,14 @@ const WorkflowEditorContent: React.FC = () => {
         }
       } else if ((event.ctrlKey || event.metaKey) && event.key === 'y') {
         handleRedo();
+      } else if (event.key === 'Delete' && selectedNodeId) {
+        handleDeleteNode(selectedNodeId);
       }
     };
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [handleUndo, handleRedo]);
+  }, [handleUndo, handleRedo, selectedNodeId, handleDeleteNode]);
 
   // Custom nodes change handler that records history
   const onNodesChangeHandler: OnNodesChange = useCallback(
@@ -392,6 +468,7 @@ const WorkflowEditorContent: React.FC = () => {
             onAddChildNode: (parentId: string, childType: ContentType) => {
               onAddChildNode(parentId, childType);
             },
+            onDelete: handleDeleteNode,
             ...(requestedChildType === 'video' && { isLeftConnected: true, isRightConnected: false })
         },
     };
