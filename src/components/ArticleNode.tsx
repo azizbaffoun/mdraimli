@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 
+// Import necessary types from the types file
+import { ContentNodeData, ContentType } from '@/types/workflowTypes';
+
 // Keep plus button, remove others
 // import articleSvg from '@/assets/nodes/article.svg';
 // import leftArticleSvg from '@/assets/component to link the nodes/left article.svg';
@@ -10,9 +13,8 @@ import { Handle, Position, NodeProps } from 'reactflow';
 import NodeAddMenu from './NodeAddMenu';
 import PopupSelect from './PopupSelect';
 
-type ContentType = 'article' | 'video' | 'podcast' | 'socialMedia';
-
-interface ArticleNodeData {
+// Use the specific interface by extending the imported base type
+interface ArticleNodeData extends ContentNodeData {
   label?: string;
   isEntering?: boolean;
   onAddChildNode: (parentId: string, childType: ContentType) => void;
@@ -24,7 +26,6 @@ interface ArticleNodeData {
 
 const ArticleNode: React.FC<NodeProps<ArticleNodeData>> = ({ id, data, selected, xPos, yPos }) => {
   const animationClass = data.isEntering ? 'node-bouncing-in' : '';
-  const [showPlusButton, setShowPlusButton] = useState(data.canAddChild ?? true);
   const [menuOpen, setMenuOpen] = useState(false);
 
   const handlePlusClick = (e: React.MouseEvent) => {
@@ -35,7 +36,6 @@ const ArticleNode: React.FC<NodeProps<ArticleNodeData>> = ({ id, data, selected,
   const handleSelectOption = (parentId: string, type: ContentType) => {
     if (data.onAddChildNode) {
       data.onAddChildNode(parentId, type);
-      setShowPlusButton(false);
     }
     setMenuOpen(false);
   };
@@ -136,8 +136,8 @@ const ArticleNode: React.FC<NodeProps<ArticleNodeData>> = ({ id, data, selected,
             </svg>
         </div>
 
-        {/* Render Combined Connector/Plus Button ONLY if showPlusButton is true AND NOT connected */}
-        {showPlusButton && !data.isRightConnected && (
+        {/* Render Combined Connector/Plus Button ONLY if canAddChild is true AND NOT connected */}
+        {data.canAddChild && !data.isRightConnected && (
           <>
             <div 
               className="article-node-connector-plus absolute right-[-16.5px] top-1/2 transform -translate-y-1/2 cursor-pointer group z-30 hover:scale-110 transition-transform"

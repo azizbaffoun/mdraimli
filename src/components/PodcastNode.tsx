@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 
+// Import necessary types from the types file
+import { ContentNodeData, ContentType } from '@/types/workflowTypes';
+
 // Keep plus button, remove others
 // import podcastSvg from '@/assets/nodes/podcast.svg';
 // import leftPodcastSvg from '@/assets/component to link the nodes/left podcast.svg';
@@ -10,22 +13,11 @@ import { Handle, Position, NodeProps } from 'reactflow';
 import NodeAddMenu from './NodeAddMenu';
 import PopupSelect from './PopupSelect';
 
-type ContentType = 'article' | 'video' | 'podcast' | 'socialMedia';
-
-// Ensure interface includes connection status props
-interface PodcastNodeData {
-  label?: string;
-  isEntering?: boolean;
-  onAddChildNode: (parentId: string, childType: ContentType) => void;
-  canAddChild?: boolean;
-  isLeftConnected?: boolean;
-  isRightConnected?: boolean;
-  onDelete?: (nodeId: string) => void;
-}
+// Use the specific interface by extending the imported base type
+interface PodcastNodeData extends ContentNodeData {}
 
 const PodcastNode: React.FC<NodeProps<PodcastNodeData>> = ({ id, data, selected, xPos, yPos }) => {
   const animationClass = data.isEntering ? 'node-bouncing-in' : '';
-  const [showPlusButton, setShowPlusButton] = useState(data.canAddChild ?? true);
   const [menuOpen, setMenuOpen] = useState(false);
 
   const handlePlusClick = (e: React.MouseEvent) => {
@@ -36,7 +28,6 @@ const PodcastNode: React.FC<NodeProps<PodcastNodeData>> = ({ id, data, selected,
   const handleSelectOption = (parentId: string, type: ContentType) => {
     if (data.onAddChildNode) {
       data.onAddChildNode(parentId, type);
-      setShowPlusButton(false);
     }
     setMenuOpen(false);
   };
@@ -141,8 +132,8 @@ const PodcastNode: React.FC<NodeProps<PodcastNodeData>> = ({ id, data, selected,
             </svg>
         </div>
 
-        {/* Render Combined Connector/Plus Button ONLY if showPlusButton is true AND NOT connected */}
-        {showPlusButton && !data.isRightConnected && (
+        {/* Render Combined Connector/Plus Button ONLY if canAddChild is true AND NOT connected */}
+        {data.canAddChild && !data.isRightConnected && (
           <>
             <div 
               className="podcast-node-connector-plus absolute right-[-16.5px] top-1/2 transform -translate-y-1/2 cursor-pointer group z-30 hover:scale-110 transition-transform"

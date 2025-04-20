@@ -17,6 +17,26 @@ const nodeColors = {
 const nodeSelector = (s: any) => s.nodeInternals;
 
 // 2. Define the CustomEdge component
+// Helper: Blend two hex colors at a specified ratio (0-1)
+function blendColors(color1: string, color2: string, ratio: number): string {
+    // Remove # if present
+    color1 = color1.replace('#', '');
+    color2 = color2.replace('#', '');
+    // Parse r,g,b
+    const r1 = parseInt(color1.substring(0,2), 16);
+    const g1 = parseInt(color1.substring(2,4), 16);
+    const b1 = parseInt(color1.substring(4,6), 16);
+    const r2 = parseInt(color2.substring(0,2), 16);
+    const g2 = parseInt(color2.substring(2,4), 16);
+    const b2 = parseInt(color2.substring(4,6), 16);
+    // Blend
+    const r = Math.round(r1 * (1 - ratio) + r2 * ratio);
+    const g = Math.round(g1 * (1 - ratio) + g2 * ratio);
+    const b = Math.round(b1 * (1 - ratio) + b2 * ratio);
+    // Return hex
+    return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
+}
+
 const CustomEdge: React.FC<EdgeProps> = ({ 
     id, 
     source, // Use source ID
@@ -24,6 +44,9 @@ const CustomEdge: React.FC<EdgeProps> = ({
     // sourceX, sourceY, targetX, targetY are technically available but potentially inaccurate for our offset handles
     // data prop is no longer needed for node info
 }) => {
+    // --- Fix: Force re-render if distance is zero (background bug workaround) ---
+    const [renderKey, setRenderKey] = React.useState(0);
+
 
     // Get live node data from the store using IDs
     const nodeInternals = useStore(nodeSelector);
@@ -76,6 +99,37 @@ const CustomEdge: React.FC<EdgeProps> = ({
     const visualTargetY = calcTargetY;
     const finalVisualDistance = Math.max(0, distance);
 
+    // --- Debug Logging ---
+    console.log('[CustomEdge Render]', {
+        id,
+        source,
+        target,
+        sourceNodeType: sourceNode?.type,
+        targetNodeType: targetNode?.type,
+        sourceNodePos: sourceNode?.positionAbsolute,
+        targetNodePos: targetNode?.positionAbsolute,
+        sourceNodeWidth,
+        sourceNodeHeight,
+        targetNodeHeight,
+        visualSourceX,
+        visualSourceY,
+        visualTargetX,
+        visualTargetY,
+        finalVisualDistance,
+        renderKey
+    });
+
+
+    // If the distance is 0 (buggy), force a re-render after a tick
+    React.useEffect(() => {
+        if (finalVisualDistance < 2) {
+            console.warn(`[CustomEdge] Forcing re-render due to short distance (id: ${id}, distance: ${finalVisualDistance})`);
+            const timer = setTimeout(() => setRenderKey(k => k + 1), 20);
+            return () => clearTimeout(timer);
+        }
+    }, [finalVisualDistance]);
+
+
     // Get source/target colors from the NODE types in data
     const sourceColor = nodeColors[sourceNode.type as keyof typeof nodeColors] || nodeColors.default;
     const targetColor = nodeColors[targetNode.type as keyof typeof nodeColors] || sourceColor;
@@ -116,37 +170,28 @@ const CustomEdge: React.FC<EdgeProps> = ({
     const colorSplitIndex = Math.ceil(numDashes / 2);
 
     return (
-        <g>
-            {/* Remove Debugging Elements */}
-            {/* <circle ... /> */}
-            {/* <path ... stroke="lime" ... /> */}
-
+        <g key={renderKey}>
             {/* Restore original complex rendering - using direct coordinates */}
             <defs>
                 <linearGradient id={`edge-gradient-${id}`} x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor={sourceColor} stopOpacity="0.2" />
-                    <stop offset="49%" stopColor={sourceColor} stopOpacity="0.2" />
-                    <stop offset="51%" stopColor={targetColor} stopOpacity="0.2" />
-                    <stop offset="100%" stopColor={targetColor} stopOpacity="0.2" />
+                    <stop offset="0%" stopColor={sourceColor} stopOpacity="1" />
+                    <stop offset="49%" stopColor={sourceColor} stopOpacity="1" />
+                    <stop offset="51%" stopColor={targetColor} stopOpacity="1" />
+                    <stop offset="100%" stopColor={targetColor} stopOpacity="1" />
                 </linearGradient>
             </defs>
 
             {/* Background shadow path - Use CALCULATED points, adjusted style */}
+            {/* Background shadow path - blend source and target color, opacity 0.28 */}
             <path
                 d={`M${visualSourceX},${visualSourceY} L${visualTargetX},${visualTargetY}`}
-                stroke={`url(#edge-gradient-${id})`}
-                strokeWidth="20" // Increased width
+                stroke={blendColors(sourceColor, targetColor, 0.5)}
+                strokeWidth="20"
                 fill="none"
                 strokeLinecap="round"
-            >
-                {/* Pulsing animation from provided code */}
-                <animate
-                    attributeName="stroke-opacity"
-                    values="0.2;0.4;0.2"
-                    dur="3s"
-                    repeatCount="indefinite"
-                />
-            </path>
+                style={{ pointerEvents: 'none' }}
+                strokeOpacity={0.28}
+            />
 
             {/* Main line composed of alternating small PATHS */}
             <g

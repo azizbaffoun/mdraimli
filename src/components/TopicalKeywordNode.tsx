@@ -9,20 +9,12 @@ import { Handle, Position, NodeProps } from 'reactflow';
 import NodeAddMenu from './NodeAddMenu';
 import PopupSelect from './PopupSelect';
 
-type ContentType = 'article' | 'video' | 'podcast' | 'socialMedia';
-
-interface TopicalKeywordNodeData {
-  onAddChildNode: (parentId: string, childType: ContentType) => void;
-  isEntering?: boolean;
-  isRightConnected?: boolean;
-  isSelected?: boolean;
-}
+// Import necessary types from the types file
+import { TopicalKeywordNodeData, ContentType } from '@/types/workflowTypes'; // Import correct types
 
 const TopicalKeywordNode: React.FC<NodeProps<TopicalKeywordNodeData>> = ({ id, data, selected, xPos, yPos }) => {
   const nodeColor = '#3799DB';
   const [menuOpen, setMenuOpen] = useState(false);
-  // RESTORE showPlusButton state
-  const [showPlusButton, setShowPlusButton] = useState(true);
 
   const handlePlusClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -32,8 +24,6 @@ const TopicalKeywordNode: React.FC<NodeProps<TopicalKeywordNodeData>> = ({ id, d
   const handleSelectOption = (parentId: string, type: ContentType) => {
     if (data.onAddChildNode) {
       data.onAddChildNode(parentId, type);
-      // RESTORE setting showPlusButton to false
-      setShowPlusButton(false);
     }
     setMenuOpen(false);
   };
@@ -58,7 +48,6 @@ const TopicalKeywordNode: React.FC<NodeProps<TopicalKeywordNodeData>> = ({ id, d
     >
       {selected && (
         <PopupSelect
-          position={{ x: xPos + 64, y: yPos + 128 }}
           onDocumentClick={handleDocumentClick}
           onSettingsClick={handleSettingsClick}
           onDeleteClick={handleDeleteClick}
@@ -121,8 +110,8 @@ const TopicalKeywordNode: React.FC<NodeProps<TopicalKeywordNodeData>> = ({ id, d
         {/* --- End Connector Handle --- */}
 
         {/* --- Interactive Plus Button (using SVG shape) --- */}
-        {/* WRAP plus button and menu in showPlusButton condition */}
-        {showPlusButton && (
+        {/* Show plus button only if NOT right connected */}
+        {!data.isRightConnected && (
           <>
             {/* Positioned div for the clickable SVG plus button - ADD CLASS */}
             <div

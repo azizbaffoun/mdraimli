@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import ReactFlow, {
   Controls,
   Background,
@@ -43,9 +43,18 @@ import { edgeTypes as customEdgeTypesImport } from '@/components/CustomEdge';
 // Import ZoomControl
 import ZoomControl from './ZoomControl';
 
-// --- Define Types and Constants OUTSIDE the component --- 
+// Import shared types (WITHOUT reactflow core types)
+import {
+  WorkflowData,
+  ContentType,
+  StartNodeData,
+  TopicalKeywordNodeData,
+  ContentNodeData,
+  NoteNodeFlowData,
+  WorkflowNodeData
+} from '@/types/workflowTypes';
 
-// Extend the global Window interface to include passData AND loadDataIntoReact
+// Extend the global Window interface (Moved back here from types file)
 declare global {
   interface Window {
     passData?: (data: string) => void;
@@ -53,42 +62,8 @@ declare global {
   }
 }
 
-// --- Add WorkflowData Interface ---
-interface WorkflowData {
-  nodes: Node[]; // Uses the imported Node type
-  edges: Edge[]; // Uses the imported Edge type
-  viewport?: Viewport; // Optional viewport
-}
-// --- End WorkflowData Interface ---
-
-export type ContentType = 'article' | 'video' | 'podcast' | 'socialMedia';
-
-interface BaseNodeData {
-  isEntering?: boolean; 
-  isExiting?: boolean;
-}
-interface StartNodeData extends BaseNodeData {
-  onInitiateWorkflow: (type: string) => void;
-}
-interface TopicalKeywordNodeData extends BaseNodeData {
-  onAddChildNode: (parentId: string, childType: ContentType) => void; 
-  isRightConnected?: boolean;
-}
-interface ContentNodeData extends BaseNodeData {
-  canAddChild?: boolean; 
-  onAddChildNode?: (parentId: string, childType: ContentType) => void; 
-  isLeftConnected?: boolean;
-  isRightConnected?: boolean;
-  onDelete?: (nodeId: string) => void;
-}
-interface NoteNodeFlowData extends BaseNodeData { 
-  title?: string;
-  content?: string;
-}
-type WorkflowNodeData = StartNodeData | TopicalKeywordNodeData | ContentNodeData | NoteNodeFlowData;
-
-// Define nodeTypes map OUTSIDE the component
-const nodeTypes = {
+// Original definitions (kept outside for clarity)
+const nodeTypesDefinition = {
   start: StartNode,
   topicalKeyword: TopicalKeywordNode,
   article: ArticleNode,
@@ -97,10 +72,8 @@ const nodeTypes = {
   socialMedia: SocialMediaNode,
   note: NoteNode, 
 };
-
-// Define edgeTypes OUTSIDE the component
-const edgeTypes = {
-  ...customEdgeTypesImport, // Rely on the spread from CustomEdge.tsx
+const edgeTypesDefinition = {
+  ...customEdgeTypesImport, 
 };
 
 const initialNodeId = 'start-node';
@@ -110,7 +83,7 @@ const WorkflowEditorContent: React.FC = () => {
   const [nodes, setNodes, onNodesChange] = useNodesState<WorkflowNodeData>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
-  const { getNode, getNodes, getEdges, project, setViewport, zoomIn, zoomOut } = useReactFlow();
+  const { getNode, getNodes, getEdges, screenToFlowPosition, setViewport, zoomIn, zoomOut } = useReactFlow();
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [showInfoPanel, setShowInfoPanel] = useState(true);
   const [isInfoPanelExiting, setIsInfoPanelExiting] = useState(false);
@@ -124,60 +97,90 @@ const WorkflowEditorContent: React.FC = () => {
   const onAddChildNodeRef = useRef<Function | null>(null);
   const handleInitiateWorkflowRef = useRef<Function | null>(null);
   
+  // Memoize nodeTypes and edgeTypes INSIDE the component
+  const nodeTypes = useMemo(() => nodeTypesDefinition, []);
+  const edgeTypes = useMemo(() => edgeTypesDefinition, []);
+  
   // Record history function
   const recordHistory = useCallback((nodes: Node[], edges: Edge[]) => {
-    setHistory(prev => {
-      // If we're not at the end of the history, remove future states
-      const newHistory = prev.slice(0, currentHistoryIndex + 1);
-      // Add new state
-      return [...newHistory, {nodes: [...nodes], edges: [...edges]}];
-    });
-    setCurrentHistoryIndex(prev => prev + 1);
-  }, [currentHistoryIndex]);
+    setHistory(prev => [...prev, {
+      nodes: nodes.map(node => {
+        // Create a clean copy without function references
+        const cleanData = { ...node.data };
+        delete cleanData.onAddChildNode;
+        delete cleanData.onDelete;
+        delete cleanData.onInitiateWorkflow;
 
-  // Handle undo
-  const handleUndo = useCallback(() => {
-    if (currentHistoryIndex > 0) {
-      const previousState = history[currentHistoryIndex - 1];
-      setNodes(previousState.nodes);
-      setEdges(previousState.edges);
-      setCurrentHistoryIndex(prev => prev - 1);
-    }
-  }, [currentHistoryIndex, history, setNodes, setEdges]);
+        // Type should be correct now, no need to split
+        // console.log(`[RecordHistory] Node ${node.id}: Storing type = ${node.type || 'default'}`); 
 
-  // Handle redo
-  const handleRedo = useCallback(() => {
-    if (currentHistoryIndex < history.length - 1) {
-      const nextState = history[currentHistoryIndex + 1];
-      setNodes(nextState.nodes);
-      setEdges(nextState.edges);
-      setCurrentHistoryIndex(prev => prev + 1);
-    }
-  }, [currentHistoryIndex, history, setNodes, setEdges]);
+        return {
+          ...node,
+          data: cleanData,
+          // Store the type directly (should be base type)
+          type: node.type || 'default' 
+        };
+      }),
+      edges: edges.map(edge => ({
+        ...edge,
+        // Ensure edge type is preserved or defaulted
+        type: edge.type || 'customGradientEdge'
+      }))
+    }]);
+  }, [setHistory]); 
 
-  // Handle node deletion
+  // Handle node deletion (MOVED BEFORE handleUndo)
   const handleDeleteNode = useCallback((nodeId: string) => {
+    console.log('🗑️ Starting node deletion process for node:', nodeId);
+    
+    // Save current state before deletion
+    recordHistory(getNodes(), getEdges());
+    
     const currentNodes = getNodes();
     const currentEdges = getEdges();
     
     // Get the node to be deleted
     const nodeToDelete = currentNodes.find(n => n.id === nodeId);
     if (!nodeToDelete) {
-      console.log('[Delete] Node not found:', nodeId);
+      console.error('❌ Node to delete not found:', nodeId);
       return;
     }
+
+    console.log('📍 Node to delete:', {
+      id: nodeToDelete.id,
+      type: nodeToDelete.type,
+      data: {
+        ...nodeToDelete.data,
+        canAddChild: nodeToDelete.data?.canAddChild,
+        isLeftConnected: nodeToDelete.data?.isLeftConnected,
+        isRightConnected: nodeToDelete.data?.isRightConnected
+      }
+    });
 
     // Don't allow deletion of the topical keyword node
     if (nodeToDelete.type === 'topicalKeyword') {
-      console.log('[Workflow Rule] Cannot delete the topical keyword node.');
+      console.warn('⚠️ Cannot delete topical keyword node');
       return;
     }
-
-    console.log('[Delete] Deleting node:', nodeId);
 
     // Find edges connected to the node being deleted
     const incomingEdge = currentEdges.find(edge => edge.target === nodeId);
     const outgoingEdge = currentEdges.find(edge => edge.source === nodeId);
+
+    console.log('🔗 Connected edges:', {
+      incoming: incomingEdge ? {
+        id: incomingEdge.id,
+        source: incomingEdge.source,
+        target: incomingEdge.target,
+        type: incomingEdge.type
+      } : null,
+      outgoing: outgoingEdge ? {
+        id: outgoingEdge.id,
+        source: outgoingEdge.source,
+        target: outgoingEdge.target,
+        type: outgoingEdge.type
+      } : null
+    });
 
     // Create a new edge connecting the nodes before and after if they exist
     let newEdges = currentEdges.filter(
@@ -194,51 +197,161 @@ const WorkflowEditorContent: React.FC = () => {
         type: 'customGradientEdge',
         data: {},
       };
+      console.log('➕ Creating new connecting edge:', newEdge);
       newEdges.push(newEdge);
     }
 
     // Reset canAddChild for previously connected nodes
     const newNodes = currentNodes.map(node => {
-      if (node.id === nodeId) return node; // Skip the node being deleted
+      if (node.id === nodeId) return node;
       
-      // If this node was connected to the deleted node
-      if (incomingEdge?.source === node.id || outgoingEdge?.target === node.id) {
-        // Reset canAddChild to true if it's not a socialMedia node
+      // If this is the node that was connected TO the deleted node (e.g., B when deleting C)
+      if (incomingEdge?.source === node.id) {
+        console.log('🔄 Processing previous node:', node.id);
+
+        // Restore the plus button if the node is of a type that can have children 
+        // (Article, Video, Podcast) because its outgoing connection is being removed.
         if (node.type !== 'socialMedia' && node.type !== 'topicalKeyword') {
+          console.log('✨ Restoring plus button to previous node:', node.id);
           return {
             ...node,
             data: {
               ...node.data,
-              canAddChild: true
+              canAddChild: true, // Explicitly allow adding child again
+              isRightConnected: false // It's no longer connected on the right
             }
           };
         }
       }
       return node;
-    }).filter(n => n.id !== nodeId); // Remove the deleted node
+    }).filter(n => n.id !== nodeId);
 
-    // Update state
-    setNodes([...newNodes]);
-    setEdges([...newEdges]);
+    console.log('📊 State update summary:', {
+      nodesRemoved: currentNodes.length - newNodes.length,
+      edgesRemoved: currentEdges.length - newEdges.length,
+      newNodesCount: newNodes.length,
+      newEdgesCount: newEdges.length,
+      nodesPlusbuttonRestored: newNodes.filter(n => n.data?.canAddChild).length
+    });
+
+    setNodes(newNodes);
+    setEdges(newEdges);
     setSelectedNodeId(null);
-
-    // Record the deletion in history AFTER making changes
-    recordHistory(newNodes, newEdges);
-
-    console.log('[Delete] Node deleted, new node count:', newNodes.length);
+    
+    console.log('✅ Node deletion completed');
   }, [getNodes, getEdges, setNodes, setEdges, recordHistory]);
+
+  // Handle undo
+  const handleUndo = useCallback(() => {
+    setHistory(prev => {
+      if (prev.length <= 1) return prev; // Cannot undo initial state
+      const newHistory = prev.slice(0, -1);
+      const lastState = newHistory[newHistory.length - 1];
+
+      // Get connections from the last valid state
+      const connectedTargets = new Set(
+        lastState.edges.map(edge => edge.target)
+      );
+      const connectedSources = new Set(
+        lastState.edges.map(edge => edge.source)
+      );
+
+      // --- Define stable wrappers OUTSIDE the map --- 
+      const stableOnAddChildNode = (nodeId: string) => (childType: ContentType) => {
+        if (onAddChildNodeRef.current) {
+          (onAddChildNodeRef.current as Function)(nodeId, childType);
+        }
+      };
+      const stableOnDelete = (nodeId: string) => () => handleDeleteNode(nodeId);
+      const stableOnInitiateWorkflow = (type: string) => {
+         if (handleInitiateWorkflowRef.current) {
+           (handleInitiateWorkflowRef.current as Function)(type);
+         }
+      };
+      // --- End stable wrappers --- 
+
+      // Restore nodes from the last state
+      const restoredNodes = lastState.nodes.map(node => {
+        // Log the type read from history
+        const typeFromHistory = node.type;
+        console.log(`[HandleUndo] Node ${node.id}: Type read from history = ${typeFromHistory}`);
+
+        const nodeType = node.type; 
+        // Validate type: ensure it's a string and a valid key in our nodeTypes map
+        if (!nodeType || typeof nodeType !== 'string' || !(nodeType in nodeTypes)) { 
+          console.warn("[HandleUndo] Node in history missing or has invalid type:", node.id, "Type read:", typeFromHistory);
+          return { ...node, type: 'default' }; // Fallback if type is missing/invalid
+        }
+        
+        let nodeData = { ...node.data }; // Start with data from history
+
+        // Add functions and connection status based on node type
+        if (['article', 'video', 'podcast', 'socialMedia', 'topicalKeyword'].includes(nodeType)) {
+          // Common handlers for content nodes and topicalKeyword
+          nodeData.onAddChildNode = stableOnAddChildNode(node.id); // Assign stable wrapper
+          nodeData.onDelete = stableOnDelete(node.id);         // Assign stable wrapper
+          
+          const isLeftConnected = connectedTargets.has(node.id);
+          const isRightConnected = connectedSources.has(node.id);
+          
+          if (nodeType !== 'topicalKeyword') { // Content nodes specific
+             nodeData.isLeftConnected = isLeftConnected;
+             nodeData.isRightConnected = isRightConnected;
+             nodeData.canAddChild = nodeType !== 'socialMedia' && !isRightConnected;
+          } else { // TopicalKeyword specific
+             nodeData.isRightConnected = isRightConnected;
+          }
+        } else if (nodeType === 'start') {
+          // Start node specific
+          nodeData.onInitiateWorkflow = stableOnInitiateWorkflow; // Assign stable wrapper
+        }
+
+        console.log(`[HandleUndo] Node ${node.id}: Final type being assigned = ${nodeType}`);
+        return {
+          ...node, 
+          type: nodeType, 
+          data: nodeData 
+        };
+      });
+
+      // Restore edges directly from the last state (including original IDs)
+      const restoredEdges = lastState.edges.map(edge => ({
+        ...edge, // Restore the exact edge object from history
+        // Ensure type is set if needed, but ID should be preserved
+        type: edge.type || 'customGradientEdge'
+      }));
+
+      console.log("Restoring state:", { nodes: restoredNodes, edges: restoredEdges });
+
+      // Log the final array just before setting state
+      console.log("[HandleUndo] Final restoredNodes array before setNodes:", JSON.stringify(restoredNodes.map(n => ({ id: n.id, type: n.type })), null, 2));
+
+      // Recalculate connection status and plus button for each node after undo
+      const updatedNodes = restoredNodes.map(node => {
+        const nodeType = node.type;
+        let nodeData = { ...node.data };
+        if (["article", "video", "podcast"].includes(nodeType)) {
+          const isRightConnected = restoredEdges.some(edge => edge.source === node.id);
+          nodeData.isRightConnected = isRightConnected;
+          nodeData.canAddChild = !isRightConnected;
+        }
+        // SocialMedia and topicalKeyword nodes: keep their own logic if needed
+        return { ...node, data: nodeData };
+      });
+      setNodes(updatedNodes);
+      setEdges(restoredEdges);
+
+      return newHistory; // Return the truncated history
+    });
+  }, [setNodes, setEdges, handleDeleteNode]);
 
   // Add keyboard shortcuts for undo/redo and delete
   useEffect(() => {
     const handleKeyPress = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key === 'z') {
-        if (event.shiftKey) {
-          handleRedo();
-        } else {
+        if (!event.shiftKey) {
           handleUndo();
         }
-      } else if ((event.ctrlKey || event.metaKey) && event.key === 'y') {
-        handleRedo();
       } else if (event.key === 'Delete' && selectedNodeId) {
         handleDeleteNode(selectedNodeId);
       }
@@ -246,21 +359,23 @@ const WorkflowEditorContent: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [handleUndo, handleRedo, selectedNodeId, handleDeleteNode]);
+  }, [handleUndo, selectedNodeId, handleDeleteNode]);
 
   // Custom nodes change handler that records history
   const onNodesChangeHandler: OnNodesChange = useCallback(
     (changes) => {
       // Only record history for non-selection changes
       if (changes.some(change => change.type !== 'select')) {
+        // Get state BEFORE applying changes
         const currentNodes = getNodes();
         const currentEdges = getEdges();
-        onNodesChange(changes);
-        recordHistory(currentNodes, currentEdges);
-      } else {
-        onNodesChange(changes);
+        // Record the state BEFORE the change happens
+        recordHistory(currentNodes, currentEdges); 
       }
+      // Apply the changes AFTER recording history
+      onNodesChange(changes); 
       
+      // Handle selections separately (no history needed for selection)
       changes.forEach((change) => {
         if (change.type === 'select') {
           setSelectedNodeId(change.selected ? change.id : null);
@@ -273,10 +388,13 @@ const WorkflowEditorContent: React.FC = () => {
   // Custom edges change handler that records history
   const onEdgesChangeHandler: OnEdgesChange = useCallback(
     (changes) => {
+      // Get state BEFORE applying changes
       const currentNodes = getNodes();
       const currentEdges = getEdges();
+      // Record the state BEFORE the change happens
+      recordHistory(currentNodes, currentEdges); 
+      // Apply the changes AFTER recording history
       onEdgesChange(changes);
-      recordHistory(currentNodes, currentEdges);
     },
     [onEdgesChange, recordHistory, getNodes, getEdges]
   );
@@ -293,12 +411,13 @@ const WorkflowEditorContent: React.FC = () => {
     const existingNoteCount = currentNodes.filter(n => n.type === 'note').length;
     const yOffset = existingNoteCount * 40; // Offset each new note vertically
 
-    const position = project({
+    const position = screenToFlowPosition({
       x: 50, // Keep X offset relatively fixed 
       y: 50 + yOffset, // Add vertical offset based on note count
     });
 
-    const newNoteId = `note-${uuidv4()}`;
+    // Use only UUID for the ID
+    const newNoteId = uuidv4(); 
     const newNode: Node<NoteNodeFlowData> = { 
       id: newNoteId,
       type: 'note',
@@ -320,7 +439,7 @@ const WorkflowEditorContent: React.FC = () => {
     
     // Record the state change as a single history entry
     recordHistory(currentNodes, currentEdges);
-  }, [project, setNodes, getNodes, getEdges, recordHistory]);
+  }, [screenToFlowPosition, setNodes, getNodes, getEdges, recordHistory]);
 
   // organizeLayout function
   const organizeLayout = useCallback(() => {
@@ -389,11 +508,11 @@ const WorkflowEditorContent: React.FC = () => {
 
   // onAddChildNode function 
   const onAddChildNode = useCallback((parentId: string, childTypeOrNext: ContentType | 'next') => {
-    // Record current state before adding a child node
+    // Save current state before adding node
     recordHistory(getNodes(), getEdges());
     
     const parentNode = getNode(parentId);
-    if (!parentNode || parentNode.type === 'note') return; 
+    if (!parentNode || parentNode.type === 'note') return;
     if (parentNode.type !== 'topicalKeyword' && parentNode.data?.canAddChild === false) {
         console.log(`[Workflow Rule] Node ${parentId} (${parentNode.type}) cannot add more children.`);
         return;
@@ -439,7 +558,8 @@ const WorkflowEditorContent: React.FC = () => {
             setIsInfoPanelExiting(true);
         }
     }
-    const childNodeId = `${requestedChildType}-${uuidv4()}`;
+    // Use only UUID for the ID
+    const childNodeId = uuidv4(); 
     let newNodePosition: XYPosition;
     const horizontalOffset = (parentNode.width ?? 128) + 120;
     const verticalOffset = (parentNode.height ?? 128) + 50;
@@ -456,7 +576,7 @@ const WorkflowEditorContent: React.FC = () => {
         };
     }
     const childNode: Node<ContentNodeData> = {
-        id: childNodeId,
+        id: childNodeId, // Use plain UUID
         type: requestedChildType,
         position: newNodePosition,
         width: 128, 
@@ -473,9 +593,10 @@ const WorkflowEditorContent: React.FC = () => {
         },
     };
     const newEdge: Edge = {
-        id: `e-${parentId}-${childNodeId}`,
+        // Use plain UUIDs for edge ID
+        id: `e-${parentId}-${childNodeId}`, 
         source: parentId,
-        target: childNodeId,
+        target: childNodeId, // Target the plain UUID
         sourceHandle: 'right-source', 
         targetHandle: 'left-target',  
         type: 'customGradientEdge',
@@ -535,9 +656,11 @@ const WorkflowEditorContent: React.FC = () => {
     const startNode = getNode(initialNodeId);
     if (!startNode) return;
     const position = startNode.position; 
-    const newNodeId = 'tk-' + uuidv4();
+    
+    // Use plain UUID for the ID
+    const newNodeId = uuidv4(); 
     const topicalKeywordNode: Node<TopicalKeywordNodeData> = {
-      id: newNodeId,
+      id: newNodeId, // Use plain UUID
       type: 'topicalKeyword',
       position: position, 
       data: {
@@ -565,43 +688,46 @@ const WorkflowEditorContent: React.FC = () => {
     handleInitiateWorkflowRef.current = handleInitiateWorkflow;
   }, [handleInitiateWorkflow]);
 
-  // useEffect for initial StartNode
-  useEffect(() => {
-    if (nodes.length === 0 && reactFlowWrapper.current) { 
-      const centerX = reactFlowWrapper.current.clientWidth / 2 - 64; 
-      const centerY = reactFlowWrapper.current.clientHeight / 2 - 64;
-      const initialNode: Node<StartNodeData> = {
-        id: initialNodeId,
-        type: 'start',
-        position: { x: centerX, y: centerY },
-        // Pass the actual function for the data prop
-        data: { onInitiateWorkflow: handleInitiateWorkflow }, 
-      };
-      setNodes([initialNode]);
-    }
-  }, [nodes, setNodes, handleInitiateWorkflow]);
-
   // Set initial nodes and edges on mount
   useEffect(() => {
-    // Define initial nodes here, including the StartNode
-    const initialNodes: Node<WorkflowNodeData>[] = [
+    // Define initial nodes WITHOUT functions first
+    const initialNodesRaw: Node<WorkflowNodeData>[] = [
       {
         id: initialNodeId,
         type: 'start',
         position: { x: 100, y: 100 },
-        data: {
-          onInitiateWorkflow: handleInitiateWorkflow,
+        data: { 
+          // Functions will be added AFTER history is set
         },
       },
     ];
 
-    // Restore function references - MUST be done AFTER setting initial nodes
-    const restoredNodes = initialNodes.map(node => {
+    // Prepare nodes for initial HISTORY state (cleaned, no functions)
+    const initialHistoryNodes = initialNodesRaw.map(node => {
+        const cleanData = { ...node.data }; // Data is already clean here
+        const baseType = typeof node.type === 'string' ? node.type.split('-')[0] : 'default';
+        return {
+          ...node,
+          data: cleanData,
+          type: baseType
+        };
+    });
+
+    // Initialize history with the CLEANED initial state FIRST
+    setHistory([{
+      nodes: initialHistoryNodes, 
+      edges: []
+    }]);
+    setCurrentHistoryIndex(0);
+
+    // Now create the nodes with functions for the ACTUAL state
+    const nodesWithFuncs = initialNodesRaw.map(node => {
       if (node.type === 'start') {
         return {
           ...node,
           data: {
             ...node.data,
+            // Add the function reference via the ref
             onInitiateWorkflow: (type: string) => {
               if (handleInitiateWorkflowRef.current) {
                 (handleInitiateWorkflowRef.current as Function)(type);
@@ -613,10 +739,11 @@ const WorkflowEditorContent: React.FC = () => {
       return node;
     });
     
-    setNodes(restoredNodes as Node<WorkflowNodeData>[]);
+    // Set the actual state using nodes with functions
+    setNodes(nodesWithFuncs as Node<WorkflowNodeData>[]);
     setEdges([]); // Start with no edges initially
-    // Don't record initial state in history
-  }, [setNodes, setEdges]);
+
+  }, [setNodes, setEdges, setHistory]); // Dependencies are just the setters
 
   // Update refs for functions when they change
   useEffect(() => {
@@ -816,8 +943,7 @@ const WorkflowEditorContent: React.FC = () => {
 
   return (
     <>
-      {showInfoPanel && <WorkflowInfoPanel isExiting={isInfoPanelExiting} />}
-      
+      {/* Top bar and info panel removed as requested */}
       <div ref={reactFlowWrapper} className="w-full h-full">
         <ReactFlow
           nodes={nodes}

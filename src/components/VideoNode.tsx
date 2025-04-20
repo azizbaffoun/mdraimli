@@ -10,28 +10,19 @@ import PopupSelect from './PopupSelect';
 // Remove connector config import
 // import { nodeConnectors } from '@/config/nodeConnectors'; 
 
-// Define ContentType locally or import if shared
-type ContentType = 'article' | 'video' | 'podcast' | 'socialMedia';
+// Import necessary types from the types file
+import { ContentNodeData, ContentType } from '@/types/workflowTypes';
 
-// Define expected data structure - Updated to take full callback
-interface ContentNodeData {
-  label?: string;
-  isEntering?: boolean; 
-  onAddChildNode: (parentId: string, childType: ContentType) => void; 
-  canAddChild?: boolean; 
-  // Potentially add nodeType here if not derivable
-  // Add connection status props
-  isLeftConnected?: boolean;
-  isRightConnected?: boolean;
-  onDelete?: (nodeId: string) => void; // Add onDelete handler
-}
+// Add back the interface definition
+interface VideoNodeData extends ContentNodeData {}
 
 // Remove connector config usage
 // const connectors = nodeConnectors.video;
 
-const VideoNode: React.FC<NodeProps<ContentNodeData>> = ({ id, data, selected, xPos, yPos }) => {
+const VideoNode: React.FC<NodeProps<VideoNodeData>> = ({ id, data, selected, xPos, yPos }) => {
   const animationClass = data.isEntering ? 'node-bouncing-in' : ''; // Use bouncing animation
-  const [showPlusButton, setShowPlusButton] = useState(data.canAddChild ?? true);
+  // Remove internal state for plus button visibility
+  // const [showPlusButton, setShowPlusButton] = useState(data.canAddChild ?? true);
   const [menuOpen, setMenuOpen] = useState(false); // State for menu visibility
 
   // Handle click on the plus button - now toggles menu
@@ -44,7 +35,7 @@ const VideoNode: React.FC<NodeProps<ContentNodeData>> = ({ id, data, selected, x
   const handleSelectOption = (parentId: string, type: ContentType) => {
     if (data.onAddChildNode) {
       data.onAddChildNode(parentId, type); 
-      setShowPlusButton(false); 
+      // No longer need to manage internal state: setShowPlusButton(false); 
     }
     setMenuOpen(false);
   };
@@ -156,7 +147,7 @@ const VideoNode: React.FC<NodeProps<ContentNodeData>> = ({ id, data, selected, x
         </div>
 
         {/* Right Side Elements */}
-        {showPlusButton && !data.isRightConnected && (
+        {data.canAddChild && !data.isRightConnected && (
           <>
             <div 
               className="video-node-connector-plus absolute right-[-16.5px] top-1/2 transform -translate-y-1/2 cursor-pointer group z-30 hover:scale-110 transition-transform"

@@ -16,8 +16,6 @@ function App() {
 
   return (
     <div className="w-screen h-screen flex flex-col relative"> {/* Add relative positioning */}
-      <Navbar /> {/* Render Navbar at the top */}
-      
       {/* Main content area taking remaining space */} 
       <div className="flex-grow relative overflow-hidden"> {/* Updated classes */}
          {/* Remove ref */}

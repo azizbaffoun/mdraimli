@@ -1,0 +1,50 @@
+/* Remove margin from first paragraph in TipTap editor to prevent header shift */
+.prose > p:first-child {
+  margin-top: 0 !important;
+}
+.note-editor-outer {
+  box-sizing: border-box;
+  background: white;
+}
+
+.note-editor-inner {
+  box-sizing: border-box;
+  width: 100%;
+  overflow-y: auto;
+  max-height: 100%;
+  padding: 0;
+  margin-right: -16px; /* Moves scrollbar outside padding, adjust if your scrollbar is wider */
+}
+
+/* Custom scrollbar for Webkit browsers */
+.note-editor-inner::-webkit-scrollbar {
+  width: 10px;
+  background: transparent;
+}
+.note-editor-inner::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 8px;
+}
+.note-editor-inner::-webkit-scrollbar-button {
+  display: none; /* Hide up/down arrows for a cleaner look */
+}
+
+/* For Firefox */
+.note-editor-inner {
+  scrollbar-width: thin;
+  scrollbar-color: #d1d5db transparent;
+}
+
+
+
+.prose, .ProseMirror {
+  box-sizing: border-box;
+  width: 100%;
+  padding-left: 12px !important;
+  padding-right: 12px !important;
+  padding-top: 0 !important;
+}
+.prose p {
+  margin-top: 0;
+  margin-bottom: 0;
+}

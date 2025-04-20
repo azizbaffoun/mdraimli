@@ -16,7 +16,8 @@ import socialMediaIcon from '@/assets/icons/social media icon.svg';
 import toolsIcon from '@/assets/icons/tools.svg'; 
 import BottomMenuBackground from './BottomMenuBackground';
 import IconButton from './IconButton';
-import { ContentType } from './WorkflowEditor';
+// Import ContentType from the shared types file
+import { ContentType } from '@/types/workflowTypes';
 
 interface ItemsBarProps {
   isVisible: boolean;

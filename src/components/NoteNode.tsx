@@ -1,11 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { NodeProps, useReactFlow, Handle, Position } from 'reactflow';
 import { v4 as uuidv4 } from 'uuid';
-import { useEditor, EditorContent } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import Underline from '@tiptap/extension-underline';
-import TextAlign from '@tiptap/extension-text-align';
-import NoteEditorToolbar from './NoteEditorToolbar';
+
+import './NoteNode.css';
 
 // Import new icons
 import duplicateIcon from '@/assets/icons/duplicate_icon.svg';
@@ -32,79 +29,70 @@ const NoteNode: React.FC<NodeProps<NoteNodeData>> = ({ id, data }) => {
   const menuRef = useRef<HTMLDivElement>(null);
   const optionsMenuRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [isPlaceholderActive, setIsPlaceholderActive] = useState(!data.content || data.content === defaultContent);
+  const [, setIsPlaceholderActive] = useState(!data.content || data.content === defaultContent);
 
   // Use state for internal editing, initialized from data prop
   const [title, setTitle] = useState(data.title ?? defaultTitle);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isOptionsMenuOpen, setIsOptionsMenuOpen] = useState(false);
-  const [toolbarPosition, setToolbarPosition] = useState<{ x: number; y: number } | null>(null);
 
-  const editor = useEditor({
-    extensions: [
-      StarterKit,
-      Underline,
-      TextAlign.configure({
-        types: ['heading', 'paragraph'],
-      }),
-    ],
-    content: data.content || '',
-    editorProps: {
-      attributes: {
-        class: 'prose prose-sm max-w-none focus:outline-none p-3',
-        style: `min-height: ${MIN_CONTENT_HEIGHT}px; max-height: ${MAX_CONTENT_HEIGHT}px; overflow-y: auto`,
-      },
-    },
-    onUpdate: ({ editor }) => {
-      const newContent = editor.getHTML();
-      setNodes((nds) =>
-        nds.map((node) => {
-          if (node.id === id) {
-            return { ...node, data: { ...node.data, content: newContent } };
-          }
-          return node;
-        })
-      );
-      setIsPlaceholderActive(false);
-    },
-    onSelectionUpdate: ({ editor }) => {
-      if (!editor.state.selection.empty) {
-        const { from } = editor.state.selection;
-        const node = editor.view.domAtPos(from);
-        const element = node.node as HTMLElement;
-        const editorElement = editor.view.dom as HTMLElement;
-        const elementRect = element.getBoundingClientRect();
-        const editorRect = editorElement.getBoundingClientRect();
-        
-        setToolbarPosition({
-          x: elementRect.left + (elementRect.width / 2) - editorRect.left,
-          y: elementRect.top - editorRect.top
-        });
-      } else {
-        setToolbarPosition(null);
-      }
-    },
-    onFocus: () => {
-      if (isPlaceholderActive) {
-        editor?.commands.setContent('');
-        setIsPlaceholderActive(false);
-      }
-    },
-    onBlur: () => {
-      if (!editor?.getText().trim()) {
-        editor?.commands.setContent('');
-        setIsPlaceholderActive(true);
-      }
-    },
-  });
+  // Simple textarea for note content
+  const [content, setContent] = useState(data.content ?? '');
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  // State for scrollable detection and hover
+  const [isScrollable, setIsScrollable] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
 
-  // Update editor content when data changes externally
   useEffect(() => {
-    if (editor && data.content !== editor.getHTML()) {
-      editor.commands.setContent(data.content || '');
-      setIsPlaceholderActive(!data.content || data.content === defaultContent);
+    setContent(data.content ?? '');
+  }, [data.content]);
+
+  // Auto-expand textarea up to 7 lines and detect scrollable
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.style.height = 'auto';
+      const scrollHeight = textarea.scrollHeight;
+      const maxHeight = MAX_CONTENT_HEIGHT;
+      textarea.style.height = Math.min(scrollHeight, maxHeight) + 'px';
+      textarea.style.overflowY = scrollHeight > maxHeight ? 'auto' : 'hidden';
+      // Debug log
+      console.log('[NoteNode] textarea scrollHeight:', scrollHeight, 'maxHeight:', maxHeight, 'isScrollable:', scrollHeight > maxHeight);
+      // Detect if content is scrollable (over 7 lines)
+      setIsScrollable(scrollHeight > maxHeight);
     }
-  }, [data.content, editor]);
+  }, [content]);
+
+  // Native wheel event listener for textarea (to catch events React might miss)
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    const handler = (e: WheelEvent) => {
+      console.log('[NoteNode] native textarea wheel', { isHovered, isScrollable });
+      if (isHovered && isScrollable) {
+        console.log('[NoteNode] native stopPropagation+preventDefault called onWheel');
+        e.stopPropagation();
+        e.preventDefault();
+      }
+    };
+    textarea.addEventListener('wheel', handler, { passive: false });
+    return () => textarea.removeEventListener('wheel', handler);
+  }, [isHovered, isScrollable]);
+
+  const handleContentChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newContent = event.target.value;
+    setContent(newContent);
+    setNodes((nds) =>
+      nds.map((node) => {
+        if (node.id === id) {
+          return { ...node, data: { ...node.data, content: newContent } };
+        }
+        return node;
+      })
+    );
+    setIsPlaceholderActive(!newContent || newContent === defaultContent);
+  };
+
 
   const handleTitleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newTitle = event.target.value;
@@ -174,10 +162,21 @@ const NoteNode: React.FC<NodeProps<NoteNodeData>> = ({ id, data }) => {
   };
 
   return (
-    <div 
-      className="relative node-wrapper shadow-lg rounded-lg border border-gray-200 overflow-hidden" 
-      ref={containerRef} 
-      style={{ width: 271.141 }}
+    <div
+      ref={containerRef}
+      className="note-node-container relative bg-white rounded-lg shadow-md border border-gray-200 flex flex-col"
+      style={{ width: 270, minHeight: 110 }}
+      onMouseEnter={() => { setIsHovered(true); console.log('[NoteNode] container onMouseEnter'); }}
+      onMouseLeave={() => { setIsHovered(false); console.log('[NoteNode] container onMouseLeave'); }}
+      onWheel={e => {
+        // Log and check if the event is coming from the textarea and should be stopped
+        const isTextArea = textareaRef.current && textareaRef.current.contains(e.target as Node);
+        console.log('[NoteNode] container onWheel', { isHovered, isScrollable, isTextArea });
+        if (isHovered && isScrollable && isTextArea) {
+          console.log('[NoteNode] container stopPropagation called onWheel');
+          e.stopPropagation();
+        }
+      }}
     >
       <Handle 
         type="target" 
@@ -193,11 +192,9 @@ const NoteNode: React.FC<NodeProps<NoteNodeData>> = ({ id, data }) => {
       {/* Header */}
       <div 
         id={`note-header-${id}`}
-        className="h-[36px] relative flex items-center"
+        className="h-[36px] w-full flex items-center rounded-t-lg"
         style={{
           background: 'linear-gradient(100deg, #3799db 0%, #2db4a6 100%)',
-          borderTopLeftRadius: '10px',
-          borderTopRightRadius: '10px',
           padding: '0 12px'
         }}
       >
@@ -237,43 +234,84 @@ const NoteNode: React.FC<NodeProps<NoteNodeData>> = ({ id, data }) => {
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 26 26">
             <g id="Group_5350" data-name="Group_5350" transform="translate(-356.139 -204.5)">
-              <path id="Union_50" data-name="Union 50" d="M-213.5,0A12.5,12.5,0,0,1-201,12.5,12.5,12.5,0,0,1-213.5,25,12.5,12.5,0,0,1-226,12.5,12.5,12.5,0,0,1-213.5,0Z" transform="translate(582.639 205)" fill="#fff" stroke="rgba(0,0,0,0)" stroke-width="1" opacity="0.32"/>
-              <circle id="Ellipse_289" data-name="Ellipse_289" cx="1.35" cy="1.35" r="1.35" transform="translate(363.74 216.15)" fill="#fff" stroke="rgba(0,0,0,0)" stroke-width="1"/>
-              <circle id="Ellipse_290" data-name="Ellipse_290" cx="1.35" cy="1.35" r="1.35" transform="translate(367.789 216.15)" fill="#fff" stroke="rgba(0,0,0,0)" stroke-width="1"/>
-              <circle id="Ellipse_291" data-name="Ellipse_291" cx="1.35" cy="1.35" r="1.35" transform="translate(371.84 216.15)" fill="#fff" stroke="rgba(0,0,0,0)" stroke-width="1"/>
+              <path id="Union_50" data-name="Union 50" d="M-213.5,0A12.5,12.5,0,0,1-201,12.5,12.5,12.5,0,0,1-213.5,25,12.5,12.5,0,0,1-226,12.5,12.5,12.5,0,0,1-213.5,0Z" transform="translate(582.639 205)" fill="#fff" stroke="rgba(0,0,0,0)" strokeWidth="1" opacity="0.32"/>
+              <circle id="Ellipse_289" data-name="Ellipse_289" cx="1.35" cy="1.35" r="1.35" transform="translate(363.74 216.15)" fill="#fff" stroke="rgba(0,0,0,0)" strokeWidth="1"/>
+              <circle id="Ellipse_290" data-name="Ellipse_290" cx="1.35" cy="1.35" r="1.35" transform="translate(367.789 216.15)" fill="#fff" stroke="rgba(0,0,0,0)" strokeWidth="1"/>
+              <circle id="Ellipse_291" data-name="Ellipse_291" cx="1.35" cy="1.35" r="1.35" transform="translate(371.84 216.15)" fill="#fff" stroke="rgba(0,0,0,0)" strokeWidth="1"/>
             </g>
           </svg>
         </button>
       </div>
 
-      {/* TipTap Editor */}
-      <div 
-        className={`bg-white ${isPlaceholderActive ? 'text-gray-400' : 'text-gray-700'}`}
-        style={{ maxHeight: `${MAX_CONTENT_HEIGHT}px`, overflowY: 'auto' }}
+      {/* Textarea Editor */}
+      <div
+        className="bg-white note-editor-outer"
+        style={{
+          maxHeight: `${MAX_CONTENT_HEIGHT}px`,
+          paddingTop: 0,
+          boxSizing: 'border-box',
+        }}
       >
-        <EditorContent editor={editor} />
+        <textarea
+          ref={el => textareaRef.current = el}
+          className="note-editor-inner w-full resize-none focus:outline-none text-black"
+          style={{
+            minHeight: `${MIN_CONTENT_HEIGHT}px`,
+            maxHeight: `${MAX_CONTENT_HEIGHT}px`,
+            overflowY: 'auto',
+            paddingLeft: 12,
+            paddingRight: 12,
+            paddingTop: 0,
+            boxSizing: 'border-box',
+            fontSize: 15,
+            fontFamily: 'Segoe UI',
+            lineHeight: '22px',
+            border: 'none',
+            borderRadius: 0,
+            background: 'transparent',
+          }}
+          value={content}
+          onChange={handleContentChange}
+          placeholder={defaultContent}
+          tabIndex={0}
+          onWheel={e => {
+            console.log('[NoteNode] textarea onWheel', { isHovered, isScrollable });
+            if (isHovered && isScrollable) {
+              console.log('[NoteNode] textarea stopPropagation+preventDefault called onWheel');
+              e.stopPropagation();
+              e.preventDefault();
+            }
+          }}
+          onPointerDown={e => {
+            console.log('[NoteNode] onPointerDown', { isHovered, isScrollable });
+            if (isHovered && isScrollable) {
+              console.log('[NoteNode] stopPropagation called onPointerDown');
+              e.stopPropagation();
+            }
+          }}
+          rows={1}
+          onMouseEnter={() => { setIsHovered(true); console.log('[NoteNode] textarea onMouseEnter'); }}
+          onMouseLeave={() => { setIsHovered(false); console.log('[NoteNode] textarea onMouseLeave'); }}
+        />
       </div>
-
-      {/* Formatting Toolbar */}
-      <NoteEditorToolbar editor={editor} position={toolbarPosition} />
 
       {/* Options Menu */}
       {isOptionsMenuOpen && (
-        <div 
+        <div
           ref={optionsMenuRef}
-          className="absolute top-[5px] right-[5px] z-[70]" 
-          onMouseDown={(e) => e.stopPropagation()} 
+          className="absolute top-[5px] right-[5px] z-[70]"
+          onMouseDown={(e) => e.stopPropagation()}
         >
           <div className="bg-white rounded-lg shadow-lg border border-gray-200 w-[130px] p-2">
             <ul>
-              <li 
+              <li
                 className="flex items-center p-2 hover:bg-gray-100 rounded cursor-pointer text-sm text-gray-700"
                 onClick={handleDuplicate}
               >
                 <img src={duplicateIcon} alt="Duplicate" className="w-4 h-4 mr-2" />
                 Duplicate
               </li>
-              <li 
+              <li
                 className="flex items-center p-2 hover:bg-gray-100 rounded cursor-pointer text-sm text-red-600"
                 onClick={handleDelete}
               >
