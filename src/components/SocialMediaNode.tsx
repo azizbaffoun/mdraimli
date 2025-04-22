@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 
 // Import required SVGs (Adjust paths if necessary)
@@ -11,10 +11,24 @@ interface ContentNodeData {
   isEntering?: boolean;
 }
 
+declare global {
+  interface Window {
+    notifyNodeAdded?: (type: string) => void;
+  }
+}
+
 // Node component
 const SocialMediaNode: React.FC<NodeProps<ContentNodeData>> = ({ data }) => {
   const animationClass = data.isEntering ? 'node-bouncing-in' : '';
   const nodeColor = '#FC8500'; // Define color directly (Orange)
+
+
+
+      useEffect(() => {
+        if (typeof window.notifyNodeAdded === 'function') {
+          window.notifyNodeAdded("brightSocial");
+        }
+      }, []);
 
   return (
     <div

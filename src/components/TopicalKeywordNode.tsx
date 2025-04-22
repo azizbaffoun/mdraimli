@@ -13,6 +13,7 @@ import rightTopicalKeywordSvg from '@/assets/component to link the nodes/right t
 import articleIcon from '@/assets/icons/article icon.svg'; 
 import videoIcon from '@/assets/icons/video icon.svg';
 import podcastIcon from '@/assets/icons/podcast icon.svg';
+import socialMediaIcon from '@/assets/icons/social media icon.svg';
 
 // Update node data interface (onAddChildNode expects only childType now)
 interface TopicalKeywordNodeData {
@@ -36,11 +37,7 @@ const TopicalKeywordNode: React.FC<NodeProps<TopicalKeywordNodeData>> = ({ data 
 
   const handleSelectOption = (type: string) => {
     // Prevent creating Social Media directly from Topical Keyword
-    if (type === 'socialMedia') {
-      console.log("Social Media node cannot be created directly from Topical Keyword.");
-      setMenuOpen(false);
-      return;
-    }
+
     if (data.onAddChildNode) {
       data.onAddChildNode(type as ContentType); 
       setShowPlusButton(false); 
@@ -139,6 +136,14 @@ const TopicalKeywordNode: React.FC<NodeProps<TopicalKeywordNodeData>> = ({ data 
                   >
                     <img src={podcastIcon} alt="" className="w-5 h-5 mr-3" />
                     <span className="text-black">Podcast</span>
+                  </li>
+
+                  <li 
+                    className="flex items-center p-2 hover:bg-gray-100 rounded-md cursor-pointer transition-colors text-sm"
+                    onClick={() => handleSelectOption('socialMedia')}
+                  >
+                    <img src={socialMediaIcon} alt="" className="w-5 h-5 mr-3" />
+                    <span className="text-black">Social Post</span>
                   </li>
                 </ul>
               </div>

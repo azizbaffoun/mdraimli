@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+
 // Add Handle and Position imports back
 import { Handle, Position, NodeProps } from 'reactflow';
 
@@ -8,6 +9,12 @@ import leftPodcastSvg from '@/assets/component to link the nodes/left podcast.sv
 import rightPodcastSvg from '@/assets/component to link the nodes/right podcast.svg';
 
 // Define expected data structure
+
+declare global {
+  interface Window {
+    notifyNodeAdded?: (type: string) => void;
+  }
+}
 interface ContentNodeData {
   label?: string;
   isEntering?: boolean; 
@@ -24,6 +31,12 @@ const PodcastNode: React.FC<NodeProps<ContentNodeData>> = ({ data }) => {
       data.onAddNextNode();
     }
   };
+
+  useEffect(() => {
+    if (typeof window.notifyNodeAdded === 'function') {
+      window.notifyNodeAdded("podcast");
+    }
+  }, []);
 
   return (
     <div 

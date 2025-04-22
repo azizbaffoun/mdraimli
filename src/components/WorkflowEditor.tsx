@@ -333,14 +333,7 @@ const WorkflowEditorContent: React.FC = () => {
     } else {
       requestedChildType = childTypeOrNext;
     }
-    if (parentNode.type === 'topicalKeyword' && requestedChildType === 'socialMedia') {
-        console.log('[Workflow Rule] Social Media cannot be created directly from Topical Keyword.');
-        return;
-    }
-    if (parentNode.type === 'socialMedia') {
-        console.log('[Workflow Rule] Cannot add children to Social Media node.');
-        return;
-    }
+
     if (parentNode.type !== 'topicalKeyword') {
         const childExists = edges.some(edge => 
             (edge.source === parentId && nodes.find(n => n.id === edge.target)?.type === requestedChildType) ||

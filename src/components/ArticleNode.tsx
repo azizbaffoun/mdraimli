@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 // Add Handle and Position imports back
 import { Handle, Position, NodeProps } from 'reactflow';
 
@@ -6,6 +6,12 @@ import articleSvg from '@/assets/nodes/article.svg';
 // Import connector SVGs
 import leftArticleSvg from '@/assets/component to link the nodes/left article.svg';
 import rightArticleSvg from '@/assets/component to link the nodes/right article.svg';
+
+declare global {
+  interface Window {
+    notifyNodeAdded?: (type: string) => void;
+  }
+}
 
 // Define expected data structure
 interface ContentNodeData {
@@ -25,6 +31,12 @@ const ArticleNode: React.FC<NodeProps<ContentNodeData>> = ({ data }) => {
       data.onAddNextNode();
     }
   };
+
+        useEffect(() => {
+          if (typeof window.notifyNodeAdded === 'function') {
+            window.notifyNodeAdded("article");
+          }
+        }, []);
 
   return (
     <div 
