@@ -1,7 +1,7 @@
 import React from 'react';
 
 // Import Icon (Adjust path as needed)
-import workflowIcon from '@/assets/icons/workflow.svg';
+
 
 // Define props
 interface WorkflowInfoPanelProps {

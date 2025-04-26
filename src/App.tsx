@@ -1,7 +1,6 @@
 // import React from 'react'; // Revert import
 import WorkflowEditor from '@/components/WorkflowEditor'; // Use alias
-import Navbar from '@/components/Navbar'; // Import the Navbar
-// Remove unused imports
+
 // import ItemsBar from '@/components/ItemsBar'; 
 // import { ContentType } from '@/components/WorkflowEditor';
 

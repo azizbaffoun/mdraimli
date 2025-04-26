@@ -1,4 +1,4 @@
-import { Node, Edge, Viewport, Connection } from 'reactflow';
+import { Node, Edge, Viewport } from 'reactflow';
 
 export type ContentType = 'article' | 'video' | 'podcast' | 'socialMedia';
 

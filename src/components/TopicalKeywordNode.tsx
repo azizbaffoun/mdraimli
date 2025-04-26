@@ -15,7 +15,7 @@ import { TopicalKeywordNodeData, ContentType } from '@/types/workflowTypes';
 // Accept nodeType via data (default: 'topicalKeyword')
 import StartMenu from './StartMenu';
 
-const TopicalKeywordNode: React.FC<NodeProps<TopicalKeywordNodeData & { nodeType?: 'topicalKeyword' | 'offer' | 'event' }>> = ({ id, data, selected, xPos, yPos }) => {
+const TopicalKeywordNode: React.FC<NodeProps<TopicalKeywordNodeData & { nodeType?: 'topicalKeyword' | 'offer' | 'event' }>> = ({ id, data, selected }) => {
   const nodeColor = '#3799DB';
   const [menuOpen, setMenuOpen] = useState(false);
   const [startMenuOpen, setStartMenuOpen] = useState(false);
@@ -42,6 +42,18 @@ const TopicalKeywordNode: React.FC<NodeProps<TopicalKeywordNodeData & { nodeType
     setStartMenuOpen(true);
   };
 
+  const handleStartMenuSelect = (type: 'topicalKeyword' | 'offer' | 'event') => {
+    setStartMenuOpen(false);
+    setNodes((nodes) =>
+      nodes.map((node) =>
+        node.id === id
+          ? { ...node, data: { ...node.data, nodeType: type } }
+          : node
+      )
+    );
+  };
+
+
   const handleDeleteClick = () => {
     console.log('Delete clicked');
   };
@@ -63,15 +75,7 @@ const TopicalKeywordNode: React.FC<NodeProps<TopicalKeywordNodeData & { nodeType
           />
           <StartMenu
             isOpen={startMenuOpen}
-            anchorRef={popupAnchorRef}
-            onSelect={(type) => {
-              setStartMenuOpen(false);
-              setNodes((nodes) => nodes.map((node) =>
-                node.id === id
-                  ? { ...node, data: { ...node.data, nodeType: type } }
-                  : node
-              ));
-            }}
+            onSelect={handleStartMenuSelect}
             onClose={() => setStartMenuOpen(false)}
           />
         </div>

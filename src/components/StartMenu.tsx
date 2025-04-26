@@ -2,17 +2,13 @@ import React from 'react';
 
 interface StartMenuProps {
   isOpen: boolean;
-  anchorRef: React.RefObject<HTMLDivElement>;
+
   onSelect: (type: 'topicalKeyword' | 'offer' | 'event') => void;
   onClose: () => void;
 }
 
-const options = [
-  { label: 'Topical Keyword', icon: '/icons/topical.svg', type: 'topicalKeyword' },
-  { label: 'Offer', icon: '/icons/offer.svg', type: 'offer' },
-  { label: 'Event', icon: '/icons/event.svg', type: 'event' },
-];
-const StartMenu: React.FC<StartMenuProps> = ({ isOpen, anchorRef, onSelect, onClose }) => {
+
+const StartMenu: React.FC<StartMenuProps> = ({ isOpen,  onSelect, onClose }) => {
   if (!isOpen) return null;
 
   // Use positioning from the original StartMenu component structure,

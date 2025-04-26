@@ -16,27 +16,6 @@ const nodeColors = {
 // Helper function to select node data from the store
 const nodeSelector = (s: any) => s.nodeInternals;
 
-// 2. Define the CustomEdge component
-// Helper: Blend two hex colors at a specified ratio (0-1)
-function blendColors(color1: string, color2: string, ratio: number): string {
-    // Remove # if present
-    color1 = color1.replace('#', '');
-    color2 = color2.replace('#', '');
-    // Parse r,g,b
-    const r1 = parseInt(color1.substring(0,2), 16);
-    const g1 = parseInt(color1.substring(2,4), 16);
-    const b1 = parseInt(color1.substring(4,6), 16);
-    const r2 = parseInt(color2.substring(0,2), 16);
-    const g2 = parseInt(color2.substring(2,4), 16);
-    const b2 = parseInt(color2.substring(4,6), 16);
-    // Blend
-    const r = Math.round(r1 * (1 - ratio) + r2 * ratio);
-    const g = Math.round(g1 * (1 - ratio) + g2 * ratio);
-    const b = Math.round(b1 * (1 - ratio) + b2 * ratio);
-    // Return hex
-    return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
-}
-
 const CustomEdge: React.FC<EdgeProps> = ({ 
     id, 
     source, // Use source ID
@@ -52,7 +31,6 @@ const CustomEdge: React.FC<EdgeProps> = ({
 
     // --- Fix: Force re-render if distance is zero (background bug workaround) ---
     const [renderKey, setRenderKey] = React.useState(0);
-
 
     // Get live node data from the store using IDs
     const nodeInternals = useStore(nodeSelector);
@@ -216,8 +194,6 @@ const CustomEdge: React.FC<EdgeProps> = ({
     const targetColor = nodeColors[targetNode.type as keyof typeof nodeColors] || sourceColor;
 
     // Define constants for dash calculation *before* the return statement
-    const shortDashPath = "M2,0 H10.79 A2,2 0 0 1 12.79,2 V5.089 A2,2 0 0 1 10.79,7.089 H2 A2,2 0 0 1 0,5.089 V2 A2,2 0 0 1 2,0 Z";
-    const longDashPath = "M2,0 H14.794 A2,2 0 0 1 16.794,2 V5.089 A2,2 0 0 1 14.794,7.089 H2 A2,2 0 0 1 0,5.089 V2 A2,2 0 0 1 2,0 Z";
     const shortDashWidth = 12.79;
     const longDashWidth = 16.794;
     const dashGap = 8; // Desired gap between dashes
@@ -246,9 +222,6 @@ const CustomEdge: React.FC<EdgeProps> = ({
         }
     }
     numDashes = Math.max(1, numDashes); // Ensure at least one dash if distance > 0
-
-    // Determine color split index
-    const colorSplitIndex = Math.ceil(numDashes / 2);
 
     return (
         <g key={renderKey}>

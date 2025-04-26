@@ -22,7 +22,7 @@ interface SocialMediaNodeData {
 // Node component
 import NodeAddMenu from './NodeAddMenu';
 
-const SocialMediaNode: React.FC<NodeProps<SocialMediaNodeData>> = ({ id, data, selected, xPos, yPos }) => {
+const SocialMediaNode: React.FC<NodeProps<SocialMediaNodeData>> = ({ id, data, selected }) => {
   const animationClass = data.isEntering ? 'node-bouncing-in' : '';
   // Remove nodeColor if not used
   // const nodeColor = '#FC8500';

@@ -16,7 +16,7 @@ import PopupSelect from './PopupSelect';
 interface PodcastNodeData extends ContentNodeData {}
 import NodeAddMenu from './NodeAddMenu';
 
-const PodcastNode: React.FC<NodeProps<PodcastNodeData>> = ({ id, data, selected, xPos, yPos }) => {
+const PodcastNode: React.FC<NodeProps<PodcastNodeData>> = ({ id, data, selected }) => {
   const animationClass = data.isEntering ? 'node-bouncing-in' : '';
   const [menuOpen, setMenuOpen] = useState(false);
   const [addMenuOpen, setAddMenuOpen] = useState(false);
