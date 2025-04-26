@@ -63,9 +63,12 @@ declare global {
 }
 
 // Original definitions (kept outside for clarity)
+
+
 const nodeTypesDefinition = {
   start: StartNode,
   topicalKeyword: TopicalKeywordNode,
+
   article: ArticleNode,
   video: VideoNode,
   podcast: PodcastNode,
@@ -83,7 +86,7 @@ const WorkflowEditorContent: React.FC = () => {
   const [nodes, setNodes, onNodesChange] = useNodesState<WorkflowNodeData>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
-  const { getNode, getNodes, getEdges, screenToFlowPosition, setViewport, zoomIn, zoomOut } = useReactFlow();
+  const { getNode, getNodes, getEdges, project, setViewport, zoomIn, zoomOut } = useReactFlow();
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [showInfoPanel, setShowInfoPanel] = useState(true);
   const [isInfoPanelExiting, setIsInfoPanelExiting] = useState(false);
@@ -317,33 +320,21 @@ const WorkflowEditorContent: React.FC = () => {
       // Restore edges directly from the last state (including original IDs)
       const restoredEdges = lastState.edges.map(edge => ({
         ...edge, // Restore the exact edge object from history
-        // Ensure type is set if needed, but ID should be preserved
-        type: edge.type || 'customGradientEdge'
+        type: edge.type || 'customGradientEdge' 
       }));
 
       console.log("Restoring state:", { nodes: restoredNodes, edges: restoredEdges });
 
       // Log the final array just before setting state
-      console.log("[HandleUndo] Final restoredNodes array before setNodes:", JSON.stringify(restoredNodes.map(n => ({ id: n.id, type: n.type })), null, 2));
+      console.log("[HandleUndo] Final restoredNodes array before setNodes:", JSON.stringify(restoredNodes.map(n => ({id: n.id, type: n.type})), null, 2));
 
-      // Recalculate connection status and plus button for each node after undo
-      const updatedNodes = restoredNodes.map(node => {
-        const nodeType = node.type;
-        let nodeData = { ...node.data };
-        if (["article", "video", "podcast"].includes(nodeType)) {
-          const isRightConnected = restoredEdges.some(edge => edge.source === node.id);
-          nodeData.isRightConnected = isRightConnected;
-          nodeData.canAddChild = !isRightConnected;
-        }
-        // SocialMedia and topicalKeyword nodes: keep their own logic if needed
-        return { ...node, data: nodeData };
-      });
-      setNodes(updatedNodes);
+      // Update React Flow state
+      setNodes(restoredNodes);
       setEdges(restoredEdges);
-
+      
       return newHistory; // Return the truncated history
     });
-  }, [setNodes, setEdges, handleDeleteNode]);
+  }, [setNodes, setEdges, handleDeleteNode]); // Added handleDeleteNode dependency
 
   // Add keyboard shortcuts for undo/redo and delete
   useEffect(() => {
@@ -411,7 +402,7 @@ const WorkflowEditorContent: React.FC = () => {
     const existingNoteCount = currentNodes.filter(n => n.type === 'note').length;
     const yOffset = existingNoteCount * 40; // Offset each new note vertically
 
-    const position = screenToFlowPosition({
+    const position = project({
       x: 50, // Keep X offset relatively fixed 
       y: 50 + yOffset, // Add vertical offset based on note count
     });
@@ -439,7 +430,7 @@ const WorkflowEditorContent: React.FC = () => {
     
     // Record the state change as a single history entry
     recordHistory(currentNodes, currentEdges);
-  }, [screenToFlowPosition, setNodes, getNodes, getEdges, recordHistory]);
+  }, [project, setNodes, getNodes, getEdges, recordHistory]);
 
   // organizeLayout function
   const organizeLayout = useCallback(() => {
@@ -508,51 +499,59 @@ const WorkflowEditorContent: React.FC = () => {
 
   // onAddChildNode function 
   const onAddChildNode = useCallback((parentId: string, childTypeOrNext: ContentType | 'next') => {
-    // Save current state before adding node
-    recordHistory(getNodes(), getEdges());
-    
     const parentNode = getNode(parentId);
-    if (!parentNode || parentNode.type === 'note') return;
-    if (parentNode.type !== 'topicalKeyword' && parentNode.data?.canAddChild === false) {
-        console.log(`[Workflow Rule] Node ${parentId} (${parentNode.type}) cannot add more children.`);
-        return;
-    }
+    // Determine requested child type
     let requestedChildType: ContentType;
     if (childTypeOrNext === 'next') {
-      switch (parentNode.type) {
+      switch (parentNode?.type) {
         case 'article': requestedChildType = 'video'; break;
         case 'video': requestedChildType = 'podcast'; break;
-        case 'podcast': requestedChildType = 'socialMedia'; break; 
-        default: 
-          console.error('[onAddChildNode - next] Invalid parent type for sequential add:', parentNode.type);
+        case 'podcast': requestedChildType = 'socialMedia'; break;
+        default:
+          console.error('[onAddChildNode - next] Invalid parent type for sequential add:', parentNode?.type);
           return;
       }
     } else {
       requestedChildType = childTypeOrNext;
     }
+    // RULE 1: Block Social Post on TopicalKeyword
+    if (parentNode?.type === 'topicalKeyword' && requestedChildType === 'socialMedia') {
+      alert('You cannot add a Social Post node to a TopicalKeyword node.');
+      return;
+    }
+    // RULE 2: Block Social Post on any node with outgoing edge
+    if (requestedChildType === 'socialMedia') {
+      const hasOutgoing = edges.some(e => e.source === parentId);
+      if (hasOutgoing) {
+        alert('You cannot add a Social Post node to a node that is already connected to another node on the right.');
+        return;
+      }
+    }
+    // Save current state before adding node
+    recordHistory(getNodes(), getEdges());
     
-    // Comment out the check preventing Social Media node creation from Topical Keyword
-    /*
-    if (parentNode.type === 'topicalKeyword' && requestedChildType === 'socialMedia') {
-        console.log('[Workflow Rule] Social Media cannot be created directly from Topical Keyword.');
+    // (Moved type checks above for rule enforcement)
+    if (!parentNode || parentNode.type === 'note') return;
+    // Only restrict adding children for TopicalKeyword nodes if needed
+    if (parentNode.type === 'topicalKeyword' && parentNode.data?.canAddChild === false) {
+        console.log(`[Workflow Rule] TopicalKeyword node ${parentId} cannot add more children.`);
         return;
     }
-    */
-
     if (parentNode.type === 'socialMedia') {
         console.log('[Workflow Rule] Cannot add children to Social Media node.');
         return;
     }
+    let prevNextNodeId: string | null = null;
     if (parentNode.type !== 'topicalKeyword') {
-        const childExists = edges.some(edge => 
-            (edge.source === parentId && nodes.find(n => n.id === edge.target)?.type === requestedChildType) ||
-            (edge.target === parentId && nodes.find(n => n.id === edge.source)?.type === requestedChildType)
-        );
-        if (childExists) {
-            console.log(`[Workflow Rule] Node of type ${requestedChildType} already exists directly connected to ${parentId}.`);
-            return;
+        // Find the outgoing edge (if any) from this node
+        const outgoingEdge = edges.find(edge => edge.source === parentId);
+        if (outgoingEdge) {
+            prevNextNodeId = outgoingEdge.target;
         }
+        // Remove all outgoing edges from this node before adding the new one
+        setEdges((currentEdges) => currentEdges.filter(edge => edge.source !== parentId));
     }
+
     if (parentNode?.type === 'topicalKeyword') {
         if (showInfoPanel) {
             setIsInfoPanelExiting(true);
@@ -602,8 +601,59 @@ const WorkflowEditorContent: React.FC = () => {
         type: 'customGradientEdge',
         data: {}, 
     };
-    setNodes((nds) => nds.concat(childNode));
-    setEdges((eds) => addEdge(newEdge, eds)); 
+    setNodes((nds) => {
+        // Add the new child node
+        let updatedNodes = nds.concat(childNode);
+        // If there was a previous next node, shift all downstream nodes to the right
+        if (prevNextNodeId) {
+            // Constants for spacing
+            const nodeWidth = 128;
+            const horizontalGap = 120;
+            // Traverse the chain starting from prevNextNodeId
+            let currentId = prevNextNodeId;
+            let prevNode = childNode;
+            const visited = new Set<string>();
+            while (currentId && !visited.has(currentId)) {
+                visited.add(currentId);
+                const idx = updatedNodes.findIndex(n => n.id === currentId);
+                if (idx === -1) break;
+                const node = updatedNodes[idx];
+                // Shift this node to the right of prevNode
+                updatedNodes = updatedNodes.map(n =>
+                    n.id === node.id ? {
+                        ...n,
+                        position: {
+                            x: prevNode.position.x + nodeWidth + horizontalGap,
+                            y: prevNode.position.y
+                        }
+                    } : n
+                );
+                // Find the next node in the chain (outgoing edge from currentId)
+                const nextEdge = edges.find(e => e.source === currentId);
+                prevNode = updatedNodes.find(n => n.id === node.id) || node;
+                currentId = nextEdge ? nextEdge.target : null;
+            }
+        }
+        return updatedNodes;
+    });
+    // Edges were already filtered above for non-TopicalKeyword nodes, so just add the new edge
+    setEdges((eds) => {
+        let updatedEdges = addEdge(newEdge, eds);
+        // If there was a previous next node, connect the new node to it
+        if (prevNextNodeId) {
+            const pushEdge: Edge = {
+                id: `e-${childNodeId}-${prevNextNodeId}`,
+                source: childNodeId,
+                target: prevNextNodeId,
+                sourceHandle: 'right-source',
+                targetHandle: 'left-target',
+                type: 'customGradientEdge',
+                data: {},
+            };
+            updatedEdges = addEdge(pushEdge, updatedEdges);
+        }
+        return updatedEdges;
+    });
     if (parentNode.type !== 'topicalKeyword') {
         setNodes((nds) => 
             nds.map(node => 
@@ -649,36 +699,42 @@ const WorkflowEditorContent: React.FC = () => {
     
     setShowInfoPanel(true);
     setIsInfoPanelExiting(false);
-    if (type !== 'topical') {
+
+    // Determine nodeType for icon/label rendering
+    let nodeType: 'topicalKeyword' | 'offer' | 'event' = 'topicalKeyword';
+    if (type === 'offer') nodeType = 'offer';
+    else if (type === 'event') nodeType = 'event';
+    else if (type === 'topical' || type === 'topicalKeyword') nodeType = 'topicalKeyword';
+    else {
       console.log(`Workflow type "${type}" initiation not implemented yet.`);
       return;
     }
     const startNode = getNode(initialNodeId);
     if (!startNode) return;
-    const position = startNode.position; 
-    
-    // Use plain UUID for the ID
-    const newNodeId = uuidv4(); 
-    const topicalKeywordNode: Node<TopicalKeywordNodeData> = {
-      id: newNodeId, // Use plain UUID
-      type: 'topicalKeyword',
-      position: position, 
-      data: {
-        isEntering: true, 
-        isRightConnected: false,
-        onAddChildNode: (parentId: string, childType: ContentType) => { 
-            onAddChildNode(parentId, childType); 
-        },
+    const position = startNode.position;
+    const newNodeId = uuidv4();
+    const nodeData: TopicalKeywordNodeData & { nodeType: 'topicalKeyword' | 'offer' | 'event' } = {
+      isEntering: true,
+      isRightConnected: false,
+      onAddChildNode: (parentId: string, childType: ContentType) => {
+        onAddChildNode(parentId, childType);
       },
+      nodeType,
     };
-    setNodes((nds) => 
-        nds.map(n => n.id === initialNodeId ? { ...n, data: { ...n.data, isExiting: true } } : n)
+    const newNode: Node<TopicalKeywordNodeData & { nodeType: 'topicalKeyword' | 'offer' | 'event' }> = {
+      id: newNodeId,
+      type: 'topicalKeyword',
+      position,
+      data: nodeData,
+    };
+    setNodes((nds) =>
+      nds.map(n => n.id === initialNodeId ? { ...n, data: { ...n.data, isExiting: true } } : n)
     );
     setTimeout(() => {
-      setNodes((nds) => nds.concat(topicalKeywordNode));
-    }, 10); 
+      setNodes((nds) => nds.concat(newNode));
+    }, 10);
     setTimeout(() => {
-        setNodes((nds) => nds.filter((node) => node.id !== initialNodeId));
+      setNodes((nds) => nds.filter((node) => node.id !== initialNodeId));
     }, 150);
 
   }, [getNode, setNodes, getEdges, onAddChildNode, setShowInfoPanel, setIsInfoPanelExiting, recordHistory, getNodes]);
@@ -943,7 +999,8 @@ const WorkflowEditorContent: React.FC = () => {
 
   return (
     <>
-      {/* Top bar and info panel removed as requested */}
+      {showInfoPanel && <WorkflowInfoPanel isExiting={isInfoPanelExiting} />}
+      
       <div ref={reactFlowWrapper} className="w-full h-full">
         <ReactFlow
           nodes={nodes}

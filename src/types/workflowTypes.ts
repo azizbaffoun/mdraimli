@@ -15,10 +15,22 @@ export interface StartNodeData extends BaseNodeData {
 
 // Data for the topical keyword node
 export interface TopicalKeywordNodeData extends BaseNodeData {
-  onAddChildNode: (parentId: string, childType: ContentType) => void; 
+  onAddChildNode: (parentId: string, childType: ContentType) => void;
   isRightConnected?: boolean;
+  isLeftConnected?: boolean;
+  canAddChild?: boolean;
 }
-
+export interface OfferNodeData extends BaseNodeData {
+  onAddChildNode: (parentId: string, childType: ContentType) => void;
+  isRightConnected?: boolean;
+  isLeftConnected?: boolean;
+  canAddChild?: boolean;
+}export interface EventNodeData extends BaseNodeData {
+  onAddChildNode: (parentId: string, childType: ContentType) => void;
+  isRightConnected?: boolean;
+  isLeftConnected?: boolean;
+  canAddChild?: boolean;
+}
 // Data specific to content nodes (Article, Video, Podcast, SocialMedia)
 export interface ContentNodeData extends BaseNodeData {
   canAddChild?: boolean; 

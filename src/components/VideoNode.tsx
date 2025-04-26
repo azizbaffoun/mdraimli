@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 
 // Remove unused videoSvg import if it was separate
@@ -19,11 +19,16 @@ interface VideoNodeData extends ContentNodeData {}
 // Remove connector config usage
 // const connectors = nodeConnectors.video;
 
-const VideoNode: React.FC<NodeProps<VideoNodeData>> = ({ id, data, selected, xPos, yPos }) => {
+const VideoNode: React.FC<NodeProps<VideoNodeData>> = ({ id, data, selected }) => {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [addMenuOpen, setAddMenuOpen] = useState(false);
+  const popupAnchorRef = useRef<HTMLDivElement>(null);
+
+  const handleSettingsClick = () => {
+    setAddMenuOpen(true);
+  };
+
   const animationClass = data.isEntering ? 'node-bouncing-in' : ''; // Use bouncing animation
-  // Remove internal state for plus button visibility
-  // const [showPlusButton, setShowPlusButton] = useState(data.canAddChild ?? true);
-  const [menuOpen, setMenuOpen] = useState(false); // State for menu visibility
 
   // Handle click on the plus button - now toggles menu
   const handlePlusClick = (e: React.MouseEvent) => {
@@ -47,10 +52,6 @@ const VideoNode: React.FC<NodeProps<VideoNodeData>> = ({ id, data, selected, xPo
     console.log('Document clicked');
   };
 
-  const handleSettingsClick = () => {
-    console.log('Settings clicked');
-  };
-
   const handleDeleteClick = () => {
     console.log('Delete clicked');
     if (data.onDelete) {
@@ -61,12 +62,26 @@ const VideoNode: React.FC<NodeProps<VideoNodeData>> = ({ id, data, selected, xPo
   return (
     <div className={`relative flex flex-col items-center ${animationClass}`}>
       {selected && (
-        <PopupSelect
-          onDocumentClick={handleDocumentClick}
-          onSettingsClick={handleSettingsClick}
-          onDeleteClick={handleDeleteClick}
-          notificationCount={9}
-        />
+        <div ref={popupAnchorRef}>
+          <PopupSelect
+            onDocumentClick={handleDocumentClick}
+            onSettingsClick={handleSettingsClick}
+            onDeleteClick={handleDeleteClick}
+            notificationCount={9}
+            isTopicalKeywordNode={false}
+          />
+          <NodeAddMenu
+            parentId={id}
+            isOpen={addMenuOpen}
+            onClose={() => setAddMenuOpen(false)}
+            onSelectOption={(parentId, type) => {
+              if (data.onAddChildNode) data.onAddChildNode(parentId, type);
+              setAddMenuOpen(false);
+            }}
+            availableOptions={['article', 'video', 'podcast', 'socialMedia']}
+            positionStyle={{ left: '100%', top: '50%', transform: 'translateY(-50%)', zIndex: 50 }}
+          />
+        </div>
       )}
       <div
         className={`relative node-wrapper node-type-video w-32 h-32`}
@@ -184,7 +199,7 @@ const VideoNode: React.FC<NodeProps<VideoNodeData>> = ({ id, data, selected, xPo
             </div>
         )}
       </div>
-      <div className="mt-2 text-sm text-black">Video</div>
+      <div className="mt-[10px] text-sm text-black">Video</div>
     </div>
   );
 };

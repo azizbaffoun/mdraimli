@@ -5,19 +5,26 @@ interface PopupSelectProps {
   onSettingsClick?: () => void;
   onDeleteClick?: () => void;
   notificationCount?: number;
+  isTopicalKeywordNode?: boolean;
 }
 
 const PopupSelect: React.FC<PopupSelectProps> = ({
   onDocumentClick,
   onSettingsClick,
   onDeleteClick,
-  notificationCount = 9
+  notificationCount = 9,
+  isTopicalKeywordNode = false
 }) => {
   return (
     <div 
-      className="absolute left-1/2 -translate-x-1/2 top-full -mt-6 z-50"
+      className="absolute left-1/2 -translate-x-1/2 top-full -mt-70 z-50"
     >
-      <svg xmlns="http://www.w3.org/2000/svg" width="143" height="56.207" viewBox="0 0 143 56.207">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width={isTopicalKeywordNode ? "96" : "143"}
+        height="56.207"
+        viewBox={isTopicalKeywordNode ? "0 0 96 56.207" : "0 0 143 56.207"}
+      >
         <defs>
           <filter id="Rounded_Rectangle_5320" x="-4.5" y="-0.293" width="152" height="61" filterUnits="userSpaceOnUse">
             <feOffset dy="3"/>
@@ -34,7 +41,7 @@ const PopupSelect: React.FC<PopupSelectProps> = ({
             <feComposite in="SourceGraphic"/>
           </filter>
           <clipPath id="clip-path">
-            <rect width="134" height="43" rx="10" fill="#fff"/>
+            <rect width={isTopicalKeywordNode ? "87" : "134"} height="43" rx="10" fill="#fff"/>
           </clipPath>
           <linearGradient id="linear-gradient" y1="0.365" x2="1" y2="0.058" gradientUnits="objectBoundingBox">
             <stop offset="0" stopColor="#3799db"/>
@@ -51,10 +58,10 @@ const PopupSelect: React.FC<PopupSelectProps> = ({
         <g transform="translate(-389.5 -535.293)">
           <g>
             <g transform="matrix(1, 0, 0, 1, 389.5, 535.29)" filter="url(#Rounded_Rectangle_5320-2)">
-              <rect width="134" height="43" rx="10" transform="translate(4.5 5.71)" fill="#fff"/>
+              <rect width={isTopicalKeywordNode ? "87" : "134"} height="43" rx="10" transform="translate(4.5 5.71)" fill="#fff"/>
             </g>
             <g transform="translate(394 541)" clipPath="url(#clip-path)">
-              <path id="Rectangle_5323" data-name="Rectangle_5323" d="M0,0H134V2.9H0Z" transform="translate(0.5 0.5)" stroke="rgba(0,0,0,0)" strokeWidth="1" fill="url(#linear-gradient)"/>
+              <path id="Rectangle_5323" data-name="Rectangle_5323" d={`M0,0H${isTopicalKeywordNode ? "87" : "134"}V2.9H0Z`} transform="translate(0.5 0.5)" stroke="rgba(0,0,0,0)" strokeWidth="1" fill="url(#linear-gradient)"/>
             </g>
             {/* Document Icon */}
             <g transform="translate(407 553.591)" onClick={onDocumentClick} className="cursor-pointer">
@@ -63,7 +70,9 @@ const PopupSelect: React.FC<PopupSelectProps> = ({
           </g>
           {/* Vertical Separators */}
           <rect width="1" height="40" transform="translate(437 544)" fill="#ecf0f3"/>
-          <rect width="1" height="40" transform="translate(481 544)" fill="#ecf0f3"/>
+          {!isTopicalKeywordNode && (
+            <rect width="1" height="40" transform="translate(481 544)" fill="#ecf0f3"/>
+          )}
           {/* Notification Badge */}
           <g transform="matrix(1, 0, 0, 1, 389.5, 535.29)" filter="url(#Ellipse_5367_copy_2)">
             <circle cx="8" cy="8" r="8" transform="translate(10.5 28.71)" fill="#b0bcc8"/>
@@ -78,13 +87,23 @@ const PopupSelect: React.FC<PopupSelectProps> = ({
             </g>
           </g>
           {/* Arrow */}
-          <path d="M2,0H9c1.1,0-9,9-9,9V2A2,2,0,0,1,2,0Z" transform="translate(461 535) rotate(45)" fill="#31a8bc"/>
+          <path
+            d="M2,0H9c1.1,0-9,9-9,9V2A2,2,0,0,1,2,0Z"
+            transform={
+              isTopicalKeywordNode
+                ? "translate(438 535) rotate(45)"
+                : "translate(461 535) rotate(45)"
+            }
+            fill="#31a8bc"
+          />
           {/* Delete Icon */}
-          <g transform="translate(491 552)" onClick={onDeleteClick} className="cursor-pointer">
-            <g transform="translate(3 2)">
-              <path d="M15.939,6.7a.726.726,0,0,1,.523.234.746.746,0,0,1,.181.558c0,.068-.533,6.808-.837,9.645a2.917,2.917,0,0,1-3,2.827C11.515,19.99,10.25,20,9,20c-1.323,0-2.616-.01-3.872-.039A2.917,2.917,0,0,1,2.2,17.134c-.313-2.847-.836-9.577-.846-9.645a.791.791,0,0,1,.191-.558A.706.706,0,0,1,2.069,6.7ZM11.065,0a1.986,1.986,0,0,1,1.9,1.5h0l.163.73a1.281,1.281,0,0,0,1.241,1.016h2.916A.723.723,0,0,1,18,3.977h0v.38a.73.73,0,0,1-.713.734H.714A.73.73,0,0,1,0,4.357H0v-.38a.723.723,0,0,1,.714-.734H3.63A1.282,1.282,0,0,0,4.871,2.228h0l.153-.682A1.988,1.988,0,0,1,6.935,0h4.129Z" fill="#b0bcc8"/>
+          {!isTopicalKeywordNode && (
+            <g transform="translate(491 552)" onClick={onDeleteClick} className="cursor-pointer">
+              <g transform="translate(3 2)">
+                <path d="M15.939,6.7a.726.726,0,0,1,.523.234.746.746,0,0,1,.181.558c0,.068-.533,6.808-.837,9.645a2.917,2.917,0,0,1-3,2.827C11.515,19.99,10.25,20,9,20c-1.323,0-2.616-.01-3.872-.039A2.917,2.917,0,0,1,2.2,17.134c-.313-2.847-.836-9.577-.846-9.645a.791.791,0,0,1,.191-.558A.706.706,0,0,1,2.069,6.7ZM11.065,0a1.986,1.986,0,0,1,1.9,1.5h0l.163.73a1.281,1.281,0,0,0,1.241,1.016h2.916A.723.723,0,0,1,18,3.977h0v.38a.73.73,0,0,1-.713.734H.714A.73.73,0,0,1,0,4.357H0v-.38a.723.723,0,0,1,.714-.734H3.63A1.282,1.282,0,0,0,4.871,2.228h0l.153-.682A1.988,1.988,0,0,1,6.935,0h4.129Z" fill="#b0bcc8"/>
+              </g>
             </g>
-          </g>
+          )}
         </g>
       </svg>
     </div>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import PopupSelect from './PopupSelect';
 
@@ -20,10 +20,14 @@ interface SocialMediaNodeData {
 }
 
 // Node component
+import NodeAddMenu from './NodeAddMenu';
+
 const SocialMediaNode: React.FC<NodeProps<SocialMediaNodeData>> = ({ id, data, selected, xPos, yPos }) => {
   const animationClass = data.isEntering ? 'node-bouncing-in' : '';
   // Remove nodeColor if not used
   // const nodeColor = '#FC8500';
+  const [addMenuOpen, setAddMenuOpen] = useState(false);
+  const popupAnchorRef = useRef<HTMLDivElement>(null);
 
   const handleDeleteClick = () => {
     console.log('Delete clicked');
@@ -32,17 +36,35 @@ const SocialMediaNode: React.FC<NodeProps<SocialMediaNodeData>> = ({ id, data, s
     }
   };
 
+  const handleSettingsClick = () => {
+    setAddMenuOpen(true);
+  };
+
   return (
     <div
       className={`relative flex flex-col items-center ${animationClass}`}
     >
       {selected && (
-        <PopupSelect
-          onDocumentClick={() => console.log('Document clicked')}
-          onSettingsClick={() => console.log('Settings clicked')}
-          onDeleteClick={handleDeleteClick}
-          notificationCount={9}
-        />
+        <div ref={popupAnchorRef}>
+          <PopupSelect
+            onDocumentClick={() => console.log('Document clicked')}
+            onSettingsClick={handleSettingsClick}
+            onDeleteClick={handleDeleteClick}
+            notificationCount={9}
+            isTopicalKeywordNode={false}
+          />
+          <NodeAddMenu
+            parentId={id}
+            isOpen={addMenuOpen}
+            onClose={() => setAddMenuOpen(false)}
+            onSelectOption={(parentId, type) => {
+              if (data.onAddChildNode) data.onAddChildNode(parentId, type);
+              setAddMenuOpen(false);
+            }}
+            availableOptions={['article', 'video', 'podcast', 'socialMedia']}
+            positionStyle={{ left: '100%', top: '50%', transform: 'translateY(-50%)', zIndex: 50 }}
+          />
+        </div>
       )}
       <div
         className={`relative node-wrapper node-type-socialMedia w-32 h-32`}
@@ -105,7 +127,7 @@ const SocialMediaNode: React.FC<NodeProps<SocialMediaNodeData>> = ({ id, data, s
         {/* NO Right Connector or Source Handle */}
 
       </div>
-      <div className="mt-2 text-sm text-black">Social Media</div>
+      <div className="mt-[10px] text-sm text-black">Social Media</div>
     </div>
   );
 };

@@ -44,6 +44,12 @@ const CustomEdge: React.FC<EdgeProps> = ({
     // sourceX, sourceY, targetX, targetY are technically available but potentially inaccurate for our offset handles
     // data prop is no longer needed for node info
 }) => {
+    // --- Clear console on first render of any edge this session ---
+    if ((window as any).__customEdgeConsoleCleared !== true) {
+        console.clear();
+        (window as any).__customEdgeConsoleCleared = true;
+    }
+
     // --- Fix: Force re-render if distance is zero (background bug workaround) ---
     const [renderKey, setRenderKey] = React.useState(0);
 
@@ -53,6 +59,57 @@ const CustomEdge: React.FC<EdgeProps> = ({
     const sourceNode = nodeInternals.get(source);
     const targetNode = nodeInternals.get(target);
 
+    // --- Node creation detection ---
+    const prevExist = React.useRef<{src?: boolean, tgt?: boolean}>({});
+    React.useEffect(() => {
+        if (!prevExist.current.src && !!sourceNode) {
+            console.log('[CustomEdge][Node Created]', {
+                nodeId: source,
+                nodeType: sourceNode?.type,
+                method: sourceNode?.creationMethod || 'unknown',
+                node: sourceNode
+            });
+        }
+        if (!prevExist.current.tgt && !!targetNode) {
+            console.log('[CustomEdge][Node Created]', {
+                nodeId: target,
+                nodeType: targetNode?.type,
+                method: targetNode?.creationMethod || 'unknown',
+                node: targetNode
+            });
+        }
+        prevExist.current.src = !!sourceNode;
+        prevExist.current.tgt = !!targetNode;
+    }, [sourceNode, targetNode, source, target]);
+
+    // --- Force re-render when node positions/dimensions become ready ---
+    const prevSource = React.useRef<{x?: number, y?: number, w?: number, h?: number}>();
+    const prevTarget = React.useRef<{x?: number, y?: number, w?: number, h?: number}>();
+    React.useEffect(() => {
+        const isReady = (n: any) => n && n.positionAbsolute && typeof n.width === 'number' && n.width > 0 && typeof n.height === 'number' && n.height > 0;
+        const srcReady = isReady(sourceNode);
+        const tgtReady = isReady(targetNode);
+        // Compare prev and current for "became ready"
+        if (
+            (srcReady && (!prevSource.current || !isReady(prevSource.current))) ||
+            (tgtReady && (!prevTarget.current || !isReady(prevTarget.current)))
+        ) {
+            setRenderKey(k => k + 1);
+        }
+        prevSource.current = sourceNode ? {
+            x: sourceNode.positionAbsolute?.x,
+            y: sourceNode.positionAbsolute?.y,
+            w: sourceNode.width,
+            h: sourceNode.height
+        } : {};
+        prevTarget.current = targetNode ? {
+            x: targetNode.positionAbsolute?.x,
+            y: targetNode.positionAbsolute?.y,
+            w: targetNode.width,
+            h: targetNode.height
+        } : {};
+    }, [sourceNode, targetNode]);
+
     // Define connector offset and node dimensions (adjust if dynamic)
     const connectorOffset = 16.5;
     // Get dimensions from live nodes, fallback if needed
@@ -61,11 +118,32 @@ const CustomEdge: React.FC<EdgeProps> = ({
     const targetNodeHeight = targetNode?.height ?? 128;
 
     // Check if node data is available from the store
+    // More robust retry: higher count, longer delay
+
+
     if (!sourceNode || !targetNode) {
-        // Return null or a default line if data is missing
-        console.warn(`CustomEdge ${id}: Missing source or target node data from store.`);
-        return null; // Or draw a simple line between fallbacks
+        // Fallback: Always render a simple straight background line between fallback positions
+        // Use fallback positions if node data is missing
+        const fallbackSourceX = 0;
+        const fallbackSourceY = 0;
+        const fallbackTargetX = 100;
+        const fallbackTargetY = 0;
+        return (
+            <g>
+                <path
+                    d={`M${fallbackSourceX},${fallbackSourceY} L${fallbackTargetX},${fallbackTargetY}`}
+                    stroke="#bbb"
+                    strokeWidth="20"
+                    fill="none"
+                    strokeLinecap="round"
+                    style={{ pointerEvents: 'none' }}
+                    strokeOpacity={0.18}
+                />
+            </g>
+        );
     }
+
+    // No retry logic needed for background path. Always render a fallback if data is missing.
 
     // Calculate absolute coordinates of the handles using LIVE node positions
     let calcSourceX = sourceNode.positionAbsolute.x + sourceNodeWidth + connectorOffset; // Default calculation
@@ -100,8 +178,9 @@ const CustomEdge: React.FC<EdgeProps> = ({
     const finalVisualDistance = Math.max(0, distance);
 
     // --- Debug Logging ---
-    console.log('[CustomEdge Render]', {
-        id,
+    const isReady = (n: any) => n && n.positionAbsolute && typeof n.width === 'number' && n.width > 0 && typeof n.height === 'number' && n.height > 0;
+    console.log('[CustomEdge][Edge State]', {
+        edgeId: id,
         source,
         target,
         sourceNodeType: sourceNode?.type,
@@ -116,7 +195,9 @@ const CustomEdge: React.FC<EdgeProps> = ({
         visualTargetX,
         visualTargetY,
         finalVisualDistance,
-        renderKey
+        renderKey,
+        sourceNodeReady: isReady(sourceNode),
+        targetNodeReady: isReady(targetNode)
     });
 
 
@@ -183,9 +264,25 @@ const CustomEdge: React.FC<EdgeProps> = ({
 
             {/* Background shadow path - Use CALCULATED points, adjusted style */}
             {/* Background shadow path - blend source and target color, opacity 0.28 */}
+            {/* Gradient stroke for main connection line background */}
+            <defs>
+                <linearGradient
+  id={`edge-gradient-bg-${id}`}
+  gradientUnits="userSpaceOnUse"
+  x1={visualSourceX}
+  y1={visualSourceY}
+  x2={visualTargetX}
+  y2={visualTargetY}
+>
+  <stop offset="0%" stopColor={sourceColor} />
+  <stop offset="49%" stopColor={sourceColor} />
+  <stop offset="51%" stopColor={targetColor} />
+  <stop offset="100%" stopColor={targetColor} />
+</linearGradient>
+            </defs>
             <path
                 d={`M${visualSourceX},${visualSourceY} L${visualTargetX},${visualTargetY}`}
-                stroke={blendColors(sourceColor, targetColor, 0.5)}
+                stroke={`url(#edge-gradient-bg-${id})`}
                 strokeWidth="20"
                 fill="none"
                 strokeLinecap="round"
@@ -198,7 +295,8 @@ const CustomEdge: React.FC<EdgeProps> = ({
                 transform={`translate(${visualSourceX},${visualSourceY}) rotate(${angleDegrees})`}
                 style={{ pointerEvents: 'none' }}
             >
-                {/* Draw fixed PATHS along the distance */}
+                {/* Use the same gradient for both background and squares */}
+                {/* Draw fixed SVG squares/dashes along the distance */}
                 {Array.from({ length: numDashes }).map((_, index) => {
                     let currentX = 0;
                     const pairIndex = Math.floor(index / 2);
@@ -209,28 +307,40 @@ const CustomEdge: React.FC<EdgeProps> = ({
                         currentX += shortDashWidth + dashGap;
                     }
 
-                    const pathData = isShortDash ? shortDashPath : longDashPath;
-                    const fillColor = index < colorSplitIndex ? sourceColor : targetColor;
-                    const verticalOffset = -3.5445; // Center the 7.089 height
+                    // verticalOffset for SVG dash alignment
+                    const verticalOffset = -3.5445;
 
-                    // Return a fragment containing both the white background and the colored foreground
+                    // Use the rectangle and outline path from the provided SVG
+                    const rectWidth = isShortDash ? 12.79 : 16.794;
+                    const rectHeight = 7.089;
+                    const rectRx = 2;
+                    const rectStrokeWidth = 1.5;
+                    const rectX = currentX + 0.75;
+                    const rectY = verticalOffset + 0.75;
+                    const outlinePath = isShortDash
+                        ? "M2-.75h8.79A2.753,2.753,0,0,1,13.54,2V5.089a2.753,2.753,0,0,1-2.75,2.75H2A2.753,2.753,0,0,1-.75,5.089V2A2.753,2.753,0,0,1,2-.75Zm8.79,7.089a1.251,1.251,0,0,0,1.25-1.25V2A1.251,1.251,0,0,0,10.79.75H2A1.251,1.251,0,0,0,.75,2V5.089A1.251,1.251,0,0,0,2,6.339Z"
+                        : "M0 0h16.794a2 2 0 0 1 2 2v3.089a2 2 0 0 1-2 2H0a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2zm16.794 7.089a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H0a1 1 0 0 0-1 1v4.089a1 1 0 0 0 1 1z";
+                    const outlineTransform = `translate(${currentX + 0.75}, ${verticalOffset + 0.75})`;
                     return (
-                        <React.Fragment key={index}>
-                            {/* White Background/Border Path */}
+                        <g key={index}>
+                            {/* Gradient rectangle with white stroke */}
+                            <rect
+                                x={rectX}
+                                y={rectY}
+                                width={rectWidth}
+                                height={rectHeight}
+                                rx={rectRx}
+                                fill={index < Math.ceil(numDashes / 2) ? sourceColor : targetColor}
+                                stroke="#fff"
+                                strokeWidth={rectStrokeWidth}
+                            />
+                            {/* Outline path overlay (white) */}
                             <path
-                                d={pathData}
-                                transform={`translate(${currentX}, ${verticalOffset})`}
+                                d={outlinePath}
+                                transform={outlineTransform}
                                 fill="#fff"
-                                // No stroke needed if the fill covers the area
                             />
-                            {/* Colored Foreground Path (drawn on top) */}
-                            <path
-                                d={pathData}
-                                transform={`translate(${currentX}, ${verticalOffset})`} 
-                                fill={fillColor}
-                                // No stroke here
-                            />
-                        </React.Fragment>
+                        </g>
                     );
                 })}
 

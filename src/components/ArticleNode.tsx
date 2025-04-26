@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 
 // Import necessary types from the types file
@@ -10,7 +10,6 @@ import { ContentNodeData, ContentType } from '@/types/workflowTypes';
 // import rightTopicalKeywordSvg from '@/assets/component to link the nodes/right topical keyword.svg';
 // import plusButtonSvg from '@/assets/component to link the nodes/plusbutton.svg';
 
-import NodeAddMenu from './NodeAddMenu';
 import PopupSelect from './PopupSelect';
 
 // Use the specific interface by extending the imported base type
@@ -24,9 +23,13 @@ interface ArticleNodeData extends ContentNodeData {
   onDelete?: (nodeId: string) => void;
 }
 
-const ArticleNode: React.FC<NodeProps<ArticleNodeData>> = ({ id, data, selected, xPos, yPos }) => {
+import NodeAddMenu from './NodeAddMenu';
+
+const ArticleNode: React.FC<NodeProps<ArticleNodeData>> = ({ id, data, selected }) => {
   const animationClass = data.isEntering ? 'node-bouncing-in' : '';
   const [menuOpen, setMenuOpen] = useState(false);
+  const [addMenuOpen, setAddMenuOpen] = useState(false);
+  const popupAnchorRef = useRef<HTMLDivElement>(null);
 
   const handlePlusClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -59,7 +62,7 @@ const ArticleNode: React.FC<NodeProps<ArticleNodeData>> = ({ id, data, selected,
   };
 
   const handleSettingsClick = () => {
-    console.log('Settings clicked');
+    setAddMenuOpen(true);
   };
 
   const handleDeleteClick = () => {
@@ -72,12 +75,26 @@ const ArticleNode: React.FC<NodeProps<ArticleNodeData>> = ({ id, data, selected,
   return (
     <div className={`relative flex flex-col items-center ${animationClass}`}>
       {selected && (
-        <PopupSelect
-          onDocumentClick={handleDocumentClick}
-          onSettingsClick={handleSettingsClick}
-          onDeleteClick={handleDeleteClick}
-          notificationCount={9}
-        />
+        <div ref={popupAnchorRef}>
+          <PopupSelect
+            onDocumentClick={handleDocumentClick}
+            onSettingsClick={handleSettingsClick}
+            onDeleteClick={handleDeleteClick}
+            notificationCount={9}
+            isTopicalKeywordNode={false}
+          />
+          <NodeAddMenu
+            parentId={id}
+            isOpen={addMenuOpen}
+            onClose={() => setAddMenuOpen(false)}
+            onSelectOption={(parentId, type) => {
+              if (data.onAddChildNode) data.onAddChildNode(parentId, type);
+              setAddMenuOpen(false);
+            }}
+            availableOptions={['article', 'video', 'podcast', 'socialMedia']}
+            positionStyle={{ left: '100%', top: '50%', transform: 'translateY(-50%)', zIndex: 50 }}
+          />
+        </div>
       )}
       <div
         className={`relative node-wrapper node-type-article w-32 h-32`}
