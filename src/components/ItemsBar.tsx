@@ -78,11 +78,11 @@ const ItemsBar: React.FC<ItemsBarProps> = ({
         
         <div className="relative z-10 flex items-center space-x-2">
           {/* Tools Icon and Text */}
-          <div className="flex items-center mr-1">
+          <div className="flex items-center pl-[16px] pt-[17px] pb-[18px] mr-0">
             <img src={toolsIcon} alt="Tools" className="h-[23px]" />
           </div>
 
-          <Separator />
+          <div className="ml-[21px]"><Separator /></div>
 
           {/* Utility Buttons */}
           {utilityItems.map((item) => (
