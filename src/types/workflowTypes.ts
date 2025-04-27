@@ -59,3 +59,17 @@ export interface WorkflowData {
 // Re-export necessary types from reactflow if needed elsewhere
 // Removed re-export as they are imported directly now
 // export type { Node, Edge, Viewport, Connection } from 'reactflow'; 
+
+
+declare global {
+  interface Window {
+    notifyNodeAdded?: (type: string) => void;
+  }
+}
+
+// Safely call notifyNodeAdded
+export function notifyNode(type: string) {
+  if (typeof window.notifyNodeAdded === 'function') {
+    window.notifyNodeAdded(type);
+  }
+}

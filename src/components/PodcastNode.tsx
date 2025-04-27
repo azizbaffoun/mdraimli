@@ -1,8 +1,8 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 
 // Import necessary types from the types file
-import { ContentNodeData, ContentType } from '@/types/workflowTypes';
+import { ContentNodeData, ContentType, notifyNode } from '@/types/workflowTypes';
 
 // Keep plus button, remove others
 // import podcastSvg from '@/assets/nodes/podcast.svg';
@@ -21,6 +21,10 @@ const PodcastNode: React.FC<NodeProps<PodcastNodeData>> = ({ id, data, selected 
   const [menuOpen, setMenuOpen] = useState(false);
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const popupAnchorRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+      notifyNode('podcast');
+    }, []);
 
   const handlePlusClick = (e: React.MouseEvent) => {
     e.stopPropagation();

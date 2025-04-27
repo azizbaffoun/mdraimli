@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 
 // Remove unused videoSvg import if it was separate
@@ -11,7 +11,7 @@ import PopupSelect from './PopupSelect';
 // import { nodeConnectors } from '@/config/nodeConnectors'; 
 
 // Import necessary types from the types file
-import { ContentNodeData, ContentType } from '@/types/workflowTypes';
+import { ContentNodeData, ContentType, notifyNode } from '@/types/workflowTypes';
 
 // Add back the interface definition
 interface VideoNodeData extends ContentNodeData {}
@@ -23,6 +23,10 @@ const VideoNode: React.FC<NodeProps<VideoNodeData>> = ({ id, data, selected }) =
   const [menuOpen, setMenuOpen] = useState(false);
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const popupAnchorRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    notifyNode('viralVids');
+  }, []);
 
   const handleSettingsClick = () => {
     setAddMenuOpen(true);

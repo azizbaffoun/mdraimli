@@ -1,8 +1,8 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 
 // Import necessary types from the types file
-import { ContentNodeData, ContentType } from '@/types/workflowTypes';
+import { ContentNodeData, ContentType, notifyNode } from '@/types/workflowTypes';
 
 // Keep plus button, remove others
 // import articleSvg from '@/assets/nodes/article.svg';
@@ -31,6 +31,10 @@ const ArticleNode: React.FC<NodeProps<ArticleNodeData>> = ({ id, data, selected 
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const popupAnchorRef = useRef<HTMLDivElement>(null);
 
+    useEffect(() => {
+      notifyNode('article');
+    }, []);
+
   const handlePlusClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     setMenuOpen(!menuOpen);
@@ -58,7 +62,7 @@ const ArticleNode: React.FC<NodeProps<ArticleNodeData>> = ({ id, data, selected 
   );
 
   const handleDocumentClick = () => {
-    console.log('Document clicked');
+
   };
 
   const handleSettingsClick = () => {
@@ -66,7 +70,6 @@ const ArticleNode: React.FC<NodeProps<ArticleNodeData>> = ({ id, data, selected 
   };
 
   const handleDeleteClick = () => {
-    console.log('Delete clicked');
     if (data.onDelete) {
       data.onDelete(id);
     }

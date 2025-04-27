@@ -40,22 +40,6 @@ const CustomEdge: React.FC<EdgeProps> = ({
     // --- Node creation detection ---
     const prevExist = React.useRef<{src?: boolean, tgt?: boolean}>({});
     React.useEffect(() => {
-        if (!prevExist.current.src && !!sourceNode) {
-            console.log('[CustomEdge][Node Created]', {
-                nodeId: source,
-                nodeType: sourceNode?.type,
-                method: sourceNode?.creationMethod || 'unknown',
-                node: sourceNode
-            });
-        }
-        if (!prevExist.current.tgt && !!targetNode) {
-            console.log('[CustomEdge][Node Created]', {
-                nodeId: target,
-                nodeType: targetNode?.type,
-                method: targetNode?.creationMethod || 'unknown',
-                node: targetNode
-            });
-        }
         prevExist.current.src = !!sourceNode;
         prevExist.current.tgt = !!targetNode;
     }, [sourceNode, targetNode, source, target]);
@@ -157,26 +141,26 @@ const CustomEdge: React.FC<EdgeProps> = ({
 
     // --- Debug Logging ---
     const isReady = (n: any) => n && n.positionAbsolute && typeof n.width === 'number' && n.width > 0 && typeof n.height === 'number' && n.height > 0;
-    console.log('[CustomEdge][Edge State]', {
-        edgeId: id,
-        source,
-        target,
-        sourceNodeType: sourceNode?.type,
-        targetNodeType: targetNode?.type,
-        sourceNodePos: sourceNode?.positionAbsolute,
-        targetNodePos: targetNode?.positionAbsolute,
-        sourceNodeWidth,
-        sourceNodeHeight,
-        targetNodeHeight,
-        visualSourceX,
-        visualSourceY,
-        visualTargetX,
-        visualTargetY,
-        finalVisualDistance,
-        renderKey,
-        sourceNodeReady: isReady(sourceNode),
-        targetNodeReady: isReady(targetNode)
-    });
+    // console.log('[CustomEdge][Edge State]', {
+    //     edgeId: id,
+    //     source,
+    //     target,
+    //     sourceNodeType: sourceNode?.type,
+    //     targetNodeType: targetNode?.type,
+    //     sourceNodePos: sourceNode?.positionAbsolute,
+    //     targetNodePos: targetNode?.positionAbsolute,
+    //     sourceNodeWidth,
+    //     sourceNodeHeight,
+    //     targetNodeHeight,
+    //     visualSourceX,
+    //     visualSourceY,
+    //     visualTargetX,
+    //     visualTargetY,
+    //     finalVisualDistance,
+    //     renderKey,
+    //     sourceNodeReady: isReady(sourceNode),
+    //     targetNodeReady: isReady(targetNode)
+    // });
 
 
     // If the distance is 0 (buggy), force a re-render after a tick
