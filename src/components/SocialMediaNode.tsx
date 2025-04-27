@@ -12,6 +12,7 @@ type ContentType = 'article' | 'video' | 'podcast' | 'socialMedia';
 interface SocialMediaNodeData {
   label?: string;
   isEntering?: boolean;
+  isNew?: boolean;
   onAddChildNode?: (parentId: string, childType: ContentType) => void;
   canAddChild?: boolean;
   isLeftConnected?: boolean;
@@ -31,7 +32,7 @@ const SocialMediaNode: React.FC<NodeProps<SocialMediaNodeData>> = ({ id, data, s
   const popupAnchorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    notifyNode('brightSocial', id);
+     data.isNew && notifyNode('brightSocial', id);
   }, []);
 
   const handleDeleteClick = () => {

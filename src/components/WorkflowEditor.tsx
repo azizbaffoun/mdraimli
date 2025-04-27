@@ -98,12 +98,38 @@ const WorkflowEditorContent: React.FC = () => {
 
   useEffect(() => {
     window.getWorkflowData = () => {
+      console.log("Getting workflow data...");
       if (!reactFlowInstance) {
         console.error("ReactFlow instance not available for getting workflow data.");
         return null;
       }
+  
+      // 1. Get the full flow state
       const flowState = reactFlowInstance.toObject();
-      const jsonString = JSON.stringify(flowState);
+  
+      // 2. Clone nodes and set all isEntering = false
+      const updatedNodes = flowState.nodes.map(node => {
+        if (node.data && typeof node.data === 'object') {
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              isNew: false, // Force isEntering to false
+            }
+          };
+        }
+        return node;
+      });
+  
+      // 3. Create a new flow state object
+      const updatedFlowState = {
+        ...flowState,
+        nodes: updatedNodes,
+      };
+  
+      // 4. Serialize updated JSON
+      const jsonString = JSON.stringify(updatedFlowState);
+  
       return jsonString;
     };
   
@@ -450,6 +476,7 @@ const WorkflowEditorContent: React.FC = () => {
         selectable: true,
         data: { 
             isEntering: true,
+            isNew: true,
             canAddChild: requestedChildType !== 'socialMedia',
             onAddChildNode: (parentId: string, childType: ContentType) => {
               onAddChildNode(parentId, childType);

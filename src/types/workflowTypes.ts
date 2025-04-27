@@ -6,6 +6,7 @@ export type ContentType = 'article' | 'video' | 'podcast' | 'socialMedia';
 export interface BaseNodeData {
   isEntering?: boolean; 
   isExiting?: boolean;
+  isNew?: boolean;
 }
 
 // Data for the initial start node
