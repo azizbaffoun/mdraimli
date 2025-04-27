@@ -564,6 +564,12 @@ const WorkflowEditorContent: React.FC = () => {
     onAddChildNodeRef.current = onAddChildNode;
   }, [onAddChildNode]);
 
+  // Store the latest version of handleDeleteNode in the ref
+  const handleDeleteNodeRef = useRef(handleDeleteNode);
+  useEffect(() => {
+    handleDeleteNodeRef.current = handleDeleteNode;
+  }, [handleDeleteNode]);
+
   // Add onConnect handler
   const onConnect = useCallback((connection: Connection) => {
     setEdges((eds) => addEdge({
@@ -727,26 +733,38 @@ const WorkflowEditorContent: React.FC = () => {
         // Restore function references just like in handleUndo (important if you save/load complex data)
         const restoredNodes = workflowData.nodes.map(node => {
           let nodeData = { ...node.data };
-          if (node.type === 'topicalKeyword' && handleInitiateWorkflowRef.current) {
-             nodeData = {
-               ...nodeData,
-               onAddChildNode: (childType: string) => {
-                 if (onAddChildNodeRef.current) {
-                   (onAddChildNodeRef.current as Function)(node.id, childType);
-                 }
-               }
-             };
+
+          // Attach onDelete handler to all nodes
+          nodeData.onDelete = (nodeId: string) => {
+            if (handleDeleteNodeRef && handleDeleteNodeRef.current) {
+              (handleDeleteNodeRef.current as Function)(nodeId);
+            }
+          };
+
+          // Attach onAddChildNode for node types that support children
+          if (
+            node.type === 'article' ||
+            node.type === 'video' ||
+            node.type === 'podcast' ||
+            node.type === 'socialMedia' ||
+            node.type === 'topicalKeyword'
+          ) {
+            nodeData.onAddChildNode = (parentId: string, childType: string) => {
+              if (onAddChildNodeRef.current) {
+                (onAddChildNodeRef.current as Function)(parentId, childType);
+              }
+            };
           }
-          if (node.type === 'start' && handleInitiateWorkflowRef.current) {
-             nodeData = {
-               ...nodeData,
-               onInitiateWorkflow: (type: string) => {
-                 if (handleInitiateWorkflowRef.current) {
-                   (handleInitiateWorkflowRef.current as Function)(type);
-                 }
-               }
-             };
+
+          // Attach onInitiateWorkflow for start node
+          if (node.type === 'start') {
+            nodeData.onInitiateWorkflow = (type: string) => {
+              if (handleInitiateWorkflowRef.current) {
+                (handleInitiateWorkflowRef.current as Function)(type);
+              }
+            };
           }
+
           return { ...node, data: nodeData };
         });
 
@@ -756,10 +774,9 @@ const WorkflowEditorContent: React.FC = () => {
 
         // Optional: Update viewport if you save/load it
         if (workflowData.viewport) {
-           setViewport(workflowData.viewport);
+          setViewport(workflowData.viewport);
         }
 
-    
         console.log('Workflow loaded into React!'); // Log instead of alert
       } else {
         console.error("React App: Invalid data received", workflowData);

@@ -12,7 +12,10 @@ export interface BaseNodeData {
 // Data for the initial start node
 export interface StartNodeData extends BaseNodeData {
   onInitiateWorkflow: (type: string) => void;
+  onDelete?: (nodeId: string) => void;
+  onAddChildNode?: (parentId: string, childType: ContentType) => void;
 }
+
 
 // Data for the topical keyword node
 export interface TopicalKeywordNodeData extends BaseNodeData {
@@ -20,32 +23,56 @@ export interface TopicalKeywordNodeData extends BaseNodeData {
   isRightConnected?: boolean;
   isLeftConnected?: boolean;
   canAddChild?: boolean;
+  onDelete?: (nodeId: string) => void;
+  onInitiateWorkflow?: (type: string) => void;
 }
+
 export interface OfferNodeData extends BaseNodeData {
   onAddChildNode: (parentId: string, childType: ContentType) => void;
   isRightConnected?: boolean;
   isLeftConnected?: boolean;
   canAddChild?: boolean;
-}export interface EventNodeData extends BaseNodeData {
-  onAddChildNode: (parentId: string, childType: ContentType) => void;
+  onDelete?: (nodeId: string) => void;
+  onInitiateWorkflow?: (type: string) => void;
+}
+
+export interface EventNodeData extends BaseNodeData {
+  isRightConnected?: boolean;
+  isLeftConnected?: boolean;
+  canAddChild?: boolean;
+  onDelete?: (nodeId: string) => void;
+  onAddChildNode?: (parentId: string, childType: ContentType) => void;
+  onInitiateWorkflow?: (type: string) => void;
+}
+
+
+
+export interface EventNodeData extends BaseNodeData {
   isRightConnected?: boolean;
   isLeftConnected?: boolean;
   canAddChild?: boolean;
 }
+
 // Data specific to content nodes (Article, Video, Podcast, SocialMedia)
 export interface ContentNodeData extends BaseNodeData {
   canAddChild?: boolean; 
-  onAddChildNode?: (parentId: string, childType: ContentType) => void; 
   isLeftConnected?: boolean;
   isRightConnected?: boolean;
   onDelete?: (nodeId: string) => void;
+  onAddChildNode?: (parentId: string, childType: ContentType) => void;
+  onInitiateWorkflow?: (type: string) => void;
 }
+
 
 // Data for the note node
 export interface NoteNodeFlowData extends BaseNodeData { 
   title?: string;
   content?: string;
+  onDelete?: (nodeId: string) => void;
+  onAddChildNode?: (parentId: string, childType: ContentType) => void;
+  onInitiateWorkflow?: (type: string) => void;
 }
+
 
 // Union type for any possible node data in our workflow
 export type WorkflowNodeData = StartNodeData | TopicalKeywordNodeData | ContentNodeData | NoteNodeFlowData;
