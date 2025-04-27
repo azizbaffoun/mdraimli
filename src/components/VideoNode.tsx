@@ -25,7 +25,7 @@ const VideoNode: React.FC<NodeProps<VideoNodeData>> = ({ id, data, selected }) =
   const popupAnchorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    notifyNode('viralVids');
+    notifyNode('viralVids', id);
   }, []);
 
   const handleSettingsClick = () => {

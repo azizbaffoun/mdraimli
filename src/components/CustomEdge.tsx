@@ -141,26 +141,26 @@ const CustomEdge: React.FC<EdgeProps> = ({
 
     // --- Debug Logging ---
     const isReady = (n: any) => n && n.positionAbsolute && typeof n.width === 'number' && n.width > 0 && typeof n.height === 'number' && n.height > 0;
-    // console.log('[CustomEdge][Edge State]', {
-    //     edgeId: id,
-    //     source,
-    //     target,
-    //     sourceNodeType: sourceNode?.type,
-    //     targetNodeType: targetNode?.type,
-    //     sourceNodePos: sourceNode?.positionAbsolute,
-    //     targetNodePos: targetNode?.positionAbsolute,
-    //     sourceNodeWidth,
-    //     sourceNodeHeight,
-    //     targetNodeHeight,
-    //     visualSourceX,
-    //     visualSourceY,
-    //     visualTargetX,
-    //     visualTargetY,
-    //     finalVisualDistance,
-    //     renderKey,
-    //     sourceNodeReady: isReady(sourceNode),
-    //     targetNodeReady: isReady(targetNode)
-    // });
+    console.log('[CustomEdge][Edge State]', {
+        edgeId: id,
+        source,
+        target,
+        sourceNodeType: sourceNode?.type,
+        targetNodeType: targetNode?.type,
+        sourceNodePos: sourceNode?.positionAbsolute,
+        targetNodePos: targetNode?.positionAbsolute,
+        sourceNodeWidth,
+        sourceNodeHeight,
+        targetNodeHeight,
+        visualSourceX,
+        visualSourceY,
+        visualTargetX,
+        visualTargetY,
+        finalVisualDistance,
+        renderKey,
+        sourceNodeReady: isReady(sourceNode),
+        targetNodeReady: isReady(targetNode)
+    });
 
 
     // If the distance is 0 (buggy), force a re-render after a tick

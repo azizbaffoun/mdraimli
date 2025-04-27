@@ -23,7 +23,7 @@ const PodcastNode: React.FC<NodeProps<PodcastNodeData>> = ({ id, data, selected 
   const popupAnchorRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-      notifyNode('podcast');
+      notifyNode('podcast', id);
     }, []);
 
   const handlePlusClick = (e: React.MouseEvent) => {

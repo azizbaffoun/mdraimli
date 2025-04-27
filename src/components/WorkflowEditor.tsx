@@ -51,7 +51,8 @@ import {
   TopicalKeywordNodeData,
   ContentNodeData,
   NoteNodeFlowData,
-  WorkflowNodeData
+  WorkflowNodeData,
+  getWorkflowData
 } from '@/types/workflowTypes';
 
 // Extend the global Window interface (Moved back here from types file)
@@ -94,6 +95,22 @@ const WorkflowEditorContent: React.FC = () => {
   
   // Add state for undoredo history
 
+
+  useEffect(() => {
+    window.getWorkflowData = () => {
+      if (!reactFlowInstance) {
+        console.error("ReactFlow instance not available for getting workflow data.");
+        return null;
+      }
+      const flowState = reactFlowInstance.toObject();
+      const jsonString = JSON.stringify(flowState);
+      return jsonString;
+    };
+  
+    return () => {
+      delete window.getWorkflowData;
+    };
+  }, [reactFlowInstance]);
 
   
   // We need to use refs to store the function references to avoid circular dependencies
@@ -664,18 +681,12 @@ const WorkflowEditorContent: React.FC = () => {
     // Note: toObject() conveniently gives nodes, edges, and viewport
 
     // 2. Serialize the JSON (compact)
-    const jsonString = JSON.stringify(flowState); 
+    const jsonString = JSON.stringify(flowState);
 
-    // 3. Call the global function defined in the HTML
-    if (window.passData && typeof window.passData === 'function') {
-      window.passData(jsonString);
-      console.log("Workflow data passed to window.passData");
-    } else {
-      console.error("window.passData function not found or not a function.");
-      // Log the JSON to console as a fallback if needed during development
-      console.log("Workflow JSON (not passed):", jsonString); 
-    }
-  }, [reactFlowInstance]);
+    // 3. Log the JSON to console (or send it to a server)
+    localStorage.setItem('workflowData', jsonString);
+    console.log("Workflow data saved to localStorage:", jsonString);
+  }, [reactFlowInstance, getWorkflowData]);
 
   const isNodeSelected = !!selectedNodeId; 
 

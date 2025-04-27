@@ -63,13 +63,22 @@ export interface WorkflowData {
 
 declare global {
   interface Window {
-    notifyNodeAdded?: (type: string) => void;
+    notifyNodeAdded?: (type: string, nodeId?: string) => void;
+    getWorkflowData?: () => void; // Add this line,
   }
 }
 
 // Safely call notifyNodeAdded
-export function notifyNode(type: string) {
+export function notifyNode(type: string, nodeId?: string) {
   if (typeof window.notifyNodeAdded === 'function') {
-    window.notifyNodeAdded(type);
+    window.notifyNodeAdded(type, nodeId);
   }
+}
+
+// Safely call getWorkflowData
+export function getWorkflowData() {
+  if (typeof window.getWorkflowData === 'function') {
+    return window.getWorkflowData();
+  }
+  return null; // or handle the case when the function is not available
 }

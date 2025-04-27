@@ -32,7 +32,7 @@ const ArticleNode: React.FC<NodeProps<ArticleNodeData>> = ({ id, data, selected 
   const popupAnchorRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-      notifyNode('article');
+      notifyNode('article', id);
     }, []);
 
   const handlePlusClick = (e: React.MouseEvent) => {

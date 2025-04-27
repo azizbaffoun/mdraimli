@@ -31,7 +31,7 @@ const SocialMediaNode: React.FC<NodeProps<SocialMediaNodeData>> = ({ id, data, s
   const popupAnchorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    notifyNode('brightSocial');
+    notifyNode('brightSocial', id);
   }, []);
 
   const handleDeleteClick = () => {
