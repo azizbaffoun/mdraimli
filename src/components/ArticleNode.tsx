@@ -15,6 +15,7 @@ import PopupSelect from './PopupSelect';
 // Use the specific interface by extending the imported base type
 interface ArticleNodeData extends ContentNodeData {
   label?: string;
+  isNew?: boolean;
   isEntering?: boolean;
   onAddChildNode: (parentId: string, childType: ContentType) => void;
   canAddChild?: boolean;
