@@ -1,7 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import ReactFlow, {
   Controls,
-  Background,
   useNodesState,
   useEdgesState,
   addEdge,
@@ -93,8 +92,11 @@ const WorkflowEditorContent: React.FC = () => {
   const [isInfoPanelExiting, setIsInfoPanelExiting] = useState(false);
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
   
-  // Add state for undoredo history
+  // Undo/Redo history state
+  const [history, setHistory] = useState<{ nodes: Node<WorkflowNodeData>[]; edges: Edge[] }[]>([]);
+  const [future, setFuture] = useState<{ nodes: Node<WorkflowNodeData>[]; edges: Edge[] }[]>([]);
 
+  // ... (rest of the code remains the same)
 
   useEffect(() => {
     window.getWorkflowData = () => {
@@ -149,6 +151,9 @@ const WorkflowEditorContent: React.FC = () => {
   
   // Handle node deletion 
   const handleDeleteNode = useCallback((nodeId: string) => {
+    // Push current state to history before change
+    setHistory(prev => [...prev, { nodes: getNodes(), edges: getEdges() }]);
+    setFuture([]);
     console.log('🗑️ Starting node deletion process for node:', nodeId);
     
     // Save current state before deletion
@@ -272,10 +277,10 @@ const WorkflowEditorContent: React.FC = () => {
   // Custom nodes change handler that records history
   const onNodesChangeHandler: OnNodesChange = useCallback(
     (changes) => {
-      // Apply the changes
-      onNodesChange(changes); 
-      
-      // Handle selections separately (no history needed for selection)
+      // Push current state to history before change
+      setHistory(prev => [...prev, { nodes: getNodes(), edges: getEdges() }]);
+      setFuture([]);
+      onNodesChange(changes);
       changes.forEach((change) => {
         if (change.type === 'select') {
           setSelectedNodeId(change.selected ? change.id : null);
@@ -288,7 +293,8 @@ const WorkflowEditorContent: React.FC = () => {
   // Custom edges change handler that records history
   const onEdgesChangeHandler: OnEdgesChange = useCallback(
     (changes) => {
-      // Apply the changes
+      setHistory(prev => [...prev, { nodes: getNodes(), edges: getEdges() }]);
+      setFuture([]);
       onEdgesChange(changes);
     },
     [onEdgesChange, getNodes, getEdges]
@@ -297,38 +303,32 @@ const WorkflowEditorContent: React.FC = () => {
   // Add Note function creates a React Flow node
   const handleAddNote = useCallback(() => {
     if (!reactFlowWrapper.current) return;
-    
+    // Push current state to history before change
+    setHistory(prev => [...prev, { nodes: getNodes(), edges: getEdges() }]);
+    setFuture([]);
     // Count existing notes to calculate offset
     const existingNoteCount = getNodes().filter(n => n.type === 'note').length;
     const yOffset = existingNoteCount * 40; // Offset each new note vertically
-
     const position = project({
-      x: 50, // Keep X offset relatively fixed 
-      y: 50 + yOffset, // Add vertical offset based on note count
+      x: 50,
+      y: 50 + yOffset,
     });
-
-    // Use only UUID for the ID
-    const newNoteId = uuidv4(); 
-    const newNode: Node<NoteNodeFlowData> = { 
+    const newNoteId = uuidv4();
+    const newNode: Node<NoteNodeFlowData> = {
       id: newNoteId,
       type: 'note',
       position,
-      data: { 
-        title: "New Note", 
+      data: {
+        title: "New Note",
         content: "",
       },
-      width: 295, 
+      width: 295,
       height: 235,
-      dragHandle: `#note-header-${newNoteId}`, 
+      dragHandle: `#note-header-${newNoteId}`,
     };
-
-    // Create a new state that includes the new node
     const newNodes = [...getNodes(), newNode];
-    
-    // Update the state
     setNodes(newNodes);
-    
-  }, [project, setNodes, getNodes]);
+  }, [project, setNodes, getNodes, getEdges]);
 
   // organizeLayout function
   const organizeLayout = useCallback(() => {
@@ -563,12 +563,6 @@ const WorkflowEditorContent: React.FC = () => {
   useEffect(() => {
     onAddChildNodeRef.current = onAddChildNode;
   }, [onAddChildNode]);
-
-  // Store the latest version of handleDeleteNode in the ref
-  const handleDeleteNodeRef = useRef(handleDeleteNode);
-  useEffect(() => {
-    handleDeleteNodeRef.current = handleDeleteNode;
-  }, [handleDeleteNode]);
 
   // Add onConnect handler
   const onConnect = useCallback((connection: Connection) => {
@@ -877,6 +871,29 @@ const WorkflowEditorContent: React.FC = () => {
     setZoomLevel(viewport.zoom);
   }, []);
 
+  // Undo/Redo handlers
+  const handleUndo = useCallback(() => {
+    if (history.length === 0) return;
+    const prev = history[history.length - 1];
+    setHistory(h => h.slice(0, -1));
+    setFuture(f => [{ nodes, edges }, ...f]);
+    setNodes(prev.nodes);
+    setEdges(prev.edges);
+    setSelectedNodeId(null); // Deselect any node
+    // Defensive: Close any open menus here if needed
+  }, [history, nodes, edges, setNodes, setEdges]);
+
+  const handleRedo = useCallback(() => {
+    if (future.length === 0) return;
+    const next = future[0];
+    setFuture(f => f.slice(1));
+    setHistory(h => [...h, { nodes, edges }]);
+    setNodes(next.nodes);
+    setEdges(next.edges);
+    setSelectedNodeId(null);
+    // Defensive: Close any open menus here if needed
+  }, [future, nodes, edges, setNodes, setEdges]);
+
   return (
     <>
       {showInfoPanel && <WorkflowInfoPanel isExiting={isInfoPanelExiting} />}
@@ -890,21 +907,21 @@ const WorkflowEditorContent: React.FC = () => {
           onConnect={onConnect}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
-          defaultEdgeOptions={{ type: 'customGradientEdge' }} 
+          defaultEdgeOptions={{ type: 'customGradientEdge' }}
           connectionMode={ConnectionMode.Loose}
           defaultViewport={{ x: 0, y: 0, zoom: 1 }}
-          fitView 
+          fitView
           fitViewOptions={{ padding: 2.0, maxZoom: 1 }}
-          nodesConnectable={true} 
+          nodesConnectable={true}
           nodesDraggable={true}
           selectNodesOnDrag={false}
           onNodeClick={onNodeClick}
           onPaneClick={onPaneClick}
           onInit={setReactFlowInstance}
           onMove={handleViewportChange}
+          proOptions={{ hideAttribution: true }}
         >
           <Controls />
-          <Background />
         </ReactFlow>
       </div>
       
@@ -915,7 +932,8 @@ const WorkflowEditorContent: React.FC = () => {
         onIconClick={onAddChildNode}
         onOrganizeLayout={organizeLayout}
         onAddNote={handleAddNote}
-
+        onUndo={handleUndo}
+        onRedo={handleRedo}
         onSave={saveWorkflow}
       />}
 
