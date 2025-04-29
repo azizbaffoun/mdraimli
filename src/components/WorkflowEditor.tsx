@@ -949,10 +949,52 @@ const WorkflowEditorContent: React.FC = () => {
 
 // Wrap the content component with ReactFlowProvider
 const WorkflowEditor: React.FC = () => {
+  // Top-level wheel handler for canvas
+  const handleCanvasWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    const targetTag = (e.target as HTMLElement)?.tagName;
+    const logObj = {
+      file: '[src/components/WorkflowEditor.tsx]',
+      clientX: e.clientX,
+      clientY: e.clientY,
+      targetTag,
+      deltaY: e.deltaY,
+      allowed: true,
+      zoomAction: null as string | null,
+    };
+    // If the event was stopped by a child (e.g., NoteNode), it won't reach here
+    // Otherwise, log that the canvas is zooming
+    // (You may need to hook into your zoom logic if you want to log actual zooming)
+    logObj.zoomAction = 'canvasZoom';
+    console.log('[src/components/WorkflowEditor.tsx] onWheel', logObj);
+  };
+
+  // Attach a document-level fallback wheel listener for ultimate reliability
+  React.useEffect(() => {
+    function docWheelHandler(e: WheelEvent) {
+      const logObj = {
+        file: '[src/components/WorkflowEditor.tsx]',
+        source: 'document',
+        clientX: e.clientX,
+        clientY: e.clientY,
+        deltaY: e.deltaY,
+        eventPhase: e.eventPhase,
+        eventTarget: (e.target as HTMLElement)?.tagName,
+        composedPath: (e.composedPath && typeof e.composedPath === 'function') ? e.composedPath().map(n => (n as HTMLElement).tagName || n.constructor?.name).join(' > ') : undefined,
+        allowed: !e.defaultPrevented,
+        zoomAction: !e.defaultPrevented ? 'canvasZoom' : 'blocked',
+      };
+      console.log('[src/components/WorkflowEditor.tsx] onWheel (document)', logObj);
+    }
+    document.addEventListener('wheel', docWheelHandler, { capture: true });
+    return () => document.removeEventListener('wheel', docWheelHandler, { capture: true });
+  }, []);
+
   return (
-    <ReactFlowProvider>
-      <WorkflowEditorContent />
-    </ReactFlowProvider>
+    <div onWheel={handleCanvasWheel} style={{ width: '100%', height: '100%' }}>
+      <ReactFlowProvider>
+        <WorkflowEditorContent />
+      </ReactFlowProvider>
+    </div>
   );
 };
 

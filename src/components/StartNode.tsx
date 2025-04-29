@@ -14,13 +14,15 @@ interface StartNodeData {
 const StartNode: React.FC<NodeProps<StartNodeData>> = ({ data }) => {
   const nodeColor = '#3799DB';
   const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
+  const nodeRef = useRef<HTMLDivElement>(null);
   const [isHovered, setIsHovered] = useState(false); // State for hover effect
 
   // Handler for the plus button itself
   const handlePlusClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setMenuOpen(!menuOpen);
+    const newMenuState = !menuOpen;
+    setMenuOpen(newMenuState);
+    console.log('[StartNode] Plus zone clicked. Menu open:', newMenuState);
   };
 
   // Handler for selecting an option from the menu
@@ -34,16 +36,18 @@ const StartNode: React.FC<NodeProps<StartNodeData>> = ({ data }) => {
   // Close menu if clicked outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+      console.log('[StartNode] Outside click detected. Target:', event.target);
+      if (nodeRef.current && !nodeRef.current.contains(event.target as Node)) {
         setMenuOpen(false);
         setIsHovered(false);
+        console.log('[StartNode] Menu and plus zone closed due to outside click.');
       }
     };
     if (menuOpen) { // Only listen when menu is open
-        document.addEventListener('mousedown', handleClickOutside);
+        document.addEventListener('click', handleClickOutside);
     }
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('click', handleClickOutside);
     };
   }, [menuOpen]); // Dependency on menuOpen
 
@@ -52,9 +56,18 @@ const StartNode: React.FC<NodeProps<StartNodeData>> = ({ data }) => {
 
   return (
     <div
+      ref={nodeRef}
       className={`relative flex flex-col items-center ${animationClass}`}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={() => {
+        if (!menuOpen) {
+          setIsHovered(true);
+          console.log('[StartNode] Mouse entered node. Plus zone visible.');
+        }
+      }}
+      onMouseLeave={() => {
+        setIsHovered(false);
+        console.log('[StartNode] Mouse left node. Plus zone hidden unless menu open.');
+      }}
     >
       {/* Base SVG structure (init state) */}
       <div className="relative w-[190px] overflow-visible">
