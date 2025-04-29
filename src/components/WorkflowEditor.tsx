@@ -262,40 +262,49 @@ const WorkflowEditorContent: React.FC = () => {
     console.log('✅ Node deletion completed');
   }, [getNodes, getEdges, setNodes, setEdges]);
 
-  // Add keyboard shortcuts for delete
-  useEffect(() => {
-    const handleKeyPress = (event: KeyboardEvent) => {
-      if (event.key === 'Delete' && selectedNodeId) {
-        handleDeleteNode(selectedNodeId);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [handleDeleteNode, selectedNodeId]);
-
   // Custom nodes change handler that records history
   const onNodesChangeHandler: OnNodesChange = useCallback(
     (changes) => {
-      // Only handle selection state here. Do NOT push to history.
+      console.log('[WorkflowEditor] Node changes detected:', changes);
+      
+      // Only track meaningful node changes (add/remove)
+      const meaningfulChanges = changes.filter(change => 
+        change.type === 'add' || 
+        change.type === 'remove'
+      );
+
+      if (meaningfulChanges.length > 0) {
+        console.log('[WorkflowEditor] Pushing meaningful changes to history:', meaningfulChanges);
+        // Push current state to history before any changes
+        setHistory(prev => {
+          const newHistory = [...prev, { nodes: getNodes(), edges: getEdges() }];
+          console.log('[WorkflowEditor] New history length:', newHistory.length);
+          return newHistory;
+        });
+        setFuture([]);
+      }
+      
+      // Apply the changes
       onNodesChange(changes);
+      
+      // Update selection state without tracking in history
       changes.forEach((change) => {
         if (change.type === 'select') {
+          console.log('[WorkflowEditor] Selection changed:', { id: change.id, selected: change.selected });
           setSelectedNodeId(change.selected ? change.id : null);
         }
       });
     },
-    [onNodesChange]
+    [onNodesChange, getNodes, getEdges]
   );
 
   // Custom edges change handler that records history
   const onEdgesChangeHandler: OnEdgesChange = useCallback(
     (changes) => {
-      setHistory(prev => [...prev, { nodes: getNodes(), edges: getEdges() }]);
-      setFuture([]);
+      // Don't track edge changes in history
       onEdgesChange(changes);
     },
-    [onEdgesChange, getNodes, getEdges]
+    [onEdgesChange]
   );
 
   // Add Note function creates a React Flow node
@@ -874,26 +883,71 @@ const WorkflowEditorContent: React.FC = () => {
 
   // Undo/Redo handlers
   const handleUndo = useCallback(() => {
-    if (history.length === 0) return;
+    console.log('[WorkflowEditor] Undo clicked. Current history length:', history.length);
+    if (history.length === 0) {
+      console.log('[WorkflowEditor] No history to undo');
+      return;
+    }
     const prev = history[history.length - 1];
+    console.log('[WorkflowEditor] Restoring previous state:', { 
+      nodesCount: prev.nodes.length,
+      edgesCount: prev.edges.length
+    });
     setHistory(h => h.slice(0, -1));
     setFuture(f => [{ nodes, edges }, ...f]);
     setNodes(prev.nodes);
     setEdges(prev.edges);
-    setSelectedNodeId(null); // Deselect any node
-    // Defensive: Close any open menus here if needed
+    setSelectedNodeId(null);
   }, [history, nodes, edges, setNodes, setEdges]);
 
   const handleRedo = useCallback(() => {
-    if (future.length === 0) return;
+    console.log('[WorkflowEditor] Redo clicked. Current future length:', future.length);
+    if (future.length === 0) {
+      console.log('[WorkflowEditor] No future to redo');
+      return;
+    }
     const next = future[0];
+    console.log('[WorkflowEditor] Restoring next state:', {
+      nodesCount: next.nodes.length,
+      edgesCount: next.edges.length
+    });
     setFuture(f => f.slice(1));
     setHistory(h => [...h, { nodes, edges }]);
     setNodes(next.nodes);
     setEdges(next.edges);
     setSelectedNodeId(null);
-    // Defensive: Close any open menus here if needed
   }, [future, nodes, edges, setNodes, setEdges]);
+
+  // Add keyboard shortcuts for delete and undo/redo
+  useEffect(() => {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      // Delete key
+      if (event.key === 'Delete' && selectedNodeId) {
+        handleDeleteNode(selectedNodeId);
+      }
+      
+      // Undo (Ctrl+Z)
+      if (event.ctrlKey && event.key === 'z') {
+        event.preventDefault(); // Prevent browser's default undo
+        handleUndo();
+      }
+      
+      // Redo (Ctrl+Y)
+      if (event.ctrlKey && event.key === 'y') {
+        event.preventDefault(); // Prevent browser's default redo
+        handleRedo();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [handleDeleteNode, selectedNodeId, handleUndo, handleRedo]);
+
+  // Add handleDeleteNodeRef
+  const handleDeleteNodeRef = useRef<Function | null>(null);
+  useEffect(() => {
+    handleDeleteNodeRef.current = handleDeleteNode;
+  }, [handleDeleteNode]);
 
   return (
     <>

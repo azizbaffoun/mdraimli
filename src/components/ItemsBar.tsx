@@ -28,6 +28,7 @@ interface ItemsBarProps {
   onAddNote?: () => void;
   onOrganizeLayout?: () => void;
   onUndo?: () => void;
+  onRedo?: () => void;
 }
 
 // Define Separator component for reuse
@@ -42,7 +43,8 @@ const ItemsBar: React.FC<ItemsBarProps> = ({
   onSave, 
   onAddNote,
   onOrganizeLayout,
-  onUndo
+  onUndo,
+  onRedo
 }) => {
   // Define the utility icons and their labels/actions
   const utilityItems = [
@@ -50,6 +52,7 @@ const ItemsBar: React.FC<ItemsBarProps> = ({
     { icon: pasteIcon, label: 'Add Note', action: onAddNote },
     { icon: alignIcon, label: 'Align Layout', action: onOrganizeLayout },
     { icon: undoIcon, label: 'Undo', action: onUndo },
+    { icon: undoIcon, label: 'Redo', action: onRedo },
   ];
 
   // Define the creation icons and their labels/types
@@ -76,7 +79,7 @@ const ItemsBar: React.FC<ItemsBarProps> = ({
       <div className="relative flex items-center justify-center p-2">
         <BottomMenuBackground />
         
-        <div className="relative z-10 flex items-center space-x-2">
+        <div className="relative z-10 flex items-center space-x-2 pr-2">
           {/* Tools Icon and Text */}
           <div className="flex items-center pl-[16px] pt-[17px] pb-[18px] mr-0">
             <img src={toolsIcon} alt="Tools" className="h-[23px]" />

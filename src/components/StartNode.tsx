@@ -12,7 +12,6 @@ interface StartNodeData {
 }
 
 const StartNode: React.FC<NodeProps<StartNodeData>> = ({ data }) => {
-  const nodeColor = '#3799DB';
   const [menuOpen, setMenuOpen] = useState(false);
   const nodeRef = useRef<HTMLDivElement>(null);
   const [isHovered, setIsHovered] = useState(false); // State for hover effect
