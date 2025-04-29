@@ -1,21 +1,37 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 
 interface StartMenuProps {
   isOpen: boolean;
-
   onSelect: (type: 'topicalKeyword' | 'offer' | 'event') => void;
   onClose: () => void;
+  className?: string;
 }
 
 
-const StartMenu: React.FC<StartMenuProps> = ({ isOpen,  onSelect, onClose }) => {
+
+const StartMenu: React.FC<StartMenuProps> = ({ isOpen, onSelect, onClose, className }) => {
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        onClose();
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen, onClose]);
   if (!isOpen) return null;
 
   // Use positioning from the original StartMenu component structure,
   // combined with the fixed dimensions from the provided SVG UI.
   return (
     <div
-      className="absolute left-[80%] top-[120%] -translate-y-1/2 z-50" // Positioning from original StartMenu
+      ref={menuRef}
+      className={className ?? "absolute left-[80%] top-[120%] -translate-y-1/2 z-50"}
       style={{
         marginLeft: 7.9, // Set precise 7.9px gap between StartMenu and PopupSelect
         width: '194.762px', // Width from provided SVG UI div

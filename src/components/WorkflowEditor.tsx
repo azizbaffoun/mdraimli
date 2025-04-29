@@ -277,9 +277,7 @@ const WorkflowEditorContent: React.FC = () => {
   // Custom nodes change handler that records history
   const onNodesChangeHandler: OnNodesChange = useCallback(
     (changes) => {
-      // Push current state to history before change
-      setHistory(prev => [...prev, { nodes: getNodes(), edges: getEdges() }]);
-      setFuture([]);
+      // Only handle selection state here. Do NOT push to history.
       onNodesChange(changes);
       changes.forEach((change) => {
         if (change.type === 'select') {
@@ -287,7 +285,7 @@ const WorkflowEditorContent: React.FC = () => {
         }
       });
     },
-    [onNodesChange, getNodes, getEdges]
+    [onNodesChange]
   );
 
   // Custom edges change handler that records history
@@ -394,6 +392,9 @@ const WorkflowEditorContent: React.FC = () => {
 
   // onAddChildNode function 
   const onAddChildNode = useCallback((parentId: string, childTypeOrNext: ContentType | 'next') => {
+    // Always push to history before any state change
+    setHistory(prev => [...prev, { nodes: getNodes(), edges: getEdges() }]);
+    setFuture([]);
     const parentNode = getNode(parentId);
     // Determine requested child type
     let requestedChildType: ContentType;

@@ -1,0 +1,178 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { NodeProps } from 'reactflow';
+
+
+// Data interface for this node type
+interface StartNodeData {
+  // Callback to trigger replacement with TopicalKeywordNode
+  // We'll pass the node's position from the editor later
+  onInitiateWorkflow: (type: string) => void;
+  isExiting?: boolean;
+}
+
+const StartNode: React.FC<NodeProps<StartNodeData>> = ({ data }) => {
+  const nodeColor = '#3799DB';
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [isHovered, setIsHovered] = useState(false); // State for hover effect
+
+  // Handler for the plus button itself
+  const handlePlusClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setMenuOpen(!menuOpen);
+  };
+
+  // Handler for selecting an option from the menu
+  const handleSelectOption = (type: string) => {
+    if (data.onInitiateWorkflow) {
+      data.onInitiateWorkflow(type);
+    }
+    setMenuOpen(false);
+  };
+
+  // Close menu if clicked outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    if (menuOpen) { // Only listen when menu is open
+        document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [menuOpen]); // Dependency on menuOpen
+
+  // Animation class (will be uncommented later)
+  const animationClass = data.isExiting ? 'node-fade-scale-out' : '';
+
+  return (
+    <div 
+      className={`relative flex flex-col items-center ${animationClass}`} 
+      onMouseEnter={() => setIsHovered(true)} 
+      onMouseLeave={() => setIsHovered(false)} 
+    >
+      {/* Base SVG structure (init state) */}
+      <div className="relative">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 132.5 141.017" 
+            className="w-32 h-auto transition-all duration-200 ease-in-out" 
+        >
+          {/* Use the coordinate system from the original hover SVG */}
+          <g transform="translate(-680 -313)">
+            {/* Conditionally rendered hover elements (using original transforms) */}
+            {isHovered && (
+              <>
+                {/* Glow Rectangle */}
+                <rect 
+                  id="Rectangle_1632" 
+                  data-name="Rectangle 1632" 
+                  width="116" 
+                  height="116" 
+                  rx="40" 
+                  transform="translate(680 313)" // Original transform
+                  fill={nodeColor} 
+                  opacity="0.28"
+                />
+                {/* Plus Button Group */}
+                <g 
+                  id="Group_3855" 
+                  data-name="Group 3855" 
+                  transform="translate(411.54 -16)" // Original transform 
+                  onClick={handlePlusClick} 
+                  style={{ cursor: 'pointer' }}
+                >
+                  {/* Use original plus button path transforms relative to this group */}
+                  <path id="Rectangle_1636" data-name="Rectangle 1636" d="M0,0H4A12,12,0,0,1,16,12v0A12,12,0,0,1,4,24H0a0,0,0,0,1,0,0V0A0,0,0,0,1,0,0Z" transform="translate(384.46 372)" fill="#86c1e9" stroke="rgba(0,0,0,0)" strokeMiterlimit="10" strokeWidth="1"/>
+                  <g id="add-circle" transform="translate(380.741 372.281)">
+                    <path id="Path_687" data-name="Path 687" d="M15.609,12.656H7.828a.828.828,0,0,1,0-1.656h7.781a.828.828,0,0,1,0,1.656Z" transform="translate(0 -0.11)" fill="#fff"/>
+                    <path id="Path_688" data-name="Path 688" d="M11.828,16.437A.828.828,0,0,1,11,15.609V7.828a.828.828,0,1,1,1.656,0v7.781A.828.828,0,0,1,11.828,16.437Z" transform="translate(-0.11)" fill="#fff"/>
+                  </g>
+                </g>
+              </>
+            )}
+            
+            {/* Base elements (using original transforms from hover state SVG) */}
+            <rect id="Rectangle_1635" data-name="Rectangle 1635" width="110" height="110" rx="40" transform="translate(683 316)" fill={nodeColor} stroke="rgba(0,0,0,0)" strokeMiterlimit="10" strokeWidth="1"/>
+            <text id="Start" transform="translate(719.001 450.017)" fill={nodeColor} fontSize="16" fontFamily="SegoeUI, Segoe UI"><tspan x="0" y="0">Start</tspan></text>
+            <path id="si_play-fill" d="M7.475,3.779,35.641,19.625a1.661,1.661,0,0,1,0,2.894L7.475,38.364A1.661,1.661,0,0,1,5,36.915V5.228A1.664,1.664,0,0,1,7.475,3.779Z" transform="translate(719.999 350.432)" fill="#fff" stroke="rgba(0,0,0,0)" strokeMiterlimit="10" strokeWidth="1"/>
+          </g>
+        </svg>
+        
+        {/* Dropdown Menu - Replaced with user-provided SVG */}
+        {menuOpen && !data.isExiting && (
+          <div 
+            ref={menuRef} 
+            className="absolute left-[calc(100%+0px)] top-[calc(40%)] -translate-y-1/2 z-50" 
+            style={{ width: '194.762px', height: '114px' }} 
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink" width="194.762" height="114" viewBox="0 0 194.762 114">
+              <defs>
+                <filter id="Op_component_1" x="0" y="40" width="33.848" height="34" filterUnits="userSpaceOnUse">
+                  <feOffset dy="2" in="SourceAlpha"/>
+                  <feGaussianBlur stdDeviation="1" result="blur"/>
+                  <feFlood floodOpacity="0.071"/>
+                  <feComposite operator="in" in2="blur"/>
+                  <feComposite in="SourceGraphic"/>
+                </filter>
+                <filter id="Op_component_2" x="4.966" y="0" width="189.796" height="114" filterUnits="userSpaceOnUse">
+                  <feOffset dy="2" in="SourceAlpha"/>
+                  <feGaussianBlur stdDeviation="1" result="blur-2"/>
+                  <feFlood floodOpacity="0.071"/>
+                  <feComposite operator="in" in2="blur-2"/>
+                  <feComposite in="SourceGraphic"/>
+                </filter>
+                <linearGradient id="linear-gradient" y1="0.365" x2="1" y2="0.058" gradientUnits="objectBoundingBox">
+                  <stop offset="0" stopColor="#3799db"/>
+                  <stop offset="1" stopColor="#2db4a6"/>
+                </linearGradient>
+              </defs>
+              {/* Background and Borders */}
+              <g transform="matrix(1, 0, 0, 1, 0, 0)" filter="url(#Op_component_1)">
+                <g id="Op_component_1-2" data-name="Op component 1" transform="translate(-809.69 -208.69)" fill="#fff">
+                  <path d="M 826.6101684570312 277.1861572265625 C 826.1856079101562 277.1861572265625 825.7862548828125 277.0197448730469 825.4857788085938 276.7175598144531 L 813.6531982421875 264.8206176757812 C 813.0309448242188 264.1950378417969 813.0309448242188 263.17724609375 813.6531982421875 262.5517883300781 L 825.4857177734375 250.6546325683594 C 825.7861938476562 250.3525390625 826.185546875 250.1861724853516 826.6101684570312 250.1861724853516 C 827.0348510742188 250.1861724853516 827.4342651367188 250.3525543212891 827.73486328125 250.6546936035156 L 839.5673828125 262.5517578125 C 840.1895141601562 263.17724609375 840.1895141601562 264.195068359375 839.5673828125 264.8206481933594 L 827.7348022460938 276.717529296875 C 827.4342041015625 277.0197143554688 827.0348510742188 277.1861572265625 826.6101684570312 277.1861572265625 Z" stroke="none"/>
+                  <path d="M 826.6101684570312 250.6861877441406 C 826.319580078125 250.6861877441406 826.046142578125 250.8002014160156 825.8402709960938 251.0072021484375 L 814.0076293945312 262.9044189453125 C 813.578857421875 263.33544921875 813.578857421875 264.036865234375 814.0077514648438 264.468017578125 L 825.84033203125 276.3650207519531 C 826.0462646484375 276.5721130371094 826.3196411132812 276.6861572265625 826.6101684570312 276.6861572265625 C 826.9007568359375 276.6861572265625 827.1742553710938 276.5720825195312 827.3802490234375 276.3649291992188 L 839.2128295898438 264.4680480957031 C 839.6416015625 264.0368957519531 839.6416625976562 263.33544921875 839.2128295898438 262.9043273925781 L 827.38037109375 251.00732421875 C 827.17431640625 250.8002319335938 826.9008178710938 250.6861877441406 826.6101684570312 250.6861877441406 M 826.6101684570312 249.6861877441406 C 827.1455078125 249.6861877441406 827.6807861328125 249.8914489746094 828.0892944335938 250.3020324707031 L 839.921875 262.1991577148438 C 840.7386474609375 263.0202941894531 840.7386474609375 264.3519592285156 839.921875 265.1732177734375 L 828.0892944335938 277.0701293945312 C 827.2723388671875 277.8914794921875 825.9480590820312 277.8915405273438 825.1312255859375 277.0701293945312 L 813.2987060546875 265.1732177734375 C 812.4818115234375 264.3519592285156 812.4818115234375 263.0202941894531 813.2987060546875 262.1991577148438 L 825.1312255859375 250.3020324707031 C 825.5396118164062 249.8914489746094 826.0748901367188 249.6861877441406 826.6101684570312 249.6861877441406 Z" stroke="none" fill="#e4e9ee"/>
+                </g>
+              </g>
+              <g transform="matrix(1, 0, 0, 1, 0, 0)" filter="url(#Op_component_2)">
+                <g id="Op_component_2-2" data-name="Op component 2" transform="translate(7.97 1)" fill="#fff" stroke="#e4e9ee" strokeWidth="1">
+                  <rect width="183.796" height="108" rx="14" stroke="none"/>
+                  <rect x="0.5" y="0.5" width="182.796" height="107" rx="13.5" fill="none"/>
+                </g>
+              </g>
+              {/* Menu Items - Wrapped in clickable groups */}
+              <g onClick={() => handleSelectOption('topical')} style={{ cursor: 'pointer' }}>
+                <text id="Topical_Keyword" data-name="Topical Keyword" transform="translate(46.705 25)" fill="#222" fontSize="15" fontFamily="SegoeUI, Segoe UI"><tspan x="0" y="0">Topical Keyword</tspan></text>
+                <g id="Group_3331" data-name="Group 3331" transform="translate(-920.033 -761)">
+                  <path id="Union_42" data-name="Union 42" d="M4.369,9.777a.5.5,0,0,1-.458-.336l-.275-.886-.458-.184-.8.428a.513.513,0,0,1-.58-.092l-.734-.733a.516.516,0,0,1-.091-.581L1.406,6.6l-.184-.458L.367,5.867A.488.488,0,0,1,0,5.408V4.369a.5.5,0,0,1,.337-.459l.856-.275c.06-.153.122-.336.183-.489l-.4-.764a.515.515,0,0,1,.091-.58L1.8,1.069a.513.513,0,0,1,.58-.092l.8.427a1.358,1.358,0,0,1,.489-.183L3.942.366A.427.427,0,0,1,4.369,0H5.408a.5.5,0,0,1,.458.336l.275.856.458.183L7.395.947a.514.514,0,0,1,.58.091l.733.733a.512.512,0,0,1,.092.58l-.427.795.183.458.856.275a.523.523,0,0,1,.367.489V5.408a.5.5,0,0,1-.336.458l-.887.275L8.373,6.6l.427.794a.513.513,0,0,1-.092.581l-.733.733a.514.514,0,0,1-.58.092L6.6,8.372l-.458.184-.275.886a.5.5,0,0,1-.458.336Z" transform="translate(946.482 774.483)" stroke="rgba(0,0,0,0)" strokeMiterlimit="10" strokeWidth="1" fill="url(#linear-gradient)"/>
+                  <path id="Exclusion_4" data-name="Exclusion 4" d="M7.447,14.894A7.449,7.449,0,0,1,4.549.585a7.449,7.449,0,0,1,5.8,13.724A7.4,7.4,0,0,1,7.447,14.894Zm0-13.791a6.344,6.344,0,1,0,6.344,6.344A6.351,6.351,0,0,0,7.447,1.1Z" transform="translate(943.999 772)" stroke="rgba(0,0,0,0)" strokeMiterlimit="10" strokeWidth="1" fill="url(#linear-gradient)"/>
+                  <g id="keyhole" transform="translate(950.208 776.969)">
+                    <path id="Path_402" data-name="Path 402" d="M1.757,2.362l.721,2.284a.306.306,0,0,1-.31.31H.31a.3.3,0,0,1-.218-.09A.3.3,0,0,1,0,4.646L.721,2.362A1.234,1.234,0,0,1,.2,1.909a1.2,1.2,0,0,1-.2-.67A1.194,1.194,0,0,1,.363.363,1.194,1.194,0,0,1,1.239,0a1.194,1.194,0,0,1,.876.363,1.194,1.194,0,0,1,.363.876,1.2,1.2,0,0,1-.2.67A1.234,1.234,0,0,1,1.757,2.362Z" transform="translate(0)" fill="#fff"/>
+                  </g>
+                  <path id="Path_408" data-name="Path 408" d="M.552,0,2.6.027a.552.552,0,0,1,.552.552l-.416,3.4a.552.552,0,0,1-.552.552L.914,4.554A.552.552,0,0,1,.362,4L0,.552A.552.552,0,0,1,.552,0Z" transform="translate(956.542 785.726) rotate(-49)" stroke="rgba(0,0,0,0)" strokeMiterlimit="10" strokeWidth="1" fill="url(#linear-gradient)"/>
+                </g>
+              </g>
+              <line id="Line_1" data-name="Line 1" x2="151.012" transform="translate(24.434 37)" fill="none" stroke="#ecf0f3" strokeMiterlimit="10" strokeWidth="1"/>
+              <g onClick={() => handleSelectOption('offer')} style={{ cursor: 'pointer' }}>
+                <text id="Offer" transform="translate(46.698 61)" fill="#222" fontSize="15" fontFamily="SegoeUI, Segoe UI"><tspan x="0" y="0">Offer</tspan></text>
+                <g id="lineicons_offer" transform="translate(23.966 47)">
+                  <path id="Path_684" data-name="Path 684" d="M19.136,10.958l-.717-.568a.6.6,0,0,1-.209-.568l.239-.867a1.891,1.891,0,0,0-.3-1.584,1.988,1.988,0,0,0-1.495-.807l-.927-.06a.56.56,0,0,1-.538-.359l-.329-.807a1.99,1.99,0,0,0-1.2-1.106,2.051,2.051,0,0,0-1.674.179l-.777.478a.762.762,0,0,1-.717,0l-.777-.478a1.942,1.942,0,0,0-1.674-.179,1.908,1.908,0,0,0-1.2,1.106l-.389.837a.59.59,0,0,1-.538.359L5,6.594A1.939,1.939,0,0,0,3.5,7.4a1.872,1.872,0,0,0-.3,1.584l.239.867a.544.544,0,0,1-.209.568l-.717.538A1.814,1.814,0,0,0,1.8,12.452a1.991,1.991,0,0,0,.717,1.495l.717.568a.544.544,0,0,1,.209.568l-.239.867a1.891,1.891,0,0,0,.3,1.584A1.988,1.988,0,0,0,5,18.341l.927.06a.56.56,0,0,1,.538.359l.329.807a1.99,1.99,0,0,0,1.2,1.106,2.051,2.051,0,0,0,1.674-.179l.777-.478a.762.762,0,0,1,.717,0l.777.478a2.218,2.218,0,0,0,1.046.3,2.275,2.275,0,0,0,.628-.09A1.908,1.908,0,0,0,14.8,19.6l.329-.807a.59.59,0,0,1,.538-.359l.927-.06a1.939,1.939,0,0,0,1.495-.807,1.872,1.872,0,0,0,.3-1.584l-.239-.867a.544.544,0,0,1,.209-.568l.717-.568a1.814,1.814,0,0,0,.717-1.495A1.633,1.633,0,0,0,19.136,10.958ZM18.3,12.871l-.717.568a1.871,1.871,0,0,0-.658,1.973l.239.867a.511.511,0,0,1-.09.448A.777.777,0,0,1,16.6,17l-.927.06a1.929,1.929,0,0,0-1.7,1.2l-.359.777a.573.573,0,0,1-.389.329.759.759,0,0,1-.568-.06l-.777-.478a2.218,2.218,0,0,0-1.046-.3,1.923,1.923,0,0,0-1.046.3L9,19.3a.759.759,0,0,1-.568.06.64.64,0,0,1-.389-.329l-.329-.807a1.929,1.929,0,0,0-1.7-1.2l-.927-.06A.566.566,0,0,1,4.61,16.7a.511.511,0,0,1-.09-.448l.239-.867A1.871,1.871,0,0,0,4.1,13.409l-.747-.538a.523.523,0,0,1,0-.837l.717-.568a1.871,1.871,0,0,0,.658-1.973L4.49,8.626a.511.511,0,0,1,.09-.448.777.777,0,0,1,.478-.269l.927-.06a1.929,1.929,0,0,0,1.7-1.2l.329-.807a.737.737,0,0,1,.418-.3A.759.759,0,0,1,9,5.607l.777.478a2.023,2.023,0,0,0,2.092,0l.777-.478a.759.759,0,0,1,.568-.06.64.64,0,0,1,.389.329l.329.807a1.929,1.929,0,0,0,1.7,1.2l.927.06a.566.566,0,0,1,.478.269.511.511,0,0,1,.09.448l-.239.867a1.871,1.871,0,0,0,.658,1.973l.717.568a.522.522,0,0,1,.209.418A.324.324,0,0,1,18.3,12.871Z" transform="translate(-1.8 -4.118)" fill="url(#linear-gradient)"/>
+                  <path id="Path_685" data-name="Path 685" d="M25.5,19.925a.668.668,0,0,0-.956,0L20,24.469a.668.668,0,0,0,0,.956.705.705,0,0,0,.478.209.6.6,0,0,0,.478-.209L25.5,20.882A.668.668,0,0,0,25.5,19.925Zm-3.587,1.883a1.8,1.8,0,0,0,0-2.571,1.86,1.86,0,0,0-1.285-.538,1.823,1.823,0,0,0-1.285,3.109,1.86,1.86,0,0,0,1.285.538A1.787,1.787,0,0,0,21.909,21.809Zm-1.614-1.584a.436.436,0,0,1,.658,0,.465.465,0,1,1-.658,0Zm3.2,3.2a1.86,1.86,0,0,0-.538,1.285,1.818,1.818,0,0,0,3.109,1.285,1.86,1.86,0,0,0,.538-1.285,1.823,1.823,0,0,0-3.109-1.285Zm1.614,1.614a.469.469,0,0,1-.658,0,.479.479,0,1,1,.658,0Z" transform="translate(-13.719 -14.342)" fill="url(#linear-gradient)"/>
+                </g>
+              </g>
+              <line id="Line_2" data-name="Line 2" x2="151.012" transform="translate(24.434 73)" fill="none" stroke="#ecf0f3" strokeMiterlimit="10" strokeWidth="1"/>
+              <g onClick={() => handleSelectOption('event')} style={{ cursor: 'pointer' }}>
+                <text id="Event" transform="translate(46.698 97)" fill="#222" fontSize="15" fontFamily="SegoeUI, Segoe UI"><tspan x="0" y="0">Event</tspan></text>
+                <path id="star" d="M10.3,1.328c.466,0,1.349.2,2.022,1.556L13.8,5.845l0,0a1.212,1.212,0,0,0,.732.539l2.685.446a2.3,2.3,0,0,1,2.049,1.461,2.292,2.292,0,0,1-.823,2.371l-2.086,2.086a1.2,1.2,0,0,0-.268.937l.6,2.581a2.729,2.729,0,0,1-.3,2.412,1.648,1.648,0,0,1-1.324.605,3.5,3.5,0,0,1-1.74-.564l-2.517-1.49a1.054,1.054,0,0,0-.509-.114,1.092,1.092,0,0,0-.517.115L7.27,18.723a3.475,3.475,0,0,1-1.734.563,1.654,1.654,0,0,1-1.33-.609,2.721,2.721,0,0,1-.3-2.407l.6-2.581a1.2,1.2,0,0,0-.268-.937L2.15,10.664A2.3,2.3,0,0,1,1.333,8.29,2.3,2.3,0,0,1,3.377,6.834l2.685-.446a1.23,1.23,0,0,0,.723-.539l0,0L8.269,2.882C8.949,1.529,9.832,1.328,10.3,1.328Zm2.373,5.08-1.48-2.96c-.267-.537-.6-.857-.893-.857s-.629.321-.9.858L7.918,6.407A2.458,2.458,0,0,1,6.271,7.633L3.584,8.08c-.567.095-.959.317-1.049.6s.1.689.508,1.1l2.087,2.087a2.46,2.46,0,0,1,.607,2.108v0l-.6,2.584c-.211.911-.011,1.253.055,1.337a.381.381,0,0,0,.341.132,2.349,2.349,0,0,0,1.09-.386l2.517-1.49,0,0a2.327,2.327,0,0,1,1.154-.288,2.29,2.29,0,0,1,1.152.29l2.516,1.49a2.377,2.377,0,0,0,1.1.388A.375.375,0,0,0,15.4,17.9c.066-.083.265-.425.054-1.342l-.6-2.583v0a2.46,2.46,0,0,1,.607-2.108l2.087-2.087c.41-.407.6-.815.512-1.093s-.483-.5-1.053-.6l-2.685-.446A2.46,2.46,0,0,1,12.67,6.407Z" transform="translate(22.715 80.672)" stroke="rgba(0,0,0,0)" strokeMiterlimit="10" strokeWidth="1" fill="url(#linear-gradient)"/>
+              </g>
+            </svg>
+          </div>
+        )} 
+      </div> 
+      {/* Base SVG structure ends */}
+    </div>
+  );
+};
+
+export default StartNode; 
