@@ -617,6 +617,7 @@ const WorkflowEditorContent: React.FC = () => {
         onAddChildNode(parentId, childType);
       },
       nodeType,
+      canAddChild: true,
     };
     const newNode: Node<TopicalKeywordNodeData & { nodeType: 'topicalKeyword' | 'offer' | 'event' }> = {
       id: newNodeId,

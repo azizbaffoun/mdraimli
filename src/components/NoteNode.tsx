@@ -291,12 +291,13 @@ const NoteNode: React.FC<NodeProps<NoteNodeData>> = ({ id, data }) => {
       />
       
       {/* Header */}
-      <div 
+      <div
         id={`note-header-${id}`}
         className="h-[36px] w-full flex items-center rounded-t-lg"
         style={{
           background: 'linear-gradient(100deg, #3799db 0%, #2db4a6 100%)',
-          padding: '0 12px'
+          paddingLeft: '12px',
+          paddingRight: '5px'
         }}
       >
         {/* Note Icon */}
