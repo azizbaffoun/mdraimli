@@ -5,7 +5,7 @@ import saveIcon from '@/assets/icons/save_icon.svg';
 import pasteIcon from '@/assets/icons/paste_icon.svg';
 import alignIcon from '@/assets/icons/align_icon.svg';
 import undoIcon from '@/assets/icons/undo_icon.svg';
-
+import redoIcon from '@/assets/icons/redo_icon.svg';
 // Import creation icons
 import articleIcon from '@/assets/icons/article icon.svg';
 import videoIcon from '@/assets/icons/video icon.svg';
@@ -28,7 +28,7 @@ interface ItemsBarProps {
   onAddNote?: () => void;
   onOrganizeLayout?: () => void;
   onUndo?: () => void;
- // onRedo?: () => void;
+ onRedo?: () => void;
 }
 
 // Define Separator component for reuse
@@ -44,7 +44,7 @@ const ItemsBar: React.FC<ItemsBarProps> = ({
   onAddNote,
   onOrganizeLayout,
   onUndo,
- // onRedo
+ onRedo
 }) => {
   // Define the utility icons and their labels/actions
   const utilityItems = [
@@ -52,7 +52,7 @@ const ItemsBar: React.FC<ItemsBarProps> = ({
     { icon: pasteIcon, label: 'Add Note', action: onAddNote },
     { icon: alignIcon, label: 'Align Layout', action: onOrganizeLayout },
     { icon: undoIcon, label: 'Undo', action: onUndo },
-   // { icon: undoIcon, label: 'Redo', action: onRedo },
+    { icon: redoIcon, label: 'Redo', action: onRedo },
   ];
 
   // Define the creation icons and their labels/types

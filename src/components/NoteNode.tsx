@@ -37,6 +37,7 @@ const NoteNode: React.FC<NodeProps<NoteNodeData>> = ({ id, data }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [title, setTitle] = useState(data.title ?? defaultTitle);
   const [isOptionsMenuOpen, setIsOptionsMenuOpen] = useState(false);
+  const [selectedTextPosition, setSelectedTextPosition] = useState<{ x: number; y: number } | null>(null);
 
   // --- Tiptap Editor Setup ---
   const editor = useEditor({
@@ -44,9 +45,9 @@ const NoteNode: React.FC<NodeProps<NoteNodeData>> = ({ id, data }) => {
       StarterKit,
       Underline,
       Placeholder.configure({
-        placeholder: 'Add Your Note...'
+        placeholder: 'Start typing...',
       }),
-      Highlight.configure({ multicolor: true }),
+      Highlight,
       TaskList,
       TaskItem,
       TextAlign.configure({
@@ -55,21 +56,23 @@ const NoteNode: React.FC<NodeProps<NoteNodeData>> = ({ id, data }) => {
     ],
     content: data.content ?? '',
     onUpdate: ({ editor }) => {
-      const content = editor.getHTML();
-      console.log("[NoteNode] onUpdate - Content Changed:", content.substring(0, 50) + "..."); // Log content change
-      setNodes(nds => nds.map(node => node.id === id ? { ...node, data: { ...node.data, content } } : node));
+      const json = editor.getJSON();
+      setNodes(nds => nds.map(node => node.id === id ? { ...node, data: { ...node.data, content: json } } : node));
     },
     onSelectionUpdate: ({ editor }) => {
-      const { from, to, empty } = editor.state.selection;
-      console.log(`[NoteNode] onSelectionUpdate - From: ${from}, To: ${to}, Empty: ${empty}`);
-      if (!empty) {
-        try {
-          const startCoords = editor.view.coordsAtPos(from);
-          const endCoords = editor.view.coordsAtPos(to);
-          console.log(`[NoteNode] Selection Coords - Start: { left: ${startCoords.left.toFixed(2)}, top: ${startCoords.top.toFixed(2)} }, End: { left: ${endCoords.left.toFixed(2)}, top: ${endCoords.top.toFixed(2)} }`);
-        } catch (e) {
-          console.warn("[NoteNode] Error getting selection coords:", e);
-        }
+      const { from, to } = editor.state.selection;
+      if (from !== to) {
+        const start = editor.view.coordsAtPos(from);
+        const end = editor.view.coordsAtPos(to);
+        const left = Math.min(start.left, end.left);
+        const right = Math.max(start.right, end.right);
+        const top = Math.min(start.top, end.top);
+        const bottom = Math.max(start.bottom, end.bottom);
+        const rect = { left, top, right, bottom, width: right - left, height: bottom - top };
+        console.log('[NoteNode] Text selected:', { from, to, rect });
+        setSelectedTextPosition({ x: left, y: top });
+      } else {
+        setSelectedTextPosition(null);
       }
     },
     editorProps: {
@@ -146,54 +149,44 @@ const NoteNode: React.FC<NodeProps<NoteNodeData>> = ({ id, data }) => {
 
   // Function to calculate the bounding rect of the current selection
   const getSelectionBoundingRect = useCallback(() => {
-    // Default rect if no editor or selection
-    const defaultRect = { 
-      width: 0, height: 0, left: 0, top: 0, right: 0, bottom: 0, 
-      x: 0, y: 0, toJSON: () => JSON.stringify(defaultRect) 
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      const rect = selection.getRangeAt(0).getBoundingClientRect();
+      return {
+        width: rect.width,
+        height: rect.height,
+        top: rect.top,
+        left: rect.left,
+        right: rect.right,
+        bottom: rect.bottom,
+        x: rect.x,
+        y: rect.y,
+        toJSON: () => JSON.stringify(rect)
+      };
+    }
+    // fallback: invisible rect offscreen
+    return {
+      width: 0, height: 0, top: -9999, left: -9999, right: -9999, bottom: -9999, x: -9999, y: -9999, toJSON: () => ({})
     };
-
-    if (!editor || editor.state.selection.empty) {
-      // console.log("[NoteNode] No selection, returning default rect");
-      return defaultRect;
-    }
-    const { from, to } = editor.state.selection;
-    try {
-      const start = editor.view.coordsAtPos(from);
-      const end = editor.view.coordsAtPos(to);
-
-      // Simple rect based on start/end, adjust as needed for multi-line
-      const rect = {
-        width: Math.abs(end.left - start.left),
-        height: Math.abs(end.top - start.top) || (end.bottom - end.top), // Use line height if single line
-        left: Math.min(start.left, end.left),
-        top: Math.min(start.top, end.top),
-        right: Math.max(start.right, end.right),
-        bottom: Math.max(start.bottom, end.bottom),
-      };
-       // Add getBoundingClientRect for Tippy.js compatibility
-      const domRect = {
-        ...rect,
-        x: rect.left,
-        y: rect.top,
-        toJSON: () => JSON.stringify(domRect),
-      };
-       console.log("[NoteNode] Calculated Selection Rect:", domRect);
-      return domRect;
-
-    } catch (e) {
-      console.warn("[NoteNode] Error calculating selection rect:", e);
-      // Return default rect on error
-      return defaultRect;
-    }
-  }, [editor]); // Dependency on editor instance
+  }, []);
 
   // --- Menu Handlers ---
   const handleDelete = () => {
+    console.log('[NoteNode] Menu Action:', {
+      action: 'delete',
+      nodeId: id,
+      timestamp: new Date().toISOString()
+    });
     setNodes((nds) => nds.filter((node) => node.id !== id));
     setIsOptionsMenuOpen(false);
   };
 
   const handleDuplicate = () => {
+    console.log('[NoteNode] Menu Action:', {
+      action: 'duplicate',
+      nodeId: id,
+      timestamp: new Date().toISOString()
+    });
     const nodeToDuplicate = getNode(id);
     if (!nodeToDuplicate) return;
 
@@ -219,8 +212,21 @@ const NoteNode: React.FC<NodeProps<NoteNodeData>> = ({ id, data }) => {
 
   // --- Options Menu Handlers ---
   const toggleOptionsMenu = (event: React.MouseEvent) => {
+    console.log('[NoteNode] Menu State:', {
+      action: 'toggle',
+      isOpen: !isOptionsMenuOpen,
+      nodeId: id,
+      timestamp: new Date().toISOString()
+    });
     event.stopPropagation();
     setIsOptionsMenuOpen(!isOptionsMenuOpen);
+  };
+
+  const tippyOptions = {
+    getReferenceClientRect: getSelectionBoundingRect,
+    duration: 200,
+    placement: 'top' as const,
+    offset: [0, 10] as [number, number],
   };
 
   return (
@@ -228,14 +234,11 @@ const NoteNode: React.FC<NodeProps<NoteNodeData>> = ({ id, data }) => {
       ref={containerRef}
       className="note-node-container relative bg-white rounded-lg shadow-md border border-gray-200 flex flex-col"
       style={{ width: 270, minHeight: 110 }}
-      onMouseEnter={() => { setIsHovered(true); console.log('[NoteNode] container onMouseEnter'); }}
-      onMouseLeave={() => { setIsHovered(false); console.log('[NoteNode] container onMouseLeave'); }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       onWheel={e => {
-        // Log and check if the event is coming from the textarea and should be stopped
         const isTextArea = textareaRef.current && textareaRef.current.contains(e.target as Node);
-        console.log('[NoteNode] container onWheel', { isHovered, isScrollable, isTextArea });
         if (isHovered && isScrollable && isTextArea) {
-          console.log('[NoteNode] container stopPropagation called onWheel');
           e.stopPropagation();
         }
       }}
@@ -320,12 +323,15 @@ const NoteNode: React.FC<NodeProps<NoteNodeData>> = ({ id, data }) => {
           <>
             <BubbleMenu 
               editor={editor} 
-              tippyOptions={{
-                getReferenceClientRect: getSelectionBoundingRect, 
-                duration: 150,
-                placement: 'top',
-                offset: [0, 5], 
-              }} 
+              tippyOptions={tippyOptions}
+              shouldShow={({ editor, view, state, oldState, from, to }) => {
+                // Only show the bubble menu if text is selected
+                const show = from !== to;
+                if (show) {
+                  console.log('[NoteNode] Edit menu shown:', { from, to });
+                }
+                return show;
+              }}
             >
               <div style={{ position: 'relative', width: 249, height: 92.779, background: 'none', boxShadow: 'none', borderRadius: 0, padding: 0, minWidth: 0, minHeight: 0 }}>
                 {/* SVG as background */}

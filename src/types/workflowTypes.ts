@@ -25,6 +25,8 @@ export interface TopicalKeywordNodeData extends BaseNodeData {
   canAddChild?: boolean;
   onDelete?: (nodeId: string) => void;
   onInitiateWorkflow?: (type: string) => void;
+  openMenu?: { type: 'add' | 'popselect', nodeId: string } | null;
+  setOpenMenu?: React.Dispatch<React.SetStateAction<{ type: 'add' | 'popselect', nodeId: string } | null>>;
 }
 
 export interface OfferNodeData extends BaseNodeData {

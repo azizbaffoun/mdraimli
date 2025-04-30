@@ -16,7 +16,8 @@ import ReactFlow, {
   getOutgoers,
   Connection,
   ReactFlowInstance,
-  Viewport
+  Viewport,
+  NodeProps
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { v4 as uuidv4 } from 'uuid';
@@ -64,16 +65,14 @@ declare global {
 
 // Original definitions (kept outside for clarity)
 
-
 const nodeTypesDefinition = {
   start: StartNode,
   topicalKeyword: TopicalKeywordNode,
-
   article: ArticleNode,
   video: VideoNode,
   podcast: PodcastNode,
   socialMedia: SocialMediaNode,
-  note: NoteNode, 
+  note: NoteNode,
 };
 const edgeTypesDefinition = {
   ...customEdgeTypesImport, 
@@ -95,6 +94,8 @@ const WorkflowEditorContent: React.FC = () => {
   // Undo/Redo history state
   const [history, setHistory] = useState<{ nodes: Node<WorkflowNodeData>[]; edges: Edge[] }[]>([]);
   const [future, setFuture] = useState<{ nodes: Node<WorkflowNodeData>[]; edges: Edge[] }[]>([]);
+
+  const [openMenu, setOpenMenu] = useState<{ type: 'add' | 'popselect', nodeId: string } | null>(null);
 
   // ... (rest of the code remains the same)
 
@@ -146,7 +147,7 @@ const WorkflowEditorContent: React.FC = () => {
   const handleInitiateWorkflowRef = useRef<Function | null>(null);
   
   // Memoize nodeTypes and edgeTypes INSIDE the component
-  const nodeTypes = useMemo(() => nodeTypesDefinition, []);
+  const nodeTypes = nodeTypesDefinition;
   const edgeTypes = useMemo(() => edgeTypesDefinition, []);
   
   // Handle node deletion 
@@ -949,13 +950,28 @@ const WorkflowEditorContent: React.FC = () => {
     handleDeleteNodeRef.current = handleDeleteNode;
   }, [handleDeleteNode]);
 
+  // When rendering nodes, inject openMenu and setOpenMenu into data for topicalKeyword nodes
+  const nodesWithMenu = nodes.map(node => {
+    if (node.type === 'topicalKeyword') {
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          openMenu,
+          setOpenMenu,
+        },
+      };
+    }
+    return node;
+  });
+
   return (
     <>
       {showInfoPanel && <WorkflowInfoPanel isExiting={isInfoPanelExiting} />}
       
       <div ref={reactFlowWrapper} className="w-full h-full">
         <ReactFlow
-          nodes={nodes}
+          nodes={nodesWithMenu}
           edges={edges}
           onNodesChange={onNodesChangeHandler}
           onEdgesChange={onEdgesChangeHandler}
