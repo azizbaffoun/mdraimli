@@ -150,23 +150,39 @@ const NoteNode: React.FC<NodeProps<NoteNodeData>> = ({ id, data }) => {
   // Function to calculate the bounding rect of the current selection
   const getSelectionBoundingRect = useCallback(() => {
     const selection = window.getSelection();
-    if (selection && selection.rangeCount > 0) {
-      const rect = selection.getRangeAt(0).getBoundingClientRect();
+    if (!selection || selection.rangeCount === 0) {
       return {
-        width: rect.width,
-        height: rect.height,
-        top: rect.top,
-        left: rect.left,
-        right: rect.right,
-        bottom: rect.bottom,
-        x: rect.x,
-        y: rect.y,
-        toJSON: () => JSON.stringify(rect)
+        width: 0, height: 0, top: -9999, left: -9999, right: -9999, bottom: -9999, x: -9999, y: -9999, toJSON: () => ({}),
       };
     }
-    // fallback: invisible rect offscreen
+  
+    const rect = selection.getRangeAt(0).getBoundingClientRect();
+    const bubbleWidth = 240; // bubble width
+    const arrowOffset = 20; // distance from left edge to arrow
+  
+    // Shift the bubble left so the arrow points to the start
+    const left = rect.left - arrowOffset;
+    const top = rect.top;
+  
     return {
-      width: 0, height: 0, top: -9999, left: -9999, right: -9999, bottom: -9999, x: -9999, y: -9999, toJSON: () => ({})
+      width: bubbleWidth,
+      height: rect.height,
+      top,
+      bottom: top + rect.height,
+      left,
+      right: left + bubbleWidth,
+      x: left,
+      y: top,
+      toJSON: () => JSON.stringify({
+        width: bubbleWidth,
+        height: rect.height,
+        top,
+        bottom: top + rect.height,
+        left,
+        right: left + bubbleWidth,
+        x: left,
+        y: top,
+      }),
     };
   }, []);
 
@@ -224,9 +240,25 @@ const NoteNode: React.FC<NodeProps<NoteNodeData>> = ({ id, data }) => {
 
   const tippyOptions = {
     getReferenceClientRect: getSelectionBoundingRect,
-    duration: 200,
-    placement: 'top' as const,
-    offset: [0, 10] as [number, number],
+    placement: 'top',
+    appendTo: () => document.body,
+    popperOptions: {
+      modifiers: [
+        {
+          name: 'offset',
+          options: {
+            offset: [0, 10], // [x offset, y offset]
+          },
+        },
+        {
+          name: 'preventOverflow',
+          options: {
+            boundary: 'viewport',
+            padding: 8,
+          },
+        },
+      ],
+    },
   };
 
   return (
