@@ -13,22 +13,25 @@ import { ContentNodeData, ContentType, notifyNode } from '@/types/workflowTypes'
 import PopupSelect from './PopupSelect';
 
 // Use the specific interface by extending the imported base type
-interface PodcastNodeData extends ContentNodeData {}
+interface PodcastNodeData extends ContentNodeData {
+  onReplaceNode?: (nodeId: string, newType: ContentType) => void;
+}
 import NodeAddMenu from './NodeAddMenu';
 
 const PodcastNode: React.FC<NodeProps<PodcastNodeData>> = ({ id, data, selected }) => {
   const animationClass = data.isEntering ? 'node-bouncing-in' : '';
   const [menuOpen, setMenuOpen] = useState(false);
-  const [addMenuOpen, setAddMenuOpen] = useState(false);
+  const [replaceMenuOpen, setReplaceMenuOpen] = useState(false);
   const popupAnchorRef = useRef<HTMLDivElement>(null);
 
-    useEffect(() => {
-       data.isNew && notifyNode('podcast', id);
-    }, []);
+  useEffect(() => {
+     data.isNew && notifyNode('podcast', id);
+  }, []);
 
   const handlePlusClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     setMenuOpen(!menuOpen);
+    setReplaceMenuOpen(false);
   };
 
   const handleSelectOption = (parentId: string, type: ContentType) => {
@@ -36,6 +39,22 @@ const PodcastNode: React.FC<NodeProps<PodcastNodeData>> = ({ id, data, selected 
       data.onAddChildNode(parentId, type);
     }
     setMenuOpen(false);
+  };
+
+  const handleReplaceNode = (nodeId: string, newType: ContentType) => {
+    if (data.onReplaceNode) {
+      data.onReplaceNode(nodeId, newType);
+    }
+    setReplaceMenuOpen(false);
+  };
+
+  const handleSettingsClick = () => {
+    setMenuOpen(false);
+    setReplaceMenuOpen(true);
+  };
+
+  const handleCloseReplaceMenu = () => {
+    setReplaceMenuOpen(false);
   };
 
   const availableMenuOptions: ContentType[] = ['article', 'video', 'podcast', 'socialMedia'];
@@ -56,10 +75,6 @@ const PodcastNode: React.FC<NodeProps<PodcastNodeData>> = ({ id, data, selected 
     console.log('Document clicked');
   };
 
-  const handleSettingsClick = () => {
-    setAddMenuOpen(true);
-  };
-
   const handleDeleteClick = () => {
     console.log('Delete clicked');
     if (data.onDelete) {
@@ -77,17 +92,10 @@ const PodcastNode: React.FC<NodeProps<PodcastNodeData>> = ({ id, data, selected 
             onDeleteClick={handleDeleteClick}
             notificationCount={9}
             isTopicalKeywordNode={false}
-          />
-          <NodeAddMenu
-            parentId={id}
-            isOpen={addMenuOpen}
-            onClose={() => setAddMenuOpen(false)}
-            onSelectOption={(parentId, type) => {
-              if (data.onAddChildNode) data.onAddChildNode(parentId, type);
-              setAddMenuOpen(false);
-            }}
-            availableOptions={['article', 'video', 'podcast', 'socialMedia']}
-            positionStyle={{ left: '100%', top: '50%', transform: 'translateY(-50%)', zIndex: 50 }}
+            nodeId={id}
+            onReplaceNode={handleReplaceNode}
+            isReplaceMenuOpen={replaceMenuOpen}
+            onCloseReplaceMenu={handleCloseReplaceMenu}
           />
         </div>
       )}

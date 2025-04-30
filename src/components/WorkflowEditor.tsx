@@ -16,8 +16,7 @@ import ReactFlow, {
   getOutgoers,
   Connection,
   ReactFlowInstance,
-  Viewport,
-  NodeProps
+  Viewport
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { v4 as uuidv4 } from 'uuid';
@@ -47,7 +46,6 @@ import ZoomControl from './ZoomControl';
 import {
   WorkflowData,
   ContentType,
-
   TopicalKeywordNodeData,
   ContentNodeData,
   NoteNodeFlowData,
@@ -64,7 +62,6 @@ declare global {
 }
 
 // Original definitions (kept outside for clarity)
-
 const nodeTypesDefinition = {
   start: StartNode,
   topicalKeyword: TopicalKeywordNode,
@@ -479,22 +476,23 @@ const WorkflowEditorContent: React.FC = () => {
         };
     }
     const childNode: Node<ContentNodeData> = {
-        id: childNodeId, // Use plain UUID
+        id: childNodeId,
         type: requestedChildType,
         position: newNodePosition,
-        width: 128, 
-        height: 128, 
+        width: 128,
+        height: 128,
         selectable: true,
-        data: { 
-            isEntering: true,
-            isNew: true,
-            canAddChild: requestedChildType !== 'socialMedia',
-            onAddChildNode: (parentId: string, childType: ContentType) => {
-              onAddChildNode(parentId, childType);
-            },
-            onDelete: handleDeleteNode,
-            ...(requestedChildType === 'video' && { isLeftConnected: true, isRightConnected: false })
-        },
+        data: {
+          isEntering: true,
+          isNew: true,
+          canAddChild: requestedChildType !== 'socialMedia',
+          onAddChildNode: (parentId: string, childType: ContentType) => {
+            onAddChildNode(parentId, childType);
+          },
+          onDelete: handleDeleteNode,
+          onReplaceNode: handleReplaceNode,
+          ...(requestedChildType === 'video' && { isLeftConnected: true, isRightConnected: false })
+        }
     };
     const newEdge: Edge = {
         // Use plain UUIDs for edge ID
@@ -703,9 +701,11 @@ const WorkflowEditorContent: React.FC = () => {
 
   const onPaneClick = useCallback(() => {
     setSelectedNodeId(null);
+    // Close any open menus
+    setOpenMenu(null);
     // Potentially show info panel again when clicking the background?
     // Or keep it closed until explicitly opened. For now, keep it closed.
-  }, []);
+  }, [setOpenMenu]);
 
   // --- Save Workflow Logic ---
   const saveWorkflow = useCallback(() => {
@@ -951,6 +951,7 @@ const WorkflowEditorContent: React.FC = () => {
   }, [handleDeleteNode]);
 
   // When rendering nodes, inject openMenu and setOpenMenu into data for topicalKeyword nodes
+  const viewport = reactFlowInstance?.getViewport?.() || { x: 0, y: 0, zoom: 1 };
   const nodesWithMenu = nodes.map(node => {
     if (node.type === 'topicalKeyword') {
       return {
@@ -962,8 +963,58 @@ const WorkflowEditorContent: React.FC = () => {
         },
       };
     }
+    if (node.type === 'note') {
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          viewport, // pass zoom and pan to NoteNode
+        },
+      };
+    }
     return node;
   });
+
+  // Add handleReplaceNode function after handleDeleteNode
+  const handleReplaceNode = useCallback((nodeId: string, newType: ContentType) => {
+    // Push current state to history before change
+    setHistory(prev => [...prev, { nodes: getNodes(), edges: getEdges() }]);
+    setFuture([]);
+
+    const nodeToReplace = getNode(nodeId);
+    if (!nodeToReplace) {
+      console.error('Node to replace not found:', nodeId);
+      return;
+    }
+
+    // Don't allow replacing topical keyword nodes
+    if (nodeToReplace.type === 'topicalKeyword') {
+      console.warn('Cannot replace topical keyword node');
+      return;
+    }
+
+    // Create new node with same position and connections but new type
+    const newNode: Node<ContentNodeData> = {
+      ...nodeToReplace,
+      type: newType,
+      data: {
+        ...nodeToReplace.data,
+        isEntering: true,
+        isNew: true,
+        canAddChild: newType !== 'socialMedia',
+        onAddChildNode: (parentId: string, childType: ContentType) => {
+          onAddChildNode(parentId, childType);
+        },
+        onDelete: handleDeleteNode,
+        onReplaceNode: handleReplaceNode,
+        isLeftConnected: nodeToReplace.data.isLeftConnected,
+        isRightConnected: nodeToReplace.data.isRightConnected
+      }
+    };
+
+    // Update nodes state
+    setNodes(nds => nds.map(node => node.id === nodeId ? newNode : node));
+  }, [getNode, getNodes, getEdges, setNodes, onAddChildNode, handleDeleteNode]);
 
   return (
     <>

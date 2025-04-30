@@ -48,3 +48,9 @@
   margin-top: 0;
   margin-bottom: 0;
 }
+
+.bubble-menu-force-pointer {
+  visibility: visible !important;
+  pointer-events: auto !important;
+  z-index: 2000 !important;
+}

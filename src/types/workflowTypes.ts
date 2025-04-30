@@ -27,6 +27,7 @@ export interface TopicalKeywordNodeData extends BaseNodeData {
   onInitiateWorkflow?: (type: string) => void;
   openMenu?: { type: 'add' | 'popselect', nodeId: string } | null;
   setOpenMenu?: React.Dispatch<React.SetStateAction<{ type: 'add' | 'popselect', nodeId: string } | null>>;
+  onReplaceNode?: (nodeId: string, newType: ContentType) => void;
 }
 
 export interface OfferNodeData extends BaseNodeData {
@@ -36,6 +37,7 @@ export interface OfferNodeData extends BaseNodeData {
   canAddChild?: boolean;
   onDelete?: (nodeId: string) => void;
   onInitiateWorkflow?: (type: string) => void;
+  onReplaceNode?: (nodeId: string, newType: ContentType) => void;
 }
 
 export interface EventNodeData extends BaseNodeData {
@@ -45,6 +47,7 @@ export interface EventNodeData extends BaseNodeData {
   onDelete?: (nodeId: string) => void;
   onAddChildNode?: (parentId: string, childType: ContentType) => void;
   onInitiateWorkflow?: (type: string) => void;
+  onReplaceNode?: (nodeId: string, newType: ContentType) => void;
 }
 
 
@@ -63,6 +66,7 @@ export interface ContentNodeData extends BaseNodeData {
   onDelete?: (nodeId: string) => void;
   onAddChildNode?: (parentId: string, childType: ContentType) => void;
   onInitiateWorkflow?: (type: string) => void;
+  onReplaceNode?: (nodeId: string, newType: ContentType) => void;
 }
 
 

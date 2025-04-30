@@ -15,8 +15,11 @@ import { TopicalKeywordNodeData, ContentType } from '@/types/workflowTypes';
 // Accept nodeType via data (default: 'topicalKeyword')
 import StartMenu from './StartMenu';
 
-const TopicalKeywordNode: React.FC<NodeProps<TopicalKeywordNodeData & { nodeType?: 'topicalKeyword' | 'offer' | 'event' }>> = ({ id, data, selected }) => {
+const TopicalKeywordNode: React.FC<NodeProps<TopicalKeywordNodeData & { 
+  nodeType?: 'topicalKeyword' | 'offer' | 'event';
+}>> = ({ id, data, selected }) => {
   const nodeColor = '#3799DB';
+  const [replaceMenuOpen, setReplaceMenuOpen] = useState(false);
   const popupAnchorRef = useRef<HTMLDivElement>(null);
   const { setNodes } = useReactFlow();
 
@@ -29,6 +32,7 @@ const TopicalKeywordNode: React.FC<NodeProps<TopicalKeywordNodeData & { nodeType
   const handlePlusClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     setOpenMenu?.(menuOpen ? null : { type: 'add', nodeId: id });
+    setReplaceMenuOpen(false);
   };
 
   const handleSelectOption = (parentId: string, type: ContentType) => {
@@ -38,12 +42,18 @@ const TopicalKeywordNode: React.FC<NodeProps<TopicalKeywordNodeData & { nodeType
     setOpenMenu?.(null);
   };
 
-  const handleDocumentClick = () => {
-    setOpenMenu?.(null);
+  const handleReplaceNode = (newType: ContentType) => {
+    data.onReplaceNode?.(id, newType);
+    setReplaceMenuOpen(false);
+  };
+
+  const handleCloseReplaceMenu = () => {
+    setReplaceMenuOpen(false);
   };
 
   const handleSettingsClick = () => {
     setOpenMenu?.(null);
+    setReplaceMenuOpen(true);
   };
 
   const handleStartMenuSelect = (type: 'topicalKeyword' | 'offer' | 'event') => {
@@ -70,11 +80,16 @@ const TopicalKeywordNode: React.FC<NodeProps<TopicalKeywordNodeData & { nodeType
       {selected && (
         <div ref={popupAnchorRef}>
           <PopupSelect
-            onDocumentClick={handleDocumentClick}
+            onDocumentClick={() => console.log('Document clicked')}
             onSettingsClick={handleSettingsClick}
             onDeleteClick={handleDeleteClick}
             notificationCount={9}
             isTopicalKeywordNode={true}
+            nodeId={id}
+            onReplaceNode={(_, newType) => handleReplaceNode(newType as ContentType)}
+            isReplaceMenuOpen={replaceMenuOpen}
+            onCloseReplaceMenu={handleCloseReplaceMenu}
+            setOpenMenu={setOpenMenu}
           />
           <StartMenu
             isOpen={startMenuOpen}

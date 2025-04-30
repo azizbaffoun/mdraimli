@@ -37,7 +37,6 @@ const NoteNode: React.FC<NodeProps<NoteNodeData>> = ({ id, data }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [title, setTitle] = useState(data.title ?? defaultTitle);
   const [isOptionsMenuOpen, setIsOptionsMenuOpen] = useState(false);
-  const [selectedTextPosition, setSelectedTextPosition] = useState<{ x: number; y: number } | null>(null);
 
   // --- Tiptap Editor Setup ---
   const editor = useEditor({
@@ -70,9 +69,7 @@ const NoteNode: React.FC<NodeProps<NoteNodeData>> = ({ id, data }) => {
         const bottom = Math.max(start.bottom, end.bottom);
         const rect = { left, top, right, bottom, width: right - left, height: bottom - top };
         console.log('[NoteNode] Text selected:', { from, to, rect });
-        setSelectedTextPosition({ x: left, y: top });
       } else {
-        setSelectedTextPosition(null);
       }
     },
     editorProps: {
@@ -240,7 +237,7 @@ const NoteNode: React.FC<NodeProps<NoteNodeData>> = ({ id, data }) => {
 
   const tippyOptions = {
     getReferenceClientRect: getSelectionBoundingRect,
-    placement: 'top',
+    placement: 'top' as const,
     appendTo: () => document.body,
     popperOptions: {
       modifiers: [
@@ -356,7 +353,7 @@ const NoteNode: React.FC<NodeProps<NoteNodeData>> = ({ id, data }) => {
             <BubbleMenu 
               editor={editor} 
               tippyOptions={tippyOptions}
-              shouldShow={({ editor, view, state, oldState, from, to }) => {
+              shouldShow={({ from, to }) => {
                 // Only show the bubble menu if text is selected
                 const show = from !== to;
                 if (show) {
@@ -428,19 +425,18 @@ const NoteNode: React.FC<NodeProps<NoteNodeData>> = ({ id, data }) => {
                     left: '3px',
                     top: '1px',
                     zIndex: 1,
-                    pointerEvents: 'none',
                   }}
                 >
-                  <button /* Bold */ onClick={() => editor?.chain().focus().toggleBold().run()} disabled={!editor?.can().chain().focus().toggleBold().run()} style={{ position:'absolute', left:'15px', top:'12px', width:'35px', height:'28px', background:'transparent', border:'none', cursor:'pointer', padding:0, pointerEvents:'auto', borderRadius:'4px' }} aria-label="Bold" type="button" />
-                  <button /* Italic */ onClick={() => editor?.chain().focus().toggleItalic().run()} disabled={!editor?.can().chain().focus().toggleItalic().run()} style={{ position:'absolute', left:'64px', top:'12px', width:'28px', height:'28px', background:'transparent', border:'none', cursor:'pointer', padding:0, pointerEvents:'auto', borderRadius:'4px' }} aria-label="Italic" type="button" />
-                  <button /* Underline */ onClick={() => editor?.chain().focus().toggleUnderline().run()} disabled={!editor?.can().chain().focus().toggleUnderline().run()} style={{ position:'absolute', left:'110px', top:'12px', width:'28px', height:'28px', background:'transparent', border:'none', cursor:'pointer', padding:0, pointerEvents:'auto', borderRadius:'4px' }} aria-label="Underline" type="button" />
-                  <button /* Strike */ onClick={() => editor?.chain().focus().toggleStrike().run()} disabled={!editor?.can().chain().focus().toggleStrike().run()} style={{ position:'absolute', left:'155px', top:'12px', width:'28px', height:'28px', background:'transparent', border:'none', cursor:'pointer', padding:0, pointerEvents:'auto', borderRadius:'4px' }} aria-label="Strike" type="button" />
-                  <button /* Highlight */ onClick={() => editor?.chain().focus().toggleHighlight().run()} disabled={!editor?.can().chain().focus().toggleHighlight().run()} style={{ position:'absolute', left:'198px', top:'12px', width:'28px', height:'28px', background:'transparent', border:'none', cursor:'pointer', padding:0, pointerEvents:'auto', borderRadius:'4px' }} aria-label="Highlight" type="button" />
-                  <button /* Task List */ onClick={() => editor?.chain().focus().toggleTaskList().run()} disabled={!editor?.can().chain().focus().toggleTaskList().run()} style={{ position:'absolute', left:'20px', top:'45px', width:'38px', height:'28px', background:'transparent', border:'none', cursor:'pointer', padding:0, pointerEvents:'auto', borderRadius:'4px' }} aria-label="Task List" type="button" />
-                  <button /* Ordered List */ onClick={() => editor?.chain().focus().toggleOrderedList().run()} disabled={!editor?.can().chain().focus().toggleOrderedList().run()} style={{ position:'absolute', left:'64px', top:'45px', width:'28px', height:'28px', background:'transparent', border:'none', cursor:'pointer', padding:0, pointerEvents:'auto', borderRadius:'4px' }} aria-label="Ordered List" type="button" />
-                  <button /* Bullet List */ onClick={() => editor?.chain().focus().toggleBulletList().run()} disabled={!editor?.can().chain().focus().toggleBulletList().run()} style={{ position:'absolute', left:'102px', top:'45px', width:'37px', height:'28px', background:'transparent', border:'none', cursor:'pointer', padding:0, pointerEvents:'auto', borderRadius:'4px' }} aria-label="Bullet List" type="button" />
-                  <button /* Align Left */ onClick={() => editor?.chain().focus().setTextAlign('left').run()} disabled={!editor?.can().chain().focus().setTextAlign('left').run()} style={{ position:'absolute', left:'155px', top:'45px', width:'30px', height:'28px', background:'transparent', border:'none', cursor:'pointer', padding:0, pointerEvents:'auto', borderRadius:'4px' }} aria-label="Align Left" type="button" />
-                  <button /* Align Right */ onClick={() => editor?.chain().focus().setTextAlign('right').run()} disabled={!editor?.can().chain().focus().setTextAlign('right').run()} style={{ position:'absolute', left:'194px', top:'45px', width:'37px', height:'28px', background:'transparent', border:'none', cursor:'pointer', padding:0, pointerEvents:'auto', borderRadius:'4px' }} aria-label="Align Right" type="button" />
+                  <button /* Bold */ onMouseDown={e => e.preventDefault()} onClick={() => { console.log('Bold clicked'); editor?.chain().focus().toggleBold().run(); }} style={{ position:'absolute', left:'15px', top:'12px', width:'35px', height:'28px', background:'transparent', border:'none', cursor:'pointer', padding:0, pointerEvents:'auto', borderRadius:'4px' }} aria-label="Bold" type="button" />
+                  <button /* Italic */ onMouseDown={e => e.preventDefault()} onClick={() => { console.log('Italic clicked'); editor?.chain().focus().toggleItalic().run(); }} style={{ position:'absolute', left:'64px', top:'12px', width:'28px', height:'28px', background:'transparent', border:'none', cursor:'pointer', padding:0, pointerEvents:'auto', borderRadius:'4px' }} aria-label="Italic" type="button" />
+                  <button /* Underline */ onMouseDown={e => e.preventDefault()} onClick={() => { console.log('Underline clicked'); editor?.chain().focus().toggleUnderline().run(); }} style={{ position:'absolute', left:'110px', top:'12px', width:'28px', height:'28px', background:'transparent', border:'none', cursor:'pointer', padding:0, pointerEvents:'auto', borderRadius:'4px' }} aria-label="Underline" type="button" />
+                  <button /* Strike */ onMouseDown={e => e.preventDefault()} onClick={() => { console.log('Strike clicked'); editor?.chain().focus().toggleStrike().run(); }} style={{ position:'absolute', left:'155px', top:'12px', width:'28px', height:'28px', background:'transparent', border:'none', cursor:'pointer', padding:0, pointerEvents:'auto', borderRadius:'4px' }} aria-label="Strike" type="button" />
+                  <button /* Highlight */ onMouseDown={e => e.preventDefault()} onClick={() => { console.log('Highlight clicked'); editor?.chain().focus().toggleHighlight().run(); }} style={{ position:'absolute', left:'198px', top:'12px', width:'28px', height:'28px', background:'transparent', border:'none', cursor:'pointer', padding:0, pointerEvents:'auto', borderRadius:'4px' }} aria-label="Highlight" type="button" />
+                  <button /* Task List */ onMouseDown={e => e.preventDefault()} onClick={() => { console.log('Task List clicked'); editor?.chain().focus().toggleTaskList().run(); }} style={{ position:'absolute', left:'20px', top:'45px', width:'38px', height:'28px', background:'transparent', border:'none', cursor:'pointer', padding:0, pointerEvents:'auto', borderRadius:'4px' }} aria-label="Task List" type="button" />
+                  <button /* Ordered List */ onMouseDown={e => e.preventDefault()} onClick={() => { console.log('Ordered List clicked'); editor?.chain().focus().toggleOrderedList().run(); }} style={{ position:'absolute', left:'64px', top:'45px', width:'28px', height:'28px', background:'transparent', border:'none', cursor:'pointer', padding:0, pointerEvents:'auto', borderRadius:'4px' }} aria-label="Ordered List" type="button" />
+                  <button /* Bullet List */ onMouseDown={e => e.preventDefault()} onClick={() => { console.log('Bullet List clicked'); editor?.chain().focus().toggleBulletList().run(); }} style={{ position:'absolute', left:'102px', top:'45px', width:'37px', height:'28px', background:'transparent', border:'none', cursor:'pointer', padding:0, pointerEvents:'auto', borderRadius:'4px' }} aria-label="Bullet List" type="button" />
+                  <button /* Align Left */ onMouseDown={e => e.preventDefault()} onClick={() => { console.log('Align Left clicked'); editor?.chain().focus().setTextAlign('left').run(); }} style={{ position:'absolute', left:'155px', top:'45px', width:'30px', height:'28px', background:'transparent', border:'none', cursor:'pointer', padding:0, pointerEvents:'auto', borderRadius:'4px' }} aria-label="Align Left" type="button" />
+                  <button /* Align Right */ onMouseDown={e => e.preventDefault()} onClick={() => { console.log('Align Right clicked'); editor?.chain().focus().setTextAlign('right').run(); }} style={{ position:'absolute', left:'194px', top:'45px', width:'37px', height:'28px', background:'transparent', border:'none', cursor:'pointer', padding:0, pointerEvents:'auto', borderRadius:'4px' }} aria-label="Align Right" type="button" />
                 </div>
               </div>
             </BubbleMenu>

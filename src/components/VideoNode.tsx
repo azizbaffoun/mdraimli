@@ -14,14 +14,16 @@ import PopupSelect from './PopupSelect';
 import { ContentNodeData, ContentType, notifyNode } from '@/types/workflowTypes';
 
 // Add back the interface definition
-interface VideoNodeData extends ContentNodeData {}
+interface VideoNodeData extends ContentNodeData {
+  onReplaceNode?: (nodeId: string, newType: ContentType) => void;
+}
 
 // Remove connector config usage
 // const connectors = nodeConnectors.video;
 
 const VideoNode: React.FC<NodeProps<VideoNodeData>> = ({ id, data, selected }) => {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [addMenuOpen, setAddMenuOpen] = useState(false);
+  const [replaceMenuOpen, setReplaceMenuOpen] = useState(false);
   const popupAnchorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -29,7 +31,18 @@ const VideoNode: React.FC<NodeProps<VideoNodeData>> = ({ id, data, selected }) =
   }, []);
 
   const handleSettingsClick = () => {
-    setAddMenuOpen(true);
+    setReplaceMenuOpen(true);
+  };
+
+  const handleReplaceNode = (nodeId: string, newType: ContentType) => {
+    if (data.onReplaceNode) {
+      data.onReplaceNode(nodeId, newType);
+    }
+    setReplaceMenuOpen(false);
+  };
+
+  const handleCloseReplaceMenu = () => {
+    setReplaceMenuOpen(false);
   };
 
   const animationClass = data.isEntering ? 'node-bouncing-in' : ''; // Use bouncing animation
@@ -73,17 +86,10 @@ const VideoNode: React.FC<NodeProps<VideoNodeData>> = ({ id, data, selected }) =
             onDeleteClick={handleDeleteClick}
             notificationCount={9}
             isTopicalKeywordNode={false}
-          />
-          <NodeAddMenu
-            parentId={id}
-            isOpen={addMenuOpen}
-            onClose={() => setAddMenuOpen(false)}
-            onSelectOption={(parentId, type) => {
-              if (data.onAddChildNode) data.onAddChildNode(parentId, type);
-              setAddMenuOpen(false);
-            }}
-            availableOptions={['article', 'video', 'podcast', 'socialMedia']}
-            positionStyle={{ left: '100%', top: '50%', transform: 'translateY(-50%)', zIndex: 50 }}
+            nodeId={id}
+            onReplaceNode={handleReplaceNode}
+            isReplaceMenuOpen={replaceMenuOpen}
+            onCloseReplaceMenu={handleCloseReplaceMenu}
           />
         </div>
       )}

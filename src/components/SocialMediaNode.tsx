@@ -18,17 +18,17 @@ interface SocialMediaNodeData {
   isLeftConnected?: boolean;
   isRightConnected?: boolean;
   onDelete?: (nodeId: string) => void;
+  onReplaceNode?: (nodeId: string, newType: ContentType) => void;
 }
 
 // Node component
-import NodeAddMenu from './NodeAddMenu';
 import { notifyNode } from '@/types/workflowTypes';
 
 const SocialMediaNode: React.FC<NodeProps<SocialMediaNodeData>> = ({ id, data, selected }) => {
   const animationClass = data.isEntering ? 'node-bouncing-in' : '';
   // Remove nodeColor if not used
   // const nodeColor = '#FC8500';
-  const [addMenuOpen, setAddMenuOpen] = useState(false);
+  const [replaceMenuOpen, setReplaceMenuOpen] = useState(false);
   const popupAnchorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -43,7 +43,18 @@ const SocialMediaNode: React.FC<NodeProps<SocialMediaNodeData>> = ({ id, data, s
   };
 
   const handleSettingsClick = () => {
-    setAddMenuOpen(true);
+    setReplaceMenuOpen(true);
+  };
+
+  const handleReplaceNode = (nodeId: string, newType: ContentType) => {
+    if (data.onReplaceNode) {
+      data.onReplaceNode(nodeId, newType);
+    }
+    setReplaceMenuOpen(false);
+  };
+
+  const handleCloseReplaceMenu = () => {
+    setReplaceMenuOpen(false);
   };
 
   return (
@@ -58,17 +69,10 @@ const SocialMediaNode: React.FC<NodeProps<SocialMediaNodeData>> = ({ id, data, s
             onDeleteClick={handleDeleteClick}
             notificationCount={9}
             isTopicalKeywordNode={false}
-          />
-          <NodeAddMenu
-            parentId={id}
-            isOpen={addMenuOpen}
-            onClose={() => setAddMenuOpen(false)}
-            onSelectOption={(parentId, type) => {
-              if (data.onAddChildNode) data.onAddChildNode(parentId, type);
-              setAddMenuOpen(false);
-            }}
-            availableOptions={['article', 'video', 'podcast', 'socialMedia']}
-            positionStyle={{ left: '100%', top: '50%', transform: 'translateY(-50%)', zIndex: 50 }}
+            nodeId={id}
+            onReplaceNode={handleReplaceNode}
+            isReplaceMenuOpen={replaceMenuOpen}
+            onCloseReplaceMenu={handleCloseReplaceMenu}
           />
         </div>
       )}

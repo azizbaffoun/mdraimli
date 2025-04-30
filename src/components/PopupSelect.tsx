@@ -1,4 +1,6 @@
 import React from 'react';
+import NodeReplaceMenu from './nodereplacemenu';
+import { ContentType } from '@/types/workflowTypes';
 
 interface PopupSelectProps {
   onDocumentClick?: () => void;
@@ -6,6 +8,11 @@ interface PopupSelectProps {
   onDeleteClick?: () => void;
   notificationCount?: number;
   isTopicalKeywordNode?: boolean;
+  nodeId?: string;
+  onReplaceNode?: (nodeId: string, newType: ContentType) => void;
+  isReplaceMenuOpen?: boolean;
+  onCloseReplaceMenu?: () => void;
+  setOpenMenu?: React.Dispatch<React.SetStateAction<{ type: 'add' | 'popselect', nodeId: string } | null>>;
 }
 
 const PopupSelect: React.FC<PopupSelectProps> = ({
@@ -13,8 +20,22 @@ const PopupSelect: React.FC<PopupSelectProps> = ({
   onSettingsClick,
   onDeleteClick,
   notificationCount = 9,
-  isTopicalKeywordNode = false
+  isTopicalKeywordNode = false,
+  nodeId,
+  onReplaceNode,
+  isReplaceMenuOpen = false,
+  onCloseReplaceMenu = () => {},
+  setOpenMenu,
 }) => {
+  const handleSettingsClick = () => {
+    if (isTopicalKeywordNode) {
+      onSettingsClick?.();
+      setOpenMenu?.({ type: 'popselect', nodeId: nodeId || '' });
+    } else {
+      console.log('Settings clicked for node:', nodeId);
+    }
+  };
+
   return (
     <div 
       className="absolute left-1/2 -translate-x-1/2 top-full -mt-70 z-50"
@@ -81,7 +102,7 @@ const PopupSelect: React.FC<PopupSelectProps> = ({
             <tspan x="-6.727" y="0">{notificationCount}+</tspan>
           </text>
           {/* Settings Icon */}
-          <g transform="translate(447.5 552)" onClick={onSettingsClick} className="cursor-pointer">
+          <g transform="translate(447.5 552)" onClick={handleSettingsClick} className="cursor-pointer">
             <g transform="translate(2.5 2)">
               <path d="M10.217,0a2.152,2.152,0,0,1,1.819,1.04,1.778,1.778,0,0,1,.276,1.06,1.546,1.546,0,0,0,.235.88,1.973,1.973,0,0,0,2.575.69,2.112,2.112,0,0,1,2.872.76h0l.685,1.18a2.027,2.027,0,0,1-.756,2.83,1.822,1.822,0,0,0-.654,2.5,1.547,1.547,0,0,0,.634.64,2.3,2.3,0,0,1,.828.79,2.018,2.018,0,0,1-.02,2.05h0l-.715,1.2a2.1,2.1,0,0,1-2.892.74,1.63,1.63,0,0,0-.9-.23,1.909,1.909,0,0,0-1.891,1.82A2.068,2.068,0,0,1,10.2,20H8.807a2.07,2.07,0,0,1-2.126-2.05A1.892,1.892,0,0,0,4.8,16.13a1.586,1.586,0,0,0-.9.23,2.161,2.161,0,0,1-1.083.3A2.134,2.134,0,0,1,1,15.62H1l-.705-1.2a2,2,0,0,1-.02-2.05,2.118,2.118,0,0,1,.818-.79,1.634,1.634,0,0,0,.644-.64,1.834,1.834,0,0,0-.664-2.5A2.044,2.044,0,0,1,.314,5.61h0L1,4.43a2.124,2.124,0,0,1,2.882-.76,1.963,1.963,0,0,0,2.565-.69,1.546,1.546,0,0,0,.235-.88,1.785,1.785,0,0,1,.286-1.06A2.195,2.195,0,0,1,8.776,0h1.441ZM9.512,7.18a2.826,2.826,0,1,0,0,5.65,2.825,2.825,0,1,0,0-5.65Z" fill="url(#linear-gradient)"/>
             </g>
@@ -106,6 +127,16 @@ const PopupSelect: React.FC<PopupSelectProps> = ({
           )}
         </g>
       </svg>
+      {!isTopicalKeywordNode && nodeId && onReplaceNode && (
+        <NodeReplaceMenu
+          nodeId={nodeId}
+          isOpen={isReplaceMenuOpen}
+          onClose={onCloseReplaceMenu}
+          onReplaceNode={onReplaceNode}
+          availableOptions={['article', 'video', 'podcast', 'socialMedia']}
+          positionStyle={{ left: '110%', top: '50%', transform: 'translateY(-50%)', zIndex: 50 }}
+        />
+      )}
     </div>
   );
 };
