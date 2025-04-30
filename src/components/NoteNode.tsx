@@ -46,7 +46,7 @@ const NoteNode: React.FC<NodeProps<NoteNodeData>> = ({ id, data }) => {
       Placeholder.configure({
         placeholder: 'Start typing...',
       }),
-      Highlight,
+      Highlight.configure({ multicolor: true }),
       TaskList,
       TaskItem,
       TextAlign.configure({
@@ -55,10 +55,11 @@ const NoteNode: React.FC<NodeProps<NoteNodeData>> = ({ id, data }) => {
     ],
     content: data.content ?? '',
     onUpdate: ({ editor }) => {
-      const json = editor.getJSON();
-      setNodes(nds => nds.map(node => node.id === id ? { ...node, data: { ...node.data, content: json } } : node));
-    },
-    onSelectionUpdate: ({ editor }) => {
+      const content = editor.getHTML();
+      console.log("[NoteNode] onUpdate - Content Changed:", content.substring(0, 50) + "..."); // Log content change
+      setNodes(nds => nds.map(node => node.id === id ? { ...node, data: { ...node.data, content } } : node));    },
+     
+      onSelectionUpdate: ({ editor }) => {
       const { from, to } = editor.state.selection;
       if (from !== to) {
         const start = editor.view.coordsAtPos(from);
@@ -239,6 +240,7 @@ const NoteNode: React.FC<NodeProps<NoteNodeData>> = ({ id, data }) => {
     getReferenceClientRect: getSelectionBoundingRect,
     placement: 'top' as const,
     appendTo: () => document.body,
+    interactive: true,
     popperOptions: {
       modifiers: [
         {
@@ -265,6 +267,11 @@ const NoteNode: React.FC<NodeProps<NoteNodeData>> = ({ id, data }) => {
       style={{ width: 270, minHeight: 110 }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onMouseDown={(e) => {
+        // Stop clicks inside the node from propagating to ReactFlow
+        console.log('[NoteNode] onMouseDown on root div, stopping propagation.');
+        e.stopPropagation();
+      }}
       onWheel={e => {
         const isTextArea = textareaRef.current && textareaRef.current.contains(e.target as Node);
         if (isHovered && isScrollable && isTextArea) {
@@ -353,12 +360,10 @@ const NoteNode: React.FC<NodeProps<NoteNodeData>> = ({ id, data }) => {
             <BubbleMenu 
               editor={editor} 
               tippyOptions={tippyOptions}
-              shouldShow={({ from, to }) => {
+              shouldShow={({ editor, from, to, state, view }) => {
                 // Only show the bubble menu if text is selected
                 const show = from !== to;
-                if (show) {
-                  console.log('[NoteNode] Edit menu shown:', { from, to });
-                }
+                console.log('[NoteNode] BubbleMenu shouldShow check:', { show, from, to, editorExists: !!editor, stateExists: !!state, viewExists: !!view });
                 return show;
               }}
             >
@@ -425,18 +430,36 @@ const NoteNode: React.FC<NodeProps<NoteNodeData>> = ({ id, data }) => {
                     left: '3px',
                     top: '1px',
                     zIndex: 1,
+                    pointerEvents: 'auto',
                   }}
                 >
-                  <button /* Bold */ onMouseDown={e => e.preventDefault()} onClick={() => { console.log('Bold clicked'); editor?.chain().focus().toggleBold().run(); }} style={{ position:'absolute', left:'15px', top:'12px', width:'35px', height:'28px', background:'transparent', border:'none', cursor:'pointer', padding:0, pointerEvents:'auto', borderRadius:'4px' }} aria-label="Bold" type="button" />
-                  <button /* Italic */ onMouseDown={e => e.preventDefault()} onClick={() => { console.log('Italic clicked'); editor?.chain().focus().toggleItalic().run(); }} style={{ position:'absolute', left:'64px', top:'12px', width:'28px', height:'28px', background:'transparent', border:'none', cursor:'pointer', padding:0, pointerEvents:'auto', borderRadius:'4px' }} aria-label="Italic" type="button" />
-                  <button /* Underline */ onMouseDown={e => e.preventDefault()} onClick={() => { console.log('Underline clicked'); editor?.chain().focus().toggleUnderline().run(); }} style={{ position:'absolute', left:'110px', top:'12px', width:'28px', height:'28px', background:'transparent', border:'none', cursor:'pointer', padding:0, pointerEvents:'auto', borderRadius:'4px' }} aria-label="Underline" type="button" />
-                  <button /* Strike */ onMouseDown={e => e.preventDefault()} onClick={() => { console.log('Strike clicked'); editor?.chain().focus().toggleStrike().run(); }} style={{ position:'absolute', left:'155px', top:'12px', width:'28px', height:'28px', background:'transparent', border:'none', cursor:'pointer', padding:0, pointerEvents:'auto', borderRadius:'4px' }} aria-label="Strike" type="button" />
-                  <button /* Highlight */ onMouseDown={e => e.preventDefault()} onClick={() => { console.log('Highlight clicked'); editor?.chain().focus().toggleHighlight().run(); }} style={{ position:'absolute', left:'198px', top:'12px', width:'28px', height:'28px', background:'transparent', border:'none', cursor:'pointer', padding:0, pointerEvents:'auto', borderRadius:'4px' }} aria-label="Highlight" type="button" />
-                  <button /* Task List */ onMouseDown={e => e.preventDefault()} onClick={() => { console.log('Task List clicked'); editor?.chain().focus().toggleTaskList().run(); }} style={{ position:'absolute', left:'20px', top:'45px', width:'38px', height:'28px', background:'transparent', border:'none', cursor:'pointer', padding:0, pointerEvents:'auto', borderRadius:'4px' }} aria-label="Task List" type="button" />
-                  <button /* Ordered List */ onMouseDown={e => e.preventDefault()} onClick={() => { console.log('Ordered List clicked'); editor?.chain().focus().toggleOrderedList().run(); }} style={{ position:'absolute', left:'64px', top:'45px', width:'28px', height:'28px', background:'transparent', border:'none', cursor:'pointer', padding:0, pointerEvents:'auto', borderRadius:'4px' }} aria-label="Ordered List" type="button" />
-                  <button /* Bullet List */ onMouseDown={e => e.preventDefault()} onClick={() => { console.log('Bullet List clicked'); editor?.chain().focus().toggleBulletList().run(); }} style={{ position:'absolute', left:'102px', top:'45px', width:'37px', height:'28px', background:'transparent', border:'none', cursor:'pointer', padding:0, pointerEvents:'auto', borderRadius:'4px' }} aria-label="Bullet List" type="button" />
-                  <button /* Align Left */ onMouseDown={e => e.preventDefault()} onClick={() => { console.log('Align Left clicked'); editor?.chain().focus().setTextAlign('left').run(); }} style={{ position:'absolute', left:'155px', top:'45px', width:'30px', height:'28px', background:'transparent', border:'none', cursor:'pointer', padding:0, pointerEvents:'auto', borderRadius:'4px' }} aria-label="Align Left" type="button" />
-                  <button /* Align Right */ onMouseDown={e => e.preventDefault()} onClick={() => { console.log('Align Right clicked'); editor?.chain().focus().setTextAlign('right').run(); }} style={{ position:'absolute', left:'194px', top:'45px', width:'37px', height:'28px', background:'transparent', border:'none', cursor:'pointer', padding:0, pointerEvents:'auto', borderRadius:'4px' }} aria-label="Align Right" type="button" />
+                  <button /* Bold */ onClick={() => { 
+                    console.log('[NoteNode] Bold button clicked. Editor exists?', !!editor);
+                    if (!editor) {
+                      console.error('[NoteNode] Bold onMouseDown: Editor is null!');
+                      return;
+                    }
+                    console.log('[NoteNode] Bold: Editor focused before?:', editor.isFocused);
+                    const success = editor.chain().focus().toggleBold().run();
+                    console.log('[NoteNode] Bold: Command run success?', success);
+                    console.log('[NoteNode] Bold: Editor focused after?:', editor.isFocused);
+                  }} style={{ position:'absolute', left:'15px', top:'12px', width:'35px', height:'28px', background:'transparent', border:'none', cursor:'pointer', padding:0, pointerEvents:'auto', borderRadius:'4px' }} aria-label="Bold" type="button" />
+                  <button /* Italic */ onClick={() => { 
+                    console.log('[NoteNode] Italic button clicked. Editor exists?', !!editor);
+                    if (!editor) return;
+                    console.log('[NoteNode] Italic: Editor focused before?:', editor.isFocused);
+                    const success = editor.chain().focus().toggleItalic().run(); 
+                    console.log('[NoteNode] Italic: Command run success?', success);
+                    console.log('[NoteNode] Italic: Editor focused after?:', editor.isFocused);
+                  }} style={{ position:'absolute', left:'64px', top:'12px', width:'28px', height:'28px', background:'transparent', border:'none', cursor:'pointer', padding:0, pointerEvents:'auto', borderRadius:'4px' }} aria-label="Italic" type="button" />
+                  <button /* Underline */ onClick={() => { if(editor) { console.log('[NoteNode] Underline clicked. Focused before:', editor.isFocused); const s = editor.chain().focus().toggleUnderline().run(); console.log('Success:', s, 'Focused after:', editor.isFocused); } else console.log('Underline clicked, editor null'); }} style={{ position:'absolute', left:'110px', top:'12px', width:'28px', height:'28px', background:'transparent', border:'none', cursor:'pointer', padding:0, pointerEvents:'auto', borderRadius:'4px' }} aria-label="Underline" type="button" />
+                  <button /* Strike */ onClick={() => { if(editor) { console.log('[NoteNode] Strike clicked. Focused before:', editor.isFocused); const s = editor.chain().focus().toggleStrike().run(); console.log('Success:', s, 'Focused after:', editor.isFocused); } else console.log('Strike clicked, editor null'); }} style={{ position:'absolute', left:'155px', top:'12px', width:'28px', height:'28px', background:'transparent', border:'none', cursor:'pointer', padding:0, pointerEvents:'auto', borderRadius:'4px' }} aria-label="Strike" type="button" />
+                  <button /* Highlight */ onClick={() => { if(editor) { console.log('[NoteNode] Highlight clicked. Focused before:', editor.isFocused); const s = editor.chain().focus().toggleHighlight().run(); console.log('Success:', s, 'Focused after:', editor.isFocused); } else console.log('Highlight clicked, editor null'); }} style={{ position:'absolute', left:'198px', top:'12px', width:'28px', height:'28px', background:'transparent', border:'none', cursor:'pointer', padding:0, pointerEvents:'auto', borderRadius:'4px' }} aria-label="Highlight" type="button" />
+                  <button /* Task List */ onClick={() => { if(editor) { console.log('[NoteNode] Task List clicked. Focused before:', editor.isFocused); const s = editor.chain().focus().toggleTaskList().run(); console.log('Success:', s, 'Focused after:', editor.isFocused); } else console.log('Task List clicked, editor null'); }} style={{ position:'absolute', left:'20px', top:'45px', width:'38px', height:'28px', background:'transparent', border:'none', cursor:'pointer', padding:0, pointerEvents:'auto', borderRadius:'4px' }} aria-label="Task List" type="button" />
+                  <button /* Ordered List */ onClick={() => { if(editor) { console.log('[NoteNode] Ordered List clicked. Focused before:', editor.isFocused); const s = editor.chain().focus().toggleOrderedList().run(); console.log('Success:', s, 'Focused after:', editor.isFocused); } else console.log('Ordered List clicked, editor null'); }} style={{ position:'absolute', left:'64px', top:'45px', width:'28px', height:'28px', background:'transparent', border:'none', cursor:'pointer', padding:0, pointerEvents:'auto', borderRadius:'4px' }} aria-label="Ordered List" type="button" />
+                  <button /* Bullet List */ onClick={() => { if(editor) { console.log('[NoteNode] Bullet List clicked. Focused before:', editor.isFocused); const s = editor.chain().focus().toggleBulletList().run(); console.log('Success:', s, 'Focused after:', editor.isFocused); } else console.log('Bullet List clicked, editor null'); }} style={{ position:'absolute', left:'102px', top:'45px', width:'37px', height:'28px', background:'transparent', border:'none', cursor:'pointer', padding:0, pointerEvents:'auto', borderRadius:'4px' }} aria-label="Bullet List" type="button" />
+                  <button /* Align Left */ onClick={() => { if(editor) { console.log('[NoteNode] Align Left clicked. Focused before:', editor.isFocused); const s = editor.chain().focus().setTextAlign('left').run(); console.log('Success:', s, 'Focused after:', editor.isFocused); } else console.log('Align Left clicked, editor null'); }} style={{ position:'absolute', left:'155px', top:'45px', width:'30px', height:'28px', background:'transparent', border:'none', cursor:'pointer', padding:0, pointerEvents:'auto', borderRadius:'4px' }} aria-label="Align Left" type="button" />
+                  <button /* Align Right */ onClick={() => { if(editor) { console.log('[NoteNode] Align Right clicked. Focused before:', editor.isFocused); const s = editor.chain().focus().setTextAlign('right').run(); console.log('Success:', s, 'Focused after:', editor.isFocused); } else console.log('Align Right clicked, editor null'); }} style={{ position:'absolute', left:'194px', top:'45px', width:'37px', height:'28px', background:'transparent', border:'none', cursor:'pointer', padding:0, pointerEvents:'auto', borderRadius:'4px' }} aria-label="Align Right" type="button" />
                 </div>
               </div>
             </BubbleMenu>
@@ -513,26 +536,42 @@ const NoteNode: React.FC<NodeProps<NoteNodeData>> = ({ id, data }) => {
       {isOptionsMenuOpen && (
         <div
           ref={optionsMenuRef}
-          className="absolute top-[5px] right-[5px] z-[70]"
+          className="absolute top-[1px] left-[277px] z-[70]"
           onMouseDown={(e) => e.stopPropagation()}
         >
-          <div className="bg-white rounded-lg shadow-lg border border-gray-200 w-[130px] p-2">
-            <ul>
-              <li
-                className="flex items-center p-2 hover:bg-gray-100 rounded cursor-pointer text-sm text-gray-700"
+          {/* Menu Box - Added note-options-menu class */}
+          <div
+            // Added note-options-menu class, removed z-10 as pseudo-element handles arrow
+            className="note-options-menu bg-white rounded-[14px] shadow-md border border-[#e4e9ee] relative" 
+            style={{
+              boxShadow: '0px 2px 3px rgba(0, 0, 0, 0.07)',
+              width: '125.314px', 
+              height: '78.42px',
+              boxSizing: 'border-box',
+            }}
+          >
+            {/* Menu Items - Centered vertically within fixed height */}
+            <div className="flex flex-col justify-center h-full">
+              <button
+                className="flex items-center px-[15px] py-[5px] hover:bg-gray-100 cursor-pointer text-[#222] w-full text-left"
                 onClick={handleDuplicate}
+                style={{ fontFamily: 'Segoe UI', fontSize: '15px', lineHeight: 'normal' }}
               >
-                <img src={duplicateIcon} alt="Duplicate" className="w-4 h-4 mr-2" />
+                {/* Icon size 18x18, margin derived from SVG coordinates */}
+                <img src={duplicateIcon} alt="Duplicate" className="w-[18px] h-[18px] mr-[11px] opacity-90" /> 
                 Duplicate
-              </li>
-              <li
-                className="flex items-center p-2 hover:bg-gray-100 rounded cursor-pointer text-sm text-red-600"
+              </button>
+              {/* Spacer calculated from SVG tspan y offset (34) minus button height */} 
+              <div className="h-[7px]"></div> 
+              <button
+                className="flex items-center px-[15px] py-[5px] hover:bg-gray-100 cursor-pointer text-[#E53E3E] w-full text-left"
                 onClick={handleDelete}
+                 style={{ fontFamily: 'Segoe UI', fontSize: '15px', lineHeight: 'normal' }}
               >
-                 <img src={deleteIcon} alt="Delete" className="w-4 h-4 mr-2" />
+                 <img src={deleteIcon} alt="Delete" className="w-[18px] h-[18px] mr-[11px] opacity-90" />
                 Delete
-              </li>
-            </ul>
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -13,7 +13,7 @@ import PopupSelect from './PopupSelect';
 import { TopicalKeywordNodeData, ContentType } from '@/types/workflowTypes'; 
 
 // Accept nodeType via data (default: 'topicalKeyword')
-import StartMenu from './StartMenu';
+import TopReplace from './topreplace';
 
 const TopicalKeywordNode: React.FC<NodeProps<TopicalKeywordNodeData & { 
   nodeType?: 'topicalKeyword' | 'offer' | 'event';
@@ -27,7 +27,7 @@ const TopicalKeywordNode: React.FC<NodeProps<TopicalKeywordNodeData & {
   const setOpenMenu = data.setOpenMenu;
 
   const menuOpen = openMenu?.type === 'add' && openMenu.nodeId === id;
-  const startMenuOpen = openMenu?.type === 'popselect' && openMenu.nodeId === id;
+  const TopReplaceOpen = openMenu?.type === 'popselect' && openMenu.nodeId === id;
 
   const handlePlusClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -56,7 +56,7 @@ const TopicalKeywordNode: React.FC<NodeProps<TopicalKeywordNodeData & {
     setReplaceMenuOpen(true);
   };
 
-  const handleStartMenuSelect = (type: 'topicalKeyword' | 'offer' | 'event') => {
+  const handleTopReplaceSelect = (type: 'topicalKeyword' | 'offer' | 'event') => {
     setOpenMenu?.(null);
     setNodes((nodes) =>
       nodes.map((node) =>
@@ -90,11 +90,13 @@ const TopicalKeywordNode: React.FC<NodeProps<TopicalKeywordNodeData & {
             isReplaceMenuOpen={replaceMenuOpen}
             onCloseReplaceMenu={handleCloseReplaceMenu}
             setOpenMenu={setOpenMenu}
+            nodeType={data.nodeType || 'topicalKeyword'}
           />
-          <StartMenu
-            isOpen={startMenuOpen}
-            onSelect={handleStartMenuSelect}
+          <TopReplace
+            isOpen={TopReplaceOpen}
+            onSelect={handleTopReplaceSelect}
             onClose={() => setOpenMenu?.(null)}
+            currentType={data.nodeType || 'topicalKeyword'}
           />
         </div>
       )}
@@ -204,7 +206,7 @@ const TopicalKeywordNode: React.FC<NodeProps<TopicalKeywordNodeData & {
               onClick={handlePlusClick}
               title="Add content"
             >
-              <svg width="32" height="32" viewBox="0 0 23 24" xmlns="http://www.w3.org/2000/svg">
+              <svg width="31" height="35" viewBox="0 0 23 24" xmlns="http://www.w3.org/2000/svg">
                 <g transform="translate(3.5 0)">
                   <path id="Rectangle_1636" data-name="Rectangle 1636" d="M0,0H4A12,12,0,0,1,16,12v0A12,12,0,0,1,4,24H0a0,0,0,0,1,0,0V0A0,0,0,0,1,0,0Z" fill="#86c1e9" stroke="rgba(0,0,0,0)" strokeMiterlimit="10" strokeWidth="1"/>
                   <g id="add-circle" transform="translate(-3.721 0.279)">

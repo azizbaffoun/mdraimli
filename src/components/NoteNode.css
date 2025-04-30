@@ -54,3 +54,25 @@
   pointer-events: auto !important;
   z-index: 2000 !important;
 }
+
+/* Add styles for the options menu arrow using a pseudo-element */
+.note-options-menu::before {
+  content: '';
+  position: absolute;
+  top: 10px;
+  left: -8px; /* Position slightly outside to overlap border */
+  width: 0;
+  height: 0;
+  border-top: 7px solid transparent;
+  border-bottom: 7px solid transparent;
+  border-right: 9px solid white; /* Use container background color */
+  /* Adding a subtle filter to mimic the SVG shadow */
+  filter: drop-shadow(-1px 1px 1px rgba(0, 0, 0, 0.07));
+  /* Force the pseudo-element behind its parent container */
+  z-index: -1;
+}
+
+.note-node-container {
+  /* Ensures the container establishes a stacking context if needed */
+  position: relative;
+}

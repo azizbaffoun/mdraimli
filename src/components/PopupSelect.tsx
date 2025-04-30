@@ -13,6 +13,7 @@ interface PopupSelectProps {
   isReplaceMenuOpen?: boolean;
   onCloseReplaceMenu?: () => void;
   setOpenMenu?: React.Dispatch<React.SetStateAction<{ type: 'add' | 'popselect', nodeId: string } | null>>;
+  nodeType?: 'topicalKeyword' | 'offer' | 'event';
 }
 
 const PopupSelect: React.FC<PopupSelectProps> = ({
@@ -26,6 +27,7 @@ const PopupSelect: React.FC<PopupSelectProps> = ({
   isReplaceMenuOpen = false,
   onCloseReplaceMenu = () => {},
   setOpenMenu,
+  nodeType = 'topicalKeyword',
 }) => {
   const handleSettingsClick = () => {
     if (isTopicalKeywordNode) {
@@ -35,6 +37,10 @@ const PopupSelect: React.FC<PopupSelectProps> = ({
       console.log('Settings clicked for node:', nodeId);
     }
   };
+
+  // Get available options based on current node type
+  const allTypes = ['topicalKeyword', 'offer', 'event'] as const;
+  const getAvailableOptions = () => allTypes.filter(type => type !== nodeType);
 
   return (
     <div 
@@ -48,9 +54,9 @@ const PopupSelect: React.FC<PopupSelectProps> = ({
       >
         <defs>
           <filter id="Rounded_Rectangle_5320" x="-4.5" y="-0.293" width="152" height="61" filterUnits="userSpaceOnUse">
-            <feOffset dy="3"/>
-            <feGaussianBlur stdDeviation="3" result="blur"/>
-            <feFlood floodOpacity="0.188"/>
+            <feOffset dy="2"/>
+            <feGaussianBlur stdDeviation="1" result="blur"/>
+            <feFlood floodOpacity="0.071"/>
             <feComposite operator="in" in2="blur"/>
             <feComposite in="SourceGraphic"/>
           </filter>
@@ -133,7 +139,7 @@ const PopupSelect: React.FC<PopupSelectProps> = ({
           isOpen={isReplaceMenuOpen}
           onClose={onCloseReplaceMenu}
           onReplaceNode={onReplaceNode}
-          availableOptions={['article', 'video', 'podcast', 'socialMedia']}
+          availableOptions={getAvailableOptions() as any}
           positionStyle={{ left: '110%', top: '50%', transform: 'translateY(-50%)', zIndex: 50 }}
         />
       )}
