@@ -64,10 +64,8 @@ const SocialMediaNode: React.FC<NodeProps<SocialMediaNodeData>> = ({ id, data, s
       {selected && (
         <div ref={popupAnchorRef}>
           <PopupSelect
-            onDocumentClick={() => console.log('Document clicked')}
             onSettingsClick={handleSettingsClick}
             onDeleteClick={handleDeleteClick}
-            notificationCount={9}
             isTopicalKeywordNode={false}
             nodeId={id}
             onReplaceNode={handleReplaceNode}

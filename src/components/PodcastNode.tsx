@@ -71,10 +71,6 @@ const PodcastNode: React.FC<NodeProps<PodcastNodeData>> = ({ id, data, selected 
     </g>
   );
 
-  const handleDocumentClick = () => {
-    console.log('Document clicked');
-  };
-
   const handleDeleteClick = () => {
     console.log('Delete clicked');
     if (data.onDelete) {
@@ -87,10 +83,8 @@ const PodcastNode: React.FC<NodeProps<PodcastNodeData>> = ({ id, data, selected 
       {selected && (
         <div ref={popupAnchorRef}>
           <PopupSelect
-            onDocumentClick={handleDocumentClick}
             onSettingsClick={handleSettingsClick}
             onDeleteClick={handleDeleteClick}
-            notificationCount={9}
             isTopicalKeywordNode={false}
             nodeId={id}
             onReplaceNode={handleReplaceNode}

@@ -65,10 +65,6 @@ const VideoNode: React.FC<NodeProps<VideoNodeData>> = ({ id, data, selected }) =
   // Define options available from Video node - Show all
   const availableMenuOptions: ContentType[] = ['article', 'video', 'podcast', 'socialMedia'];
 
-  const handleDocumentClick = () => {
-    console.log('Document clicked');
-  };
-
   const handleDeleteClick = () => {
     console.log('Delete clicked');
     if (data.onDelete) {
@@ -81,10 +77,8 @@ const VideoNode: React.FC<NodeProps<VideoNodeData>> = ({ id, data, selected }) =
       {selected && (
         <div ref={popupAnchorRef}>
           <PopupSelect
-            onDocumentClick={handleDocumentClick}
             onSettingsClick={handleSettingsClick}
             onDeleteClick={handleDeleteClick}
-            notificationCount={9}
             isTopicalKeywordNode={false}
             nodeId={id}
             onReplaceNode={handleReplaceNode}

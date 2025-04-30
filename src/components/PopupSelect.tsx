@@ -1,42 +1,30 @@
 import React from 'react';
-import NodeReplaceMenu from './nodereplacemenu';
 import { ContentType } from '@/types/workflowTypes';
 
 interface PopupSelectProps {
-  onDocumentClick?: () => void;
   onSettingsClick?: () => void;
   onDeleteClick?: () => void;
-  notificationCount?: number;
   isTopicalKeywordNode?: boolean;
   nodeId?: string;
   onReplaceNode?: (nodeId: string, newType: ContentType) => void;
   isReplaceMenuOpen?: boolean;
   onCloseReplaceMenu?: () => void;
   setOpenMenu?: React.Dispatch<React.SetStateAction<{ type: 'add' | 'popselect', nodeId: string } | null>>;
-  nodeType?: 'topicalKeyword' | 'offer' | 'event';
+  style?: React.CSSProperties;
+  arrowPosition?: 'up' | 'down' | 'left' | 'right';
 }
 
 const PopupSelect: React.FC<PopupSelectProps> = ({
-  onDocumentClick,
   onSettingsClick,
   onDeleteClick,
-  notificationCount = 9,
   isTopicalKeywordNode = false,
   nodeId,
-  onReplaceNode,
-  isReplaceMenuOpen = false,
-  onCloseReplaceMenu = () => {},
   setOpenMenu,
-  nodeType = 'topicalKeyword',
 }) => {
   const handleSettingsClick = () => {
     onSettingsClick?.();
     setOpenMenu?.({ type: 'popselect', nodeId: nodeId || '' });
   };
-
-  // Get available options based on current node type
-  const allTypes = ['topicalKeyword', 'offer', 'event'] as const;
-  const getAvailableOptions = () => allTypes.filter(type => type !== nodeType);
 
   // Adjusted dimensions for 1 icon (topicalKeyword) vs 2 icons (settings, delete)
   const svgWidth = isTopicalKeywordNode ? 56 : 96;
@@ -109,7 +97,7 @@ const PopupSelect: React.FC<PopupSelectProps> = ({
             // Clickable areas for two icons (Settings, Delete)
             <>
               <rect 
-                transform="translate(394 541)" 
+                transform="translate(395 541)" 
                 width="43" // Width of Settings section
                 height="43" 
                 fill="transparent" 
@@ -130,7 +118,7 @@ const PopupSelect: React.FC<PopupSelectProps> = ({
           {/* --- Visual Icons (No Click Handlers Here) --- */}
           {/* Settings Icon (Visual Only) - Adjusted position */}
           <g 
-            transform={`translate(${isTopicalKeywordNode ? 405.5 : 407} 552)`} 
+            transform={`translate(${isTopicalKeywordNode ? 406.5 : 405} 552)`} 
             style={{ pointerEvents: 'none' }} // Prevent icon itself from capturing events
           >
             <g transform="translate(1.5 2)">
@@ -143,8 +131,8 @@ const PopupSelect: React.FC<PopupSelectProps> = ({
             d="M2,0H9c1.1,0-9,9-9,9V2A2,2,0,0,1,2,0Z"
             transform={
               isTopicalKeywordNode
-                ? "translate(415.5 535) rotate(45)"
-                : "translate(438 535) rotate(45)"
+                ? "translate(417.5 535.1) rotate(45)"
+                : "translate(437.5 535) rotate(45)"
             }
             fill="#31a8bc"
           />
@@ -152,7 +140,7 @@ const PopupSelect: React.FC<PopupSelectProps> = ({
           {/* Delete Icon (Visual Only) - Adjusted position */}
           {!isTopicalKeywordNode && (
             <g 
-              transform="translate(448 552)" 
+              transform="translate(447 552)" 
               style={{ pointerEvents: 'none' }} // Prevent icon itself from capturing events
             >
               <g transform="translate(3 2)">

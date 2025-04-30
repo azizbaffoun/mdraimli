@@ -80,10 +80,6 @@ const ArticleNode: React.FC<NodeProps<ArticleNodeData>> = ({ id, data, selected 
     </g>
   );
 
-  const handleDocumentClick = () => {
-
-  };
-
   const handleDeleteClick = () => {
     if (data.onDelete) {
       data.onDelete(id);
@@ -95,12 +91,8 @@ const ArticleNode: React.FC<NodeProps<ArticleNodeData>> = ({ id, data, selected 
       {selected && (
         <div ref={popupAnchorRef}>
           <PopupSelect
-            onDocumentClick={handleDocumentClick}
             onSettingsClick={handleSettingsClick}
             onDeleteClick={handleDeleteClick}
-            notificationCount={9}
-            isTopicalKeywordNode={false}
-            nodeId={id}
             onReplaceNode={handleReplaceNode}
             isReplaceMenuOpen={replaceMenuOpen}
             onCloseReplaceMenu={handleCloseReplaceMenu}

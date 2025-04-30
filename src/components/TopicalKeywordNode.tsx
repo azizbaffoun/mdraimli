@@ -106,17 +106,14 @@ const TopicalKeywordNode: React.FC<NodeProps<TopicalKeywordNodeData & {
       {selected && (
         <div ref={popupAnchorRef}>
           <PopupSelect
-            onDocumentClick={() => console.log('Document clicked')} // Placeholder
             onSettingsClick={handleSettingsClick}
             onDeleteClick={handleDeleteClick}
-            notificationCount={9} // Placeholder
-            isTopicalKeywordNode={true} // Keep this specific prop if needed by PopupSelect
+            isTopicalKeywordNode={true}
             nodeId={id}
             onReplaceNode={(_, newType) => handleReplaceNode(newType as ContentType)}
             isReplaceMenuOpen={replaceMenuOpen}
             onCloseReplaceMenu={handleCloseReplaceMenu}
             setOpenMenu={setOpenMenu} // Pass setOpenMenu
-            nodeType={data.nodeType || 'topicalKeyword'} // Pass nodeType
           />
           <TopReplace
             isOpen={TopReplaceOpen}
