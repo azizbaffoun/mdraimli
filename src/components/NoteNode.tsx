@@ -17,6 +17,7 @@ import FloatingMenu from './FloatingMenu';
 interface NoteNodeData {
   title?: string;
   content?: string;
+  viewport?: { zoom: number };
   onChange?: (id: string, data: { title?: string; content?: string }) => void;
 }
 
@@ -151,33 +152,53 @@ const NoteNode: React.FC<NodeProps<NoteNodeData>> = ({ id, data }) => {
       };
     }
   
-    const rect = selection.getRangeAt(0).getBoundingClientRect();
-    const bubbleWidth = 240; // bubble width
-    const arrowOffset = 20; // distance from left edge to arrow
+    const range = selection.getRangeAt(0);
+    const rect = range.getBoundingClientRect();
+    const bubbleWidth = 240;
+    const bubbleHeight = 90;
+    const bubbleGap = 16;
+    const leftOffset = -40; // Add offset to move menu more to the left
   
-    // Shift the bubble left so the arrow points to the start
-    const left = rect.left - arrowOffset;
-    const top = rect.top;
+    // Get container position for relative positioning
+    const container = containerRef.current?.getBoundingClientRect();
+    
+    // Calculate position in screen coordinates
+    const left = rect.left + (rect.width / 2) - (bubbleWidth / 2) + leftOffset;
+    const top = rect.top - bubbleHeight - bubbleGap;
+  
+    console.log('[NoteNode] Text Selection Position:', {
+      textRect: {
+        left: rect.left,
+        top: rect.top,
+        width: rect.width,
+        height: rect.height,
+        raw: rect
+      },
+      containerRect: container,
+      calculatedMenuPosition: {
+        left,
+        top,
+        width: bubbleWidth,
+        height: bubbleHeight,
+        raw: {
+          left,
+          top,
+          right: left + bubbleWidth,
+          bottom: top + bubbleHeight
+        }
+      }
+    });
   
     return {
       width: bubbleWidth,
-      height: rect.height,
+      height: bubbleHeight,
       top,
-      bottom: top + rect.height,
+      bottom: top + bubbleHeight,
       left,
       right: left + bubbleWidth,
       x: left,
       y: top,
-      toJSON: () => JSON.stringify({
-        width: bubbleWidth,
-        height: rect.height,
-        top,
-        bottom: top + rect.height,
-        left,
-        right: left + bubbleWidth,
-        x: left,
-        y: top,
-      }),
+      toJSON: () => ({})
     };
   }, []);
 
@@ -341,31 +362,38 @@ const NoteNode: React.FC<NodeProps<NoteNodeData>> = ({ id, data }) => {
                   placement: 'top',
                   appendTo: () => document.body,
                   interactive: true,
-                  popperOptions: {
-                    modifiers: [
-                      {
-                        name: 'offset',
-                        options: {
-                          offset: [0, 10],
-                        },
-                      },
-                      {
-                        name: 'preventOverflow',
-                        options: {
-                          boundary: 'viewport',
-                          padding: 8,
-                        },
-                      },
-                    ],
+                  zIndex: 9999,
+                  onMount: (instance) => {
+                    const menuEl = instance.popper;
+                    console.log('[NoteNode] Menu Mounted:', {
+                      menuElement: menuEl?.getBoundingClientRect(),
+                      popperStyles: menuEl?.style,
+                      timestamp: new Date().toISOString()
+                    });
                   },
-                }}
-                shouldShow={({ editor, from, to }) => {
-                  const show = from !== to;
-                  console.log('[NoteNode] BubbleMenu shouldShow check:', { show, from, to, editorExists: !!editor });
-                  return show;
+                  onShow: (instance) => {
+                    const styles = instance.popper?.style || {};
+                    console.log('[NoteNode] Menu Shown:', {
+                      styles,
+                      reference: instance.reference,
+                      timestamp: new Date().toISOString()
+                    });
+                  }
                 }}
               >
-                <FloatingMenu editor={editor} placement="top" />
+                <div style={{ 
+                  position: 'fixed',
+                  zIndex: 9999,
+                  transformOrigin: 'top left',
+                  pointerEvents: 'auto',
+                  backgroundColor: 'white',
+                  borderRadius: '8px',
+                 
+                  padding: '8px',
+                  listStyle: 'none'
+                }}>
+                  <FloatingMenu editor={editor} placement="top" />
+                </div>
               </BubbleMenu>,
               document.body
             )}

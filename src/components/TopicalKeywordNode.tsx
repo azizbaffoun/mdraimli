@@ -43,6 +43,7 @@ const TopicalKeywordNode: React.FC<NodeProps<ExtendedTopicalKeywordNodeData & {
   const [replaceMenuOpen, setReplaceMenuOpen] = useState(false);
   const popupAnchorRef = useRef<HTMLDivElement>(null);
   const { setNodes } = useReactFlow();
+  const [clickedPlusZone, setClickedPlusZone] = useState(false);
 
   const openMenu = data.openMenu;
   const setOpenMenu = data.setOpenMenu;
@@ -52,6 +53,11 @@ const TopicalKeywordNode: React.FC<NodeProps<ExtendedTopicalKeywordNodeData & {
      data.isNew && notifyNode(data.nodeType || 'topicalKeyword', id);
   }, [data.isNew, data.nodeType, id]); // Add dependencies
 
+  useEffect(() => {
+    if (!selected) {
+      setClickedPlusZone(false);
+    }
+  }, [selected]);
 
   const menuOpen = openMenu?.type === 'add' && openMenu.nodeId === id;
   const TopReplaceOpen = openMenu?.type === 'popselect' && openMenu.nodeId === id;
@@ -59,6 +65,8 @@ const TopicalKeywordNode: React.FC<NodeProps<ExtendedTopicalKeywordNodeData & {
   const handlePlusClick = (e: React.MouseEvent) => {
     if (data.isLocked) return;
     e.stopPropagation();
+    e.preventDefault();
+    setClickedPlusZone(true);
     setOpenMenu?.(menuOpen ? null : { type: 'add', nodeId: id });
     setReplaceMenuOpen(false);
   };
@@ -113,8 +121,8 @@ const TopicalKeywordNode: React.FC<NodeProps<ExtendedTopicalKeywordNodeData & {
     <div
       className={`relative flex flex-col items-center ${animationClass}`}
     >
-      {/* Only show PopupSelect if not locked */}
-      {selected && !data.isLocked && (
+      {/* Only show PopupSelect if not locked and selected but not from plus zone click */}
+      {selected && !data.isLocked && !clickedPlusZone && (
         <div ref={popupAnchorRef}>
           <PopupSelect
             onSettingsClick={handleSettingsClick}
@@ -237,7 +245,7 @@ const TopicalKeywordNode: React.FC<NodeProps<ExtendedTopicalKeywordNodeData & {
         {data.canAddChild && !data.isRightConnected && (!data.isLocked || !data.isLastNode) && (
           <>
             <div
-              className="topical-keyword-connector-plus absolute right-[-16.5px] top-1/2 transform -translate-y-1/2 cursor-pointer z-30 opacity-0 group-hover:opacity-100 hover:scale-110 transition-all duration-200"
+              className="topical-keyword-connector-plus absolute right-[-16.5px] top-1/2 transform -translate-y-1/2 cursor-pointer z-30 hover:scale-110 transition-all duration-200"
               onClick={handlePlusClick}
               title="Add content"
             >
