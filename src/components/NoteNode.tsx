@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { NodeProps, useReactFlow, Handle, Position } from 'reactflow';
 import { v4 as uuidv4 } from 'uuid';
+import ReactDOM from 'react-dom';
 
 import { EditorContent, useEditor, BubbleMenu } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
@@ -353,6 +354,7 @@ const NoteNode: React.FC<NodeProps<NoteNodeData>> = ({ id, data }) => {
         {/* Tiptap Rich Text Editor */}
         {editor && (
           <>
+          {ReactDOM.createPortal(
             <BubbleMenu 
               editor={editor} 
               tippyOptions={tippyOptions}
@@ -459,6 +461,11 @@ const NoteNode: React.FC<NodeProps<NoteNodeData>> = ({ id, data }) => {
                 </div>
               </div>
             </BubbleMenu>
+          ,
+          document.body
+        )}
+
+            {/* Editor content */}
 
             <div style={{ width: '100%' }}>
               <EditorContent editor={editor} />
