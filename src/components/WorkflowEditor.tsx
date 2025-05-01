@@ -1,6 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import ReactFlow, {
-  Controls,
   useNodesState,
   useEdgesState,
   addEdge,
@@ -10,7 +9,6 @@ import ReactFlow, {
   ConnectionMode,
   XYPosition,
   useReactFlow,
-
   OnNodesChange,
   OnEdgesChange,
   getOutgoers,
@@ -94,6 +92,9 @@ const WorkflowEditorContent: React.FC = () => {
 
   const [openMenu, setOpenMenu] = useState<{ type: 'add' | 'popselect', nodeId: string } | null>(null);
 
+  // Add isLocked state after other state declarations
+  const [isLocked, setIsLocked] = useState(false);
+
   // ... (rest of the code remains the same)
 
   useEffect(() => {
@@ -121,10 +122,11 @@ const WorkflowEditorContent: React.FC = () => {
         return node;
       });
   
-      // 3. Create a new flow state object
+      // 3. Create a new flow state object with isLocked
       const updatedFlowState = {
         ...flowState,
         nodes: updatedNodes,
+        isLocked: isLocked
       };
   
       // 4. Serialize updated JSON
@@ -136,7 +138,7 @@ const WorkflowEditorContent: React.FC = () => {
     return () => {
       delete window.getWorkflowData;
     };
-  }, [reactFlowInstance]);
+  }, [reactFlowInstance, isLocked]);
 
   
   // We need to use refs to store the function references to avoid circular dependencies
@@ -731,51 +733,67 @@ const WorkflowEditorContent: React.FC = () => {
 
   // --- Add useEffect for loading data ---
   useEffect(() => {
-    // Define the function globally on the window object
-    window.loadDataIntoReact = (workflowData: WorkflowData) => {
+    window.loadDataIntoReact = (workflowData: WorkflowData & { isLocked?: boolean }) => {
       console.log("React App: Received data via loadDataIntoReact", workflowData);
 
       if (workflowData && workflowData.nodes && workflowData.edges) {
-        // Restore function references just like in handleUndo (important if you save/load complex data)
+        // Set locked state if provided
+        setIsLocked(!!workflowData.isLocked);
+
+        // Find nodes with no outgoing edges (excluding notes)
+        const nodesWithoutOutgoing = workflowData.nodes.filter(node => {
+          if (node.type === 'note') return false;
+          return !workflowData.edges.some(edge => edge.source === node.id);
+        });
+
+        // Restore function references and add isLastNode flag
         const restoredNodes = workflowData.nodes.map(node => {
           let nodeData = { ...node.data };
+          const isLastNode = nodesWithoutOutgoing.some(n => n.id === node.id);
 
-          // Attach onDelete handler to all nodes
-          nodeData.onDelete = (nodeId: string) => {
-            if (handleDeleteNodeRef && handleDeleteNodeRef.current) {
-              (handleDeleteNodeRef.current as Function)(nodeId);
+          // Only attach handlers if not locked
+          if (!workflowData.isLocked) {
+            // Attach onDelete handler to all nodes
+            nodeData.onDelete = (nodeId: string) => {
+              if (handleDeleteNodeRef && handleDeleteNodeRef.current) {
+                (handleDeleteNodeRef.current as Function)(nodeId);
+              }
+            };
+
+            // Attach onAddChildNode for node types that support children
+            if (
+              node.type === 'article' ||
+              node.type === 'video' ||
+              node.type === 'podcast' ||
+              node.type === 'socialMedia' ||
+              node.type === 'topicalKeyword'
+            ) {
+              nodeData.onAddChildNode = (parentId: string, childType: string) => {
+                if (onAddChildNodeRef.current) {
+                  (onAddChildNodeRef.current as Function)(parentId, childType);
+                }
+              };
             }
-          };
 
-          // Attach onAddChildNode for node types that support children
-          if (
-            node.type === 'article' ||
-            node.type === 'video' ||
-            node.type === 'podcast' ||
-            node.type === 'socialMedia' ||
-            node.type === 'topicalKeyword'
-          ) {
-            nodeData.onAddChildNode = (parentId: string, childType: string) => {
-              if (onAddChildNodeRef.current) {
-                (onAddChildNodeRef.current as Function)(parentId, childType);
-              }
-            };
+            // Attach onInitiateWorkflow for start node
+            if (node.type === 'start') {
+              nodeData.onInitiateWorkflow = (type: string) => {
+                if (handleInitiateWorkflowRef.current) {
+                  (handleInitiateWorkflowRef.current as Function)(type);
+                }
+              };
+            }
           }
 
-          // Attach onInitiateWorkflow for start node
-          if (node.type === 'start') {
-            nodeData.onInitiateWorkflow = (type: string) => {
-              if (handleInitiateWorkflowRef.current) {
-                (handleInitiateWorkflowRef.current as Function)(type);
-              }
-            };
-          }
+          // Add isLocked and isLastNode flags to node data
+          nodeData.isLocked = workflowData.isLocked;
+          nodeData.isLastNode = isLastNode;
 
           return { ...node, data: nodeData };
         });
 
         // Update the state using the setters
-        setNodes(restoredNodes as Node<WorkflowNodeData>[]); // Cast back to specific type if needed
+        setNodes(restoredNodes as Node<WorkflowNodeData>[]); 
         setEdges(workflowData.edges);
 
         // Optional: Update viewport if you save/load it
@@ -783,19 +801,16 @@ const WorkflowEditorContent: React.FC = () => {
           setViewport(workflowData.viewport);
         }
 
-        console.log('Workflow loaded into React!'); // Log instead of alert
+        console.log('Workflow loaded into React!');
       } else {
         console.error("React App: Invalid data received", workflowData);
-        // alert('Error: Invalid workflow data received.'); // Avoid alerts
       }
     };
 
-    // Cleanup function to remove the global function when the component unmounts
     return () => {
       delete window.loadDataIntoReact;
     };
-    // Add setters and setViewport to dependency array
-  }, [setNodes, setEdges, setViewport]);
+  }, [setNodes, setEdges, setViewport, setIsLocked]);
   // --- End of useEffect for loading data ---
 
   // useEffect to update connection status on nodes when edges change
@@ -1025,9 +1040,9 @@ const WorkflowEditorContent: React.FC = () => {
         <ReactFlow
           nodes={nodesWithMenu}
           edges={edges}
-          onNodesChange={onNodesChangeHandler}
-          onEdgesChange={onEdgesChangeHandler}
-          onConnect={onConnect}
+          onNodesChange={!isLocked ? onNodesChangeHandler : undefined}
+          onEdgesChange={!isLocked ? onEdgesChangeHandler : undefined}
+          onConnect={!isLocked ? onConnect : undefined}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
           defaultEdgeOptions={{ type: 'customGradientEdge' }}
@@ -1035,35 +1050,39 @@ const WorkflowEditorContent: React.FC = () => {
           defaultViewport={{ x: 0, y: 0, zoom: 1 }}
           fitView
           fitViewOptions={{ padding: 2.0, maxZoom: 1 }}
-          nodesConnectable={true}
-          nodesDraggable={true}
-          selectNodesOnDrag={false}
-          onNodeClick={onNodeClick}
-          onPaneClick={onPaneClick}
+          nodesConnectable={!isLocked}
+          nodesDraggable={!isLocked}
+          selectNodesOnDrag={!isLocked}
+          onNodeClick={!isLocked ? onNodeClick : undefined}
+          onPaneClick={!isLocked ? onPaneClick : undefined}
           onInit={setReactFlowInstance}
           onMove={handleViewportChange}
           proOptions={{ hideAttribution: true }}
         >
-          <Controls />
+          {/* Remove Controls component */}
         </ReactFlow>
       </div>
       
-      {nodes.length > 0 && <ItemsBar 
-        isVisible={true} 
-        isNodeSelected={isNodeSelected} 
-        selectedNodeId={selectedNodeId}
-        onIconClick={onAddChildNode}
-        onOrganizeLayout={organizeLayout}
-        onAddNote={handleAddNote}
-        onUndo={handleUndo}
-        onRedo={handleRedo}
-        onSave={saveWorkflow}
-      />}
+      {nodes.length > 0 && !isLocked && (
+        <ItemsBar 
+          isVisible={true} 
+          isNodeSelected={isNodeSelected} 
+          selectedNodeId={selectedNodeId}
+          onIconClick={onAddChildNode}
+          onOrganizeLayout={organizeLayout}
+          onAddNote={handleAddNote}
+          onUndo={handleUndo}
+          onRedo={handleRedo}
+          onSave={saveWorkflow}
+        />
+      )}
 
+      {/* Always show ZoomControl */}
       <ZoomControl
         zoomLevel={zoomLevel}
         onZoomIn={handleZoomIn}
         onZoomOut={handleZoomOut}
+        isLocked={isLocked}
       />
     </>
   );

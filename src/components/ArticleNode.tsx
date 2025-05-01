@@ -23,6 +23,9 @@ interface ArticleNodeData extends ContentNodeData {
   isRightConnected?: boolean;
   onDelete?: (nodeId: string) => void;
   onReplaceNode?: (nodeId: string, newType: ContentType) => void;
+  isLocked?: boolean;
+  isLastNode?: boolean;
+  setOpenMenu?: React.Dispatch<React.SetStateAction<{ type: 'add' | 'popselect'; nodeId: string; } | null>>;
 }
 
 import NodeAddMenu from './NodeAddMenu';
@@ -33,17 +36,19 @@ const ArticleNode: React.FC<NodeProps<ArticleNodeData>> = ({ id, data, selected 
   const [replaceMenuOpen, setReplaceMenuOpen] = useState(false);
   const popupAnchorRef = useRef<HTMLDivElement>(null);
 
-    useEffect(() => {
-       data.isNew && notifyNode('article', id);
-    }, []);
+  useEffect(() => {
+    data.isNew && notifyNode('article', id);
+  }, []);
 
   const handlePlusClick = (e: React.MouseEvent) => {
+    if (data.isLocked) return;
     e.stopPropagation();
     setMenuOpen(!menuOpen);
     setReplaceMenuOpen(false);
   };
 
   const handleSelectOption = (parentId: string, type: ContentType) => {
+    if (data.isLocked) return;
     if (data.onAddChildNode) {
       data.onAddChildNode(parentId, type);
     }
@@ -51,6 +56,7 @@ const ArticleNode: React.FC<NodeProps<ArticleNodeData>> = ({ id, data, selected 
   };
 
   const handleReplaceNode = (nodeId: string, newType: ContentType) => {
+    if (data.isLocked) return;
     if (data.onReplaceNode) {
       data.onReplaceNode(nodeId, newType);
     }
@@ -58,12 +64,20 @@ const ArticleNode: React.FC<NodeProps<ArticleNodeData>> = ({ id, data, selected 
   };
 
   const handleSettingsClick = () => {
+    if (data.isLocked) return;
     setMenuOpen(false);
     setReplaceMenuOpen(true);
   };
 
   const handleCloseReplaceMenu = () => {
     setReplaceMenuOpen(false);
+  };
+
+  const handleDeleteClick = () => {
+    if (data.isLocked) return;
+    if (data.onDelete) {
+      data.onDelete(id);
+    }
   };
 
   const availableMenuOptions: ContentType[] = ['article', 'video', 'podcast', 'socialMedia'];
@@ -80,27 +94,29 @@ const ArticleNode: React.FC<NodeProps<ArticleNodeData>> = ({ id, data, selected 
     </g>
   );
 
-  const handleDeleteClick = () => {
-    if (data.onDelete) {
-      data.onDelete(id);
-    }
-  };
-
   return (
-    <div className={`relative flex flex-col items-center ${animationClass}`}>
-      {selected && (
+    <div
+      className={`relative flex flex-col items-center ${animationClass}`}
+    >
+      {/* Only show PopupSelect if not locked */}
+      {selected && !data.isLocked && (
         <div ref={popupAnchorRef}>
           <PopupSelect
             onSettingsClick={handleSettingsClick}
             onDeleteClick={handleDeleteClick}
+            nodeId={id}
             onReplaceNode={handleReplaceNode}
             isReplaceMenuOpen={replaceMenuOpen}
             onCloseReplaceMenu={handleCloseReplaceMenu}
+            setOpenMenu={data.setOpenMenu}
           />
         </div>
       )}
       <div
-        className={`relative node-wrapper node-type-article w-32 h-32`}
+        className={`relative node-wrapper group node-type-article w-32 h-32 transition-transform duration-200 ${selected ? 'selected' : ''} ${data.isRightConnected ? 'is-connected' : ''}`}
+        onMouseEnter={() => !data.isLocked && console.log(`[${id}] Mouse ENTER node wrapper`)}
+        onMouseLeave={() => !data.isLocked && console.log(`[${id}] Mouse LEAVE node wrapper`)}
+        style={{ '--node-color': '#8fa8f1' } as React.CSSProperties}
         onMouseDown={(e) => e.stopPropagation()}
       >
         {/* Main SVG for Node Appearance */}
@@ -156,8 +172,8 @@ const ArticleNode: React.FC<NodeProps<ArticleNodeData>> = ({ id, data, selected 
             </svg>
         </div>
 
-        {/* Render Combined Connector/Plus Button ONLY if canAddChild is true AND NOT connected */}
-        {data.canAddChild && !data.isRightConnected && (
+        {/* Right Side Elements - Only show if not locked or not last node */}
+        {data.canAddChild && !data.isRightConnected && (!data.isLocked || !data.isLastNode) && (
           <>
             <div 
               className="article-node-connector-plus absolute right-[-16.5px] top-1/2 transform -translate-y-1/2 cursor-pointer group z-30 hover:scale-110 transition-transform"
@@ -165,9 +181,9 @@ const ArticleNode: React.FC<NodeProps<ArticleNodeData>> = ({ id, data, selected 
               title="Add content"
             >
               <svg width="17" height="25" viewBox="0 0 17 25" >
-                 {RightConnectorShape}
-                 {PlusIconShape}
-               </svg>
+                {RightConnectorShape}
+                {PlusIconShape}
+              </svg>
             </div>
 
             <NodeAddMenu
@@ -181,18 +197,18 @@ const ArticleNode: React.FC<NodeProps<ArticleNodeData>> = ({ id, data, selected 
           </>
         )}
 
-        {/* Render Connector-Only Visual ONLY if isRightConnected is true */}
-        {data.isRightConnected && (
-            <div 
-              className={`article-node-connector-right-connected absolute right-[-16.5px] top-1/2 transform -translate-y-1/2 pointer-events-none z-20`}
-            >
-              <svg width="17" height="25" viewBox="0 0 17 25" >
-                 {RightConnectorShape}
-               </svg>
-            </div>
+        {/* Right connector - Only show if right connected or if not locked/not last node */}
+        {(data.isRightConnected || (!data.isLocked || !data.isLastNode)) && (
+          <div 
+            className={`article-node-connector-right-connected absolute right-[-16.5px] top-1/2 transform -translate-y-1/2 pointer-events-none z-20`}
+          >
+            <svg width="17" height="25" viewBox="0 0 17 25" >
+              {RightConnectorShape}
+            </svg>
+          </div>
         )}
       </div>
-      <div className="mt-2 text-sm text-black">Article</div> 
+      <div className="mt-[10px] text-sm text-black">Article</div>
     </div>
   );
 };

@@ -1,15 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import PopupSelect from './PopupSelect';
+import { ContentType, ContentNodeData } from '../types/workflowTypes';
 
 // Remove SVG imports
 // import socialMediaSvg from '@/assets/nodes/social media.svg';
 // import leftSocialMediaSvg from '@/assets/component to link the nodes/left social media.svg';
 
-type ContentType = 'article' | 'video' | 'podcast' | 'socialMedia';
-
 // Define expected data structure (Add isLeftConnected)
-interface SocialMediaNodeData {
+interface SocialMediaNodeData extends ContentNodeData {
+  nodeType: ContentType;
+  setOpenMenu?: React.Dispatch<React.SetStateAction<{ type: 'add' | 'popselect'; nodeId: string; } | null>>;
   label?: string;
   isEntering?: boolean;
   isNew?: boolean;
@@ -19,6 +20,8 @@ interface SocialMediaNodeData {
   isRightConnected?: boolean;
   onDelete?: (nodeId: string) => void;
   onReplaceNode?: (nodeId: string, newType: ContentType) => void;
+  isLocked?: boolean;
+  isLastNode?: boolean;
 }
 
 // Node component
@@ -26,27 +29,28 @@ import { notifyNode } from '@/types/workflowTypes';
 
 const SocialMediaNode: React.FC<NodeProps<SocialMediaNodeData>> = ({ id, data, selected }) => {
   const animationClass = data.isEntering ? 'node-bouncing-in' : '';
-  // Remove nodeColor if not used
-  // const nodeColor = '#FC8500';
+  const nodeColor = '#4A5568'; // Social media node color
   const [replaceMenuOpen, setReplaceMenuOpen] = useState(false);
   const popupAnchorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-     data.isNew && notifyNode('brightSocial', id);
+    data.isNew && notifyNode('socialMedia', id);
   }, []);
 
   const handleDeleteClick = () => {
-    console.log('Delete clicked');
+    if (data.isLocked) return;
     if (data.onDelete) {
       data.onDelete(id);
     }
   };
 
   const handleSettingsClick = () => {
+    if (data.isLocked) return;
     setReplaceMenuOpen(true);
   };
 
   const handleReplaceNode = (nodeId: string, newType: ContentType) => {
+    if (data.isLocked) return;
     if (data.onReplaceNode) {
       data.onReplaceNode(nodeId, newType);
     }
@@ -61,21 +65,25 @@ const SocialMediaNode: React.FC<NodeProps<SocialMediaNodeData>> = ({ id, data, s
     <div
       className={`relative flex flex-col items-center ${animationClass}`}
     >
-      {selected && (
+      {/* Only show PopupSelect if not locked */}
+      {selected && !data.isLocked && (
         <div ref={popupAnchorRef}>
           <PopupSelect
             onSettingsClick={handleSettingsClick}
             onDeleteClick={handleDeleteClick}
-            isTopicalKeywordNode={false}
             nodeId={id}
             onReplaceNode={handleReplaceNode}
             isReplaceMenuOpen={replaceMenuOpen}
             onCloseReplaceMenu={handleCloseReplaceMenu}
+            setOpenMenu={data.setOpenMenu}
           />
         </div>
       )}
       <div
-        className={`relative node-wrapper node-type-socialMedia w-32 h-32`}
+        className={`relative node-wrapper group node-type-${data.nodeType || 'socialMedia'} w-32 h-32 transition-transform duration-200 ${selected ? 'selected' : ''} ${data.isRightConnected ? 'is-connected' : ''}`}
+        onMouseEnter={() => !data.isLocked && console.log(`[${id}] Mouse ENTER node wrapper`)}
+        onMouseLeave={() => !data.isLocked && console.log(`[${id}] Mouse LEAVE node wrapper`)}
+        style={{ '--node-color': nodeColor } as React.CSSProperties}
         onMouseDown={(e) => e.stopPropagation()}
       >
         {/* Inline SVG for Main Appearance */}
@@ -132,7 +140,16 @@ const SocialMediaNode: React.FC<NodeProps<SocialMediaNodeData>> = ({ id, data, s
           </svg>
         </div>
 
-        {/* NO Right Connector or Source Handle */}
+        {/* Right connector - Only show if right connected or if not locked/not last node */}
+        {(data.isRightConnected || (!data.isLocked || !data.isLastNode)) && (
+          <div
+            className={`social-media-connector-right-connected absolute right-[-16.5px] top-1/2 transform -translate-y-1/2 pointer-events-none z-20`}
+          >
+            <svg width="17" height="25" viewBox="0 0 17 25" >
+              <path d="M0,0H4A12,12,0,0,1,16,12v0A12,12,0,0,1,4,24H0a0,0,0,0,1,0,0V0A0,0,0,0,1,0,0Z" transform="translate(0.5 0.5)" fill="#fc8500" stroke="rgba(0,0,0,0)" strokeMiterlimit="10" strokeWidth="1"/>
+            </svg>
+          </div>
+        )}
 
       </div>
       <div className="mt-[10px] text-sm text-black">Social Media</div>

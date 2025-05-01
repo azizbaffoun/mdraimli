@@ -27,10 +27,17 @@ const PlusIconShape = (
   </g>
 );
 
+// Extend the imported interface with the new properties
+interface ExtendedTopicalKeywordNodeData extends TopicalKeywordNodeData {
+  isLocked?: boolean;
+  isLastNode?: boolean;
+  openMenu?: { type: 'add' | 'popselect', nodeId: string } | null;
+  setOpenMenu?: React.Dispatch<React.SetStateAction<{ type: 'add' | 'popselect', nodeId: string } | null>>;
+}
 
-const TopicalKeywordNode: React.FC<NodeProps<TopicalKeywordNodeData & {
+const TopicalKeywordNode: React.FC<NodeProps<ExtendedTopicalKeywordNodeData & {
   nodeType?: 'topicalKeyword' | 'offer' | 'event';
-  isNew?: boolean; // Added isNew for notification
+  isNew?: boolean;
 }>> = ({ id, data, selected }) => {
   const nodeColor = '#3799DB';
   const [replaceMenuOpen, setReplaceMenuOpen] = useState(false);
@@ -50,12 +57,14 @@ const TopicalKeywordNode: React.FC<NodeProps<TopicalKeywordNodeData & {
   const TopReplaceOpen = openMenu?.type === 'popselect' && openMenu.nodeId === id;
 
   const handlePlusClick = (e: React.MouseEvent) => {
+    if (data.isLocked) return;
     e.stopPropagation();
     setOpenMenu?.(menuOpen ? null : { type: 'add', nodeId: id });
     setReplaceMenuOpen(false);
   };
 
   const handleSelectOption = (parentId: string, type: ContentType) => {
+    if (data.isLocked) return;
     if (data.onAddChildNode) {
       data.onAddChildNode(parentId, type);
     }
@@ -63,6 +72,7 @@ const TopicalKeywordNode: React.FC<NodeProps<TopicalKeywordNodeData & {
   };
 
   const handleReplaceNode = (newType: ContentType) => {
+    if (data.isLocked) return;
     data.onReplaceNode?.(id, newType);
     setReplaceMenuOpen(false);
   };
@@ -72,12 +82,14 @@ const TopicalKeywordNode: React.FC<NodeProps<TopicalKeywordNodeData & {
   };
 
   const handleSettingsClick = () => {
-    setOpenMenu?.(null); // Close add menu if open
+    if (data.isLocked) return;
+    setOpenMenu?.(null);
     setReplaceMenuOpen(true);
   };
 
   const handleTopReplaceSelect = (type: 'topicalKeyword' | 'offer' | 'event') => {
-    setOpenMenu?.(null); // Close add menu if open
+    if (data.isLocked) return;
+    setOpenMenu?.(null);
     setNodes((nodes) =>
       nodes.map((node) =>
         node.id === id
@@ -85,13 +97,11 @@ const TopicalKeywordNode: React.FC<NodeProps<TopicalKeywordNodeData & {
           : node
       )
     );
-    // Optionally notify after type change
-    // notifyNode(type, id); // Consider if needed
   };
 
   const handleDeleteClick = () => {
-    setOpenMenu?.(null); // Close add menu if open
-    // Add delete logic if needed, e.g., calling data.onDelete(id)
+    if (data.isLocked) return;
+    setOpenMenu?.(null);
     if (data.onDelete) {
       data.onDelete(id);
     }
@@ -103,7 +113,8 @@ const TopicalKeywordNode: React.FC<NodeProps<TopicalKeywordNodeData & {
     <div
       className={`relative flex flex-col items-center ${animationClass}`}
     >
-      {selected && (
+      {/* Only show PopupSelect if not locked */}
+      {selected && !data.isLocked && (
         <div ref={popupAnchorRef}>
           <PopupSelect
             onSettingsClick={handleSettingsClick}
@@ -113,20 +124,20 @@ const TopicalKeywordNode: React.FC<NodeProps<TopicalKeywordNodeData & {
             onReplaceNode={(_, newType) => handleReplaceNode(newType as ContentType)}
             isReplaceMenuOpen={replaceMenuOpen}
             onCloseReplaceMenu={handleCloseReplaceMenu}
-            setOpenMenu={setOpenMenu} // Pass setOpenMenu
+            setOpenMenu={setOpenMenu}
           />
           <TopReplace
             isOpen={TopReplaceOpen}
             onSelect={handleTopReplaceSelect}
-            onClose={() => setOpenMenu?.(null)} // Close TopReplace
+            onClose={() => setOpenMenu?.(null)}
             currentType={data.nodeType || 'topicalKeyword'}
           />
         </div>
       )}
       <div
         className={`relative node-wrapper group node-type-${data.nodeType || 'topicalKeyword'} w-32 h-32 transition-transform duration-200 ${selected ? 'selected' : ''} ${data.isRightConnected ? 'is-connected' : ''}`}
-        onMouseEnter={() => console.log(`[${id}] Mouse ENTER node wrapper`)}
-        onMouseLeave={() => console.log(`[${id}] Mouse LEAVE node wrapper`)}
+        onMouseEnter={() => !data.isLocked && console.log(`[${id}] Mouse ENTER node wrapper`)}
+        onMouseLeave={() => !data.isLocked && console.log(`[${id}] Mouse LEAVE node wrapper`)}
         style={{ '--node-color': nodeColor } as React.CSSProperties}
         onMouseDown={(e) => e.stopPropagation()}
       >
@@ -222,55 +233,45 @@ const TopicalKeywordNode: React.FC<NodeProps<TopicalKeywordNodeData & {
           </div>
         )}
 
-        {/* --- Right Connector / Plus Button --- */}
-        {(() => {
-            if (data.canAddChild && !data.isRightConnected) {
-              console.log(`[${id}] RENDERING plus button container. canAddChild: ${data.canAddChild}, isRightConnected: ${data.isRightConnected}`);
-              return (
-            <>
-              <div
-                className="topical-keyword-connector-plus absolute right-[-16.5px] top-1/2 transform -translate-y-1/2 cursor-pointer z-30 opacity-0 group-hover:opacity-100 hover:scale-110 transition-all duration-200"
-                onClick={handlePlusClick}
-                title="Add content"
-              >
-                <svg width="17" height="25" viewBox="0 0 17 25" >
-                   {RightConnectorShape}
-                   {PlusIconShape}
-                 </svg>
-              </div>
-
-              <NodeAddMenu
-                parentId={id}
-                isOpen={menuOpen}
-                onClose={() => setOpenMenu?.(null)}
-                onSelectOption={handleSelectOption}
-                availableOptions={['article', 'video', 'podcast', 'socialMedia']} // Default options, adjust if needed
-                positionStyle={{
-                  left: 'calc(100% + 32px)', // Position menu next to the button
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                }}
-              />
-            </>
-              );
-            } else {
-              console.log(`[${id}] NOT rendering plus button container. canAddChild: ${data.canAddChild}, isRightConnected: ${data.isRightConnected}`);
-              return null;
-            }
-        })()}
-
-        {/* Render Connector-Only Visual ONLY if isRightConnected is true */}
-        {data.isRightConnected && (
+        {/* Right Side Elements - Only show if not locked or not last node */}
+        {data.canAddChild && !data.isRightConnected && (!data.isLocked || !data.isLastNode) && (
+          <>
             <div
-              className={`topical-keyword-connector-right-connected absolute right-[-16.5px] top-1/2 transform -translate-y-1/2 pointer-events-none z-20`}
+              className="topical-keyword-connector-plus absolute right-[-16.5px] top-1/2 transform -translate-y-1/2 cursor-pointer z-30 opacity-0 group-hover:opacity-100 hover:scale-110 transition-all duration-200"
+              onClick={handlePlusClick}
+              title="Add content"
             >
               <svg width="17" height="25" viewBox="0 0 17 25" >
-                 {RightConnectorShape}
-               </svg>
+                {RightConnectorShape}
+                {PlusIconShape}
+              </svg>
             </div>
-        )}
-        {/* --- End Right Connector / Plus Button --- */}
 
+            <NodeAddMenu
+              parentId={id}
+              isOpen={menuOpen}
+              onClose={() => setOpenMenu?.(null)}
+              onSelectOption={handleSelectOption}
+              availableOptions={['article', 'video', 'podcast', 'socialMedia']}
+              positionStyle={{
+                left: 'calc(100% + 32px)',
+                top: '50%',
+                transform: 'translateY(-50%)',
+              }}
+            />
+          </>
+        )}
+
+        {/* Right connector - Only show if right connected or if not locked/not last node */}
+        {(data.isRightConnected || (!data.isLocked || !data.isLastNode)) && (
+          <div
+            className={`topical-keyword-connector-right-connected absolute right-[-16.5px] top-1/2 transform -translate-y-1/2 pointer-events-none z-20`}
+          >
+            <svg width="17" height="25" viewBox="0 0 17 25" >
+              {RightConnectorShape}
+            </svg>
+          </div>
+        )}
       </div>
 
       <div className="mt-[10px] text-sm text-black">

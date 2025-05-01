@@ -19,8 +19,12 @@ import leftSocialMediaSvg from '@/assets/component to link the nodes/left social
 // Define type for content nodes
 type ContentNodeType = 'article' | 'video' | 'podcast' | 'socialMedia';
 
-// Simplified node data (can add specific fields later)
-interface ContentNodeData {}
+interface ContentNodeData {
+  isLocked?: boolean;
+  isLastNode?: boolean;
+  isLeftConnected?: boolean;
+  isRightConnected?: boolean;
+}
 
 const ContentTypeNode: React.FC<NodeProps<ContentNodeData>> = (props) => {
   // Prefix unused props with underscore to satisfy linter
@@ -73,28 +77,32 @@ const ContentTypeNode: React.FC<NodeProps<ContentNodeData>> = (props) => {
           position={Position.Left}
           id="left"
           style={{ opacity: 0, width: 40, height: 40, zIndex: 50, left: -20, top: '50%', transform: 'translateY(-50%)' }}
-          isConnectable={true}
+          isConnectable={!_data.isLocked}
         />
-        {/* Source handle (Right) - Only if not social media */}
-        {type !== 'socialMedia' && (
+        {/* Source handle (Right) - Only if not social media and not locked/last node */}
+        {type !== 'socialMedia' && (!_data.isLocked || !_data.isLastNode) && (
            <Handle
             type="source"
             position={Position.Right}
             id="right"
-            style={{ opacity: 0, width: 40, height: 40, zIndex: 50, right: -20, top: '50%', transform: 'translateY(-50%)' }}
-            isConnectable={true}
+            style={{ opacity: 0, width: 40, height: 40, zIndex: 50, right: -20, top: '50%', transform: 'translate(50%, -50%)' }}
+            isConnectable={!_data.isLocked}
           />
         )}
         
         {/* Static Connectors (Visual only) */}
-        <div className="absolute -left-20 top-1/2 transform -translate-y-1/2 group">
-           <img 
-            src={leftConnectors[type]} 
-            alt="Left Connector" 
-            className="h-6 group-hover:opacity-70 pointer-events-none" 
-          />
-        </div>
-        {type !== 'socialMedia' && rightConnectors[type] && (
+        {/* Left Connector - Show only if connected */}
+        {_data.isLeftConnected && (
+          <div className="absolute -left-20 top-1/2 transform -translate-y-1/2 group">
+             <img 
+              src={leftConnectors[type]} 
+              alt="Left Connector" 
+              className="h-6 group-hover:opacity-70 pointer-events-none" 
+            />
+          </div>
+        )}
+        {/* Right Connector - Show only if not social media and not locked/last node */}
+        {type !== 'socialMedia' && rightConnectors[type] && (!_data.isLocked || !_data.isLastNode) && (
           <div className="absolute -right-20 top-1/2 transform -translate-y-1/2 group">
              <img 
               src={rightConnectors[type]} 

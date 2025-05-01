@@ -81,7 +81,11 @@ export interface NoteNodeFlowData extends BaseNodeData {
 
 
 // Union type for any possible node data in our workflow
-export type WorkflowNodeData = StartNodeData | TopicalKeywordNodeData | ContentNodeData | NoteNodeFlowData;
+export type WorkflowNodeData = (StartNodeData | TopicalKeywordNodeData | ContentNodeData | NoteNodeFlowData) & {
+  isLocked?: boolean;
+  isLastNode?: boolean;
+  nodeType?: 'topicalKeyword' | 'offer' | 'event';
+};
 
 // You might also want a type for the overall workflow structure if saving/loading
 export interface WorkflowData {

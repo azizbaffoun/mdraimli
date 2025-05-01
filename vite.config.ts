@@ -26,6 +26,26 @@ export default defineConfig({
           // Keep other assets (like images) in their default structure
           return `assets/[name].[ext]`;
         },
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom'],
+          'flow-vendor': ['reactflow'],
+          'editor-vendor': [
+            '@tiptap/extension-highlight',
+            '@tiptap/extension-link',
+            '@tiptap/extension-placeholder',
+            '@tiptap/extension-task-item',
+            '@tiptap/extension-task-list',
+            '@tiptap/extension-text-align',
+            '@tiptap/extension-underline',
+            '@tiptap/react',
+            '@tiptap/starter-kit'
+          ],
+          'utils': [
+            'lodash',
+            'uuid',
+            'lucide-react'
+          ]
+        }
       },
     },
     // Ensure CSS is not split into multiple files
