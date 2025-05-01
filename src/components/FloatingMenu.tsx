@@ -146,7 +146,7 @@ const FloatingMenu: React.FC<FloatingMenuProps> = ({ editor, placement = 'top', 
       style={style}
     >
       <div className={styles.buttonRow}>
-        {buttons.map((button, index) => (
+        {buttons.map((button) => (
           <button
             key={button.label}
             onClick={button.onClick}
@@ -162,7 +162,7 @@ const FloatingMenu: React.FC<FloatingMenuProps> = ({ editor, placement = 'top', 
       <div className={styles.divider} />
       
       <div className={styles.buttonRow}>
-        {listButtons.map((button, index) => (
+        {listButtons.map((button) => (
           <button
             key={button.label}
             onClick={button.onClick}

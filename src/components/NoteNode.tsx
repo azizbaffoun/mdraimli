@@ -233,29 +233,7 @@ const NoteNode: React.FC<NodeProps<NoteNodeData>> = ({ id, data }) => {
     setIsOptionsMenuOpen(!isOptionsMenuOpen);
   };
 
-  const tippyOptions = {
-    getReferenceClientRect: getSelectionBoundingRect,
-    placement: 'top' as const,
-    appendTo: () => document.body,
-    interactive: true,
-    popperOptions: {
-      modifiers: [
-        {
-          name: 'offset',
-          options: {
-            offset: [0, 10], // [x offset, y offset]
-          },
-        },
-        {
-          name: 'preventOverflow',
-          options: {
-            boundary: 'viewport',
-            padding: 8,
-          },
-        },
-      ],
-    },
-  };
+  
 
   return (
     <div
