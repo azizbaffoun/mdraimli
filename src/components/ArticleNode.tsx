@@ -40,12 +40,6 @@ const ArticleNode: React.FC<NodeProps<ArticleNodeData>> = ({ id, data, selected 
     data.isNew && notifyNode('article', id);
   }, []);
 
-  const handlePlusClick = (e: React.MouseEvent) => {
-    if (data.isLocked) return;
-    e.stopPropagation();
-    setMenuOpen(!menuOpen);
-    setReplaceMenuOpen(false);
-  };
 
   const handleSelectOption = (parentId: string, type: ContentType) => {
     if (data.isLocked) return;
@@ -114,10 +108,20 @@ const ArticleNode: React.FC<NodeProps<ArticleNodeData>> = ({ id, data, selected 
       )}
       <div
         className={`relative node-wrapper group node-type-article w-32 h-32 transition-transform duration-200 ${selected ? 'selected' : ''} ${data.isRightConnected ? 'is-connected' : ''}`}
-        onMouseEnter={() => !data.isLocked && console.log(`[${id}] Mouse ENTER node wrapper`)}
-        onMouseLeave={() => !data.isLocked && console.log(`[${id}] Mouse LEAVE node wrapper`)}
+        onMouseEnter={() => !data.isLocked && console.log(`[ArticleNode ${id}] Mouse ENTER node wrapper`)}
+        onMouseLeave={() => !data.isLocked && console.log(`[ArticleNode ${id}] Mouse LEAVE node wrapper`)}
         style={{ '--node-color': '#8fa8f1' } as React.CSSProperties}
-        onMouseDown={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          const target = e.target as HTMLElement;
+          const isPlusZone = target.closest('[data-type="plus-zone"]');
+          const isMenu = target.closest('[data-type="menu"]');
+
+          if (isPlusZone || isMenu) {
+            console.log(`[ArticleNode ${id}] Preventing node selection - clicked ${isPlusZone ? 'plus zone' : 'menu'}`);
+            e.stopPropagation();
+            return;
+          }
+        }}
       >
         {/* Main SVG for Node Appearance */}
         <svg
@@ -177,8 +181,14 @@ const ArticleNode: React.FC<NodeProps<ArticleNodeData>> = ({ id, data, selected 
           <>
             <div 
               className="article-node-connector-plus absolute right-[-16.5px] top-1/2 transform -translate-y-1/2 cursor-pointer group z-30 hover:scale-110 transition-transform"
-              onClick={handlePlusClick}
-              title="Add content"
+              onClick={(e) => {
+                console.log(`[ArticleNode ${id}] Plus zone clicked`);
+                if (data.isLocked) return;
+                e.stopPropagation();
+                setMenuOpen(!menuOpen);
+                setReplaceMenuOpen(false);
+              }}
+              data-type="plus-zone"
             >
               <svg width="17" height="25" viewBox="0 0 17 25" >
                 {RightConnectorShape}

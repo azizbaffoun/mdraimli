@@ -76,7 +76,7 @@ const StartNode: React.FC<NodeProps<StartNodeData>> = ({ data }) => {
             {(isHovered || menuOpen) && (
               <>
                 {/* Plus Button Group */}
-                <g id="Group_3855" data-name="Group 3855" transform="translate(411.54 -16)" onClick={handlePlusClick} style={{ cursor: 'pointer', outline: 'none' }} tabIndex={0} role="button" aria-label="Add" className="outline-none">
+                <g id="Group_3855" data-name="Group 3855" transform="translate(411.54 -16)" onClick={handlePlusClick} style={{ cursor: 'pointer', outline: 'none' }} tabIndex={0} role="button" aria-label="Add" className="outline-none" data-type="plus-zone">
                   <path id="Rectangle_1636" data-name="Rectangle 1636" d="M0,0H4A12,12,0,0,1,16,12v0A12,12,0,0,1,4,24H0a0,0,0,0,1,0,0V0A0,0,0,0,1,0,0Z" transform="translate(384.46 372)" fill="#86c1e9" stroke="none"/>
                   <g id="add-circle" transform="translate(380.741 372.281)">
                     <path id="Path_687" data-name="Path 687" d="M15.609,12.656H7.828a.828.828,0,0,1,0-1.656h7.781a.828.828,0,0,1,0,1.656Z" transform="translate(0 -0.11)" fill="#fff"/>

@@ -18,6 +18,21 @@ interface VideoNodeData extends ContentNodeData {
 // Remove connector config usage
 // const connectors = nodeConnectors.video;
 
+// Define the right connector shape inline (used in two places now)
+const RightConnectorShape = (
+  <svg width="17" height="25" viewBox="0 0 17 25">
+    <path d="M0,0H4A12,12,0,0,1,16,12v0A12,12,0,0,1,4,24H0a0,0,0,0,1,0,0V0A0,0,0,0,1,0,0Z" transform="translate(0.5 0.5)" fill="#82ced1" stroke="rgba(0,0,0,0)" strokeMiterlimit="10" strokeWidth="1"/>
+  </svg>
+);
+
+// Define the plus icon shape inline
+const PlusIconShape = (
+  <g transform="translate(-3.3 0.7)"> 
+    <path d="M15.613,12.657H7.829a.829.829,0,1,1,0-1.657h7.784a.829.829,0,1,1,0,1.657Z" transform="translate(0 -0.108)" fill="#fff"/>
+    <path d="M11.829,16.442A.829.829,0,0,1,11,15.613V7.829a.829.829,0,1,1,1.657,0v7.784A.829.829,0,0,1,11.829,16.442Z" transform="translate(-0.108)" fill="#fff"/>
+  </g>
+);
+
 const VideoNode: React.FC<NodeProps<VideoNodeData>> = ({ id, data, selected }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [replaceMenuOpen, setReplaceMenuOpen] = useState(false);
@@ -47,11 +62,6 @@ const VideoNode: React.FC<NodeProps<VideoNodeData>> = ({ id, data, selected }) =
   const animationClass = data.isEntering ? 'node-bouncing-in' : ''; // Use bouncing animation
 
   // Handle click on the plus button - now toggles menu
-  const handlePlusClick = (e: React.MouseEvent) => {
-    if (data.isLocked) return;
-    e.stopPropagation();
-    setMenuOpen(!menuOpen);
-  };
 
   // This function is passed directly to NodeAddMenu
   const handleSelectOption = (parentId: string, type: ContentType) => {
@@ -91,9 +101,17 @@ const VideoNode: React.FC<NodeProps<VideoNodeData>> = ({ id, data, selected }) =
       )}
       <div
         className={`relative node-wrapper node-type-video w-32 h-32`}
-        // Remove style if nodeColor isn't used
-        // style={{ '--node-color': nodeColor } as React.CSSProperties}
-        onMouseDown={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          const target = e.target as HTMLElement;
+          const isPlusZone = target.closest('[data-type="plus-zone"]');
+          const isMenu = target.closest('[data-type="menu"]');
+
+          if (isPlusZone || isMenu) {
+            console.log(`[VideoNode ${id}] Preventing node selection - clicked ${isPlusZone ? 'plus zone' : 'menu'}`);
+            e.stopPropagation();
+            return;
+          }
+        }}
       >
         {/* Main SVG for Node Appearance */}
         <svg
@@ -159,12 +177,12 @@ const VideoNode: React.FC<NodeProps<VideoNodeData>> = ({ id, data, selected }) =
           style={{ opacity: 0, width: 20, height: 20, right: '-16.5px', top: '50%', transform: 'translate(50%, -50%)', zIndex: 10 }}
         />
 
-        {/* Left Connector Visual - Visibility controlled by isLeftConnected */}
+        {/* Left Connector Visual */}
         <div 
           className={`video-node-connector-left absolute left-[-16.5px] top-1/2 transform -translate-y-1/2 pointer-events-none z-20 ${data.isLeftConnected ? 'is-connected' : ''}`}>
-            <svg width="17" height="25" viewBox="0 0 17 25">
-              <path d="M12,0h4a0,0,0,0,1,0,0V24a0,0,0,0,1,0,0H12A12,12,0,0,1,0,12v0A12,12,0,0,1,12,0Z" transform="translate(0.5 0.5)" fill="#86c1e9" stroke="rgba(0,0,0,0)" strokeMiterlimit="10" strokeWidth="1"/>
-            </svg>
+          <svg width="17" height="25" viewBox="0 0 17 25">
+            <path d="M12,0h4a0,0,0,0,1,0,0V24a0,0,0,0,1,0,0H12A12,12,0,0,1,0,12v0A12,12,0,0,1,12,0Z" transform="translate(0.5 0.5)" fill="#86c1e9" stroke="rgba(0,0,0,0)" strokeMiterlimit="10" strokeWidth="1"/>
+          </svg>
         </div>
 
         {/* Right Side Elements - Only show if not locked or not last node */}
@@ -172,16 +190,18 @@ const VideoNode: React.FC<NodeProps<VideoNodeData>> = ({ id, data, selected }) =
           <>
             <div 
               className="video-node-connector-plus absolute right-[-16.5px] top-1/2 transform -translate-y-1/2 cursor-pointer group z-30 hover:scale-110 transition-transform"
-              onClick={handlePlusClick}
-              title="Add content"
+              onClick={(e) => {
+                console.log(`[VideoNode ${id}] Plus zone clicked`);
+                if (data.isLocked) return;
+                e.stopPropagation();
+                setMenuOpen(!menuOpen);
+              }}
+              data-type="plus-zone"
             >
-              <svg width="17" height="25" viewBox="0 0 17 25" >
-                 <path d="M0,0H4A12,12,0,0,1,16,12v0A12,12,0,0,1,4,24H0a0,0,0,0,1,0,0V0A0,0,0,0,1,0,0Z" transform="translate(0.5 0.5)" fill="#82ced1" stroke="rgba(0,0,0,0)" strokeMiterlimit="10" strokeWidth="1"/>
-                 <g transform="translate(-3.3 0.7)"> 
-                   <path d="M15.613,12.657H7.829a.829.829,0,1,1,0-1.657h7.784a.829.829,0,1,1,0,1.657Z" transform="translate(0 -0.108)" fill="#fff"/>
-                   <path d="M11.829,16.442A.829.829,0,0,1,11,15.613V7.829a.829.829,0,1,1,1.657,0v7.784A.829.829,0,0,1,11.829,16.442Z" transform="translate(-0.108)" fill="#fff"/>
-                 </g>
-               </svg>
+              <svg width="17" height="25" viewBox="0 0 17 25">
+                {RightConnectorShape}
+                {PlusIconShape}
+              </svg>
             </div>
 
             <NodeAddMenu
@@ -200,9 +220,7 @@ const VideoNode: React.FC<NodeProps<VideoNodeData>> = ({ id, data, selected }) =
           <div 
             className={`video-node-connector-right-connected absolute right-[-16.5px] top-1/2 transform -translate-y-1/2 pointer-events-none z-20`}
           >
-            <svg width="17" height="25" viewBox="0 0 17 25" >
-              <path d="M0,0H4A12,12,0,0,1,16,12v0A12,12,0,0,1,4,24H0a0,0,0,0,1,0,0V0A0,0,0,0,1,0,0Z" transform="translate(0.5 0.5)" fill="#82ced1" stroke="rgba(0,0,0,0)" strokeMiterlimit="10" strokeWidth="1"/>
-            </svg>
+            {RightConnectorShape}
           </div>
         )}
       </div>

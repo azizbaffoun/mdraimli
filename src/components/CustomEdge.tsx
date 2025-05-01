@@ -1,331 +1,288 @@
-import React from 'react';
-import { EdgeProps, useStore } from 'reactflow';
+import React, { memo, useMemo } from 'react';
+import { EdgeProps, useStore, Node } from 'reactflow';
 
 // 1. Define node colors (Adjust keys/values to match your node types)
 const nodeColors = {
   start: '#888888',         // Default gray for start
-  topicalKeyword: '#3799DB', // Blue
-  article: '#2C93EA',       // Lighter Blue
-  video: '#3799DB',         // Blue (Match Topical Keyword)
-  podcast: '#A362E4',       // Purple
-  socialMedia: '#FC8500',    // Orange (Add Social Media)
-  // Add any other node types and their corresponding colors your project uses
-  default: '#888888'       // Default fallback color
+  topicalKeyword: {
+    left: '#82ced1',       // Left connector color (teal)
+    right: '#82ced1'       // Right connector color (teal)
+  },
+  video: {
+    left: '#86c1e9',       // Left connector color
+    right: '#86c1e9'       // Right connector color
+  },
+  article: '#3799DB',       // Article blue
+  podcast: '#b388de',       // Podcast purple
+  socialMedia: '#FC8500',   // Orange
+  default: '#888888'        // Default fallback color
 };
 
 // Helper function to select node data from the store
-const nodeSelector = (s: any) => s.nodeInternals;
+const nodeSelector = (s: any) => ({
+  nodes: s.getNodes(),
+});
 
-const CustomEdge: React.FC<EdgeProps> = ({ 
-    id, 
-    source, // Use source ID
-    target, // Use target ID
-    // sourceX, sourceY, targetX, targetY are technically available but potentially inaccurate for our offset handles
-    // data prop is no longer needed for node info
-}) => {
-    // --- Clear console on first render of any edge this session ---
-    if ((window as any).__customEdgeConsoleCleared !== true) {
-        console.clear();
-        (window as any).__customEdgeConsoleCleared = true;
-    }
-
-    // --- Fix: Force re-render if distance is zero (background bug workaround) ---
-    const [renderKey, setRenderKey] = React.useState(0);
-
-    // Get live node data from the store using IDs
-    const nodeInternals = useStore(nodeSelector);
-    const sourceNode = nodeInternals.get(source);
-    const targetNode = nodeInternals.get(target);
-
-    // --- Node creation detection ---
-    const prevExist = React.useRef<{src?: boolean, tgt?: boolean}>({});
-    React.useEffect(() => {
-        prevExist.current.src = !!sourceNode;
-        prevExist.current.tgt = !!targetNode;
-    }, [sourceNode, targetNode, source, target]);
-
-    // --- Force re-render when node positions/dimensions become ready ---
-    const prevSource = React.useRef<{x?: number, y?: number, w?: number, h?: number}>();
-    const prevTarget = React.useRef<{x?: number, y?: number, w?: number, h?: number}>();
-    React.useEffect(() => {
-        const isReady = (n: any) => n && n.positionAbsolute && typeof n.width === 'number' && n.width > 0 && typeof n.height === 'number' && n.height > 0;
-        const srcReady = isReady(sourceNode);
-        const tgtReady = isReady(targetNode);
-        // Compare prev and current for "became ready"
-        if (
-            (srcReady && (!prevSource.current || !isReady(prevSource.current))) ||
-            (tgtReady && (!prevTarget.current || !isReady(prevTarget.current)))
-        ) {
-            setRenderKey(k => k + 1);
-        }
-        prevSource.current = sourceNode ? {
-            x: sourceNode.positionAbsolute?.x,
-            y: sourceNode.positionAbsolute?.y,
-            w: sourceNode.width,
-            h: sourceNode.height
-        } : {};
-        prevTarget.current = targetNode ? {
-            x: targetNode.positionAbsolute?.x,
-            y: targetNode.positionAbsolute?.y,
-            w: targetNode.width,
-            h: targetNode.height
-        } : {};
-    }, [sourceNode, targetNode]);
-
-    // Define connector offset and node dimensions (adjust if dynamic)
-    const connectorOffset = 16.5;
-    // Get dimensions from live nodes, fallback if needed
-    const sourceNodeWidth = sourceNode?.width ?? 128;
-    const sourceNodeHeight = sourceNode?.height ?? 128;
-    const targetNodeHeight = targetNode?.height ?? 128;
-
-    // Check if node data is available from the store
-    // More robust retry: higher count, longer delay
-
-
-    if (!sourceNode || !targetNode) {
-        // Fallback: Always render a simple straight background line between fallback positions
-        // Use fallback positions if node data is missing
-        const fallbackSourceX = 0;
-        const fallbackSourceY = 0;
-        const fallbackTargetX = 100;
-        const fallbackTargetY = 0;
-        return (
-            <g>
-                <path
-                    d={`M${fallbackSourceX},${fallbackSourceY} L${fallbackTargetX},${fallbackTargetY}`}
-                    stroke="#bbb"
-                    strokeWidth="20"
-                    fill="none"
-                    strokeLinecap="round"
-                    style={{ pointerEvents: 'none' }}
-                    strokeOpacity={0.18}
-                />
-            </g>
-        );
-    }
-
-    // No retry logic needed for background path. Always render a fallback if data is missing.
-
-    // Calculate absolute coordinates of the handles using LIVE node positions
-    let calcSourceX = sourceNode.positionAbsolute.x + sourceNodeWidth + connectorOffset; // Default calculation
-    const calcSourceY = sourceNode.positionAbsolute.y + (sourceNodeHeight * 0.4);
-    let calcTargetX = targetNode.positionAbsolute.x - connectorOffset; // Default calculation
-    const calcTargetY = targetNode.positionAbsolute.y + (targetNodeHeight * 0.4);
-
-    // Adjust source X specifically for TopicalKeywordNode
-    if (sourceNode.type === 'topicalKeyword') {
-        const customOffset = 14; // New offset, closer to the right edge of the connector visual
-        calcSourceX = sourceNode.positionAbsolute.x + sourceNodeWidth + customOffset;
-    }
-
-    // TODO: Add similar check for targetNode if other nodes have custom left connectors
-    // if (targetNode.type === 'someOtherNodeTypeWithLeftConnector') {
-    //     const leftConnectorVisualWidth = ...;
-    //     calcTargetX = targetNode.positionAbsolute.x - (leftConnectorVisualWidth / 2);
-    // }
-
-    // Calculate angle and distance between the CALCULATED points
-    const deltaX = calcTargetX - calcSourceX;
-    const deltaY = calcTargetY - calcSourceY;
-    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-    const angle = Math.atan2(deltaY, deltaX);
-    const angleDegrees = angle * (180 / Math.PI);
-
-    // Visual points are the CALCULATED points
-    const visualSourceX = calcSourceX;
-    const visualSourceY = calcSourceY;
-    const visualTargetX = calcTargetX;
-    const visualTargetY = calcTargetY;
-    const finalVisualDistance = Math.max(0, distance);
-
-    // --- Debug Logging ---
-    const isReady = (n: any) => n && n.positionAbsolute && typeof n.width === 'number' && n.width > 0 && typeof n.height === 'number' && n.height > 0;
-    console.log('[CustomEdge][Edge State]', {
-        edgeId: id,
-        source,
-        target,
-        sourceNodeType: sourceNode?.type,
-        targetNodeType: targetNode?.type,
-        sourceNodePos: sourceNode?.positionAbsolute,
-        targetNodePos: targetNode?.positionAbsolute,
-        sourceNodeWidth,
-        sourceNodeHeight,
-        targetNodeHeight,
-        visualSourceX,
-        visualSourceY,
-        visualTargetX,
-        visualTargetY,
-        finalVisualDistance,
-        renderKey,
-        sourceNodeReady: isReady(sourceNode),
-        targetNodeReady: isReady(targetNode)
-    });
-
-
-    // If the distance is 0 (buggy), force a re-render after a tick
-    React.useEffect(() => {
-        if (finalVisualDistance < 2) {
-            console.warn(`[CustomEdge] Forcing re-render due to short distance (id: ${id}, distance: ${finalVisualDistance})`);
-            const timer = setTimeout(() => setRenderKey(k => k + 1), 20);
-            return () => clearTimeout(timer);
-        }
-    }, [finalVisualDistance]);
-
-
-    // Get source/target colors from the NODE types in data
-    const sourceColor = nodeColors[sourceNode.type as keyof typeof nodeColors] || nodeColors.default;
-    const targetColor = nodeColors[targetNode.type as keyof typeof nodeColors] || sourceColor;
-
-    // Define constants for dash calculation *before* the return statement
-    const shortDashWidth = 12.79;
-    const longDashWidth = 16.794;
-    const dashGap = 8; // Desired gap between dashes
-    const pairWidth = shortDashWidth + dashGap + longDashWidth + dashGap; // Width of short+gap+long+gap
-
-    // Calculate the exact number of dashes that fit
-    let numDashes = 0;
-    let currentDistance = 0;
-    while (currentDistance < finalVisualDistance) {
-        const isShort = numDashes % 2 === 0;
-        const currentSegmentWidth = isShort ? shortDashWidth : longDashWidth;
-        if (currentDistance + currentSegmentWidth <= finalVisualDistance) {
-            currentDistance += currentSegmentWidth;
-            numDashes++;
-            // Add gap if there's space for it and another dash might follow
-            if (currentDistance + dashGap <= finalVisualDistance && (currentDistance + dashGap + (isShort ? longDashWidth : shortDashWidth)) <= finalVisualDistance) {
-                 currentDistance += dashGap;
-            } else if (currentDistance < finalVisualDistance && numDashes > 0) {
-                // Add gap if it fits, even if another dash doesn't
-                if (currentDistance + dashGap <= finalVisualDistance) {
-                    currentDistance += dashGap;
-                } 
-            }
-        } else {
-            break; // Can't fit the next dash
-        }
-    }
-    numDashes = Math.max(1, numDashes); // Ensure at least one dash if distance > 0
-
-    return (
-        <g key={renderKey}>
-            {/* Restore original complex rendering - using direct coordinates */}
-            <defs>
-                <linearGradient id={`edge-gradient-${id}`} x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor={sourceColor} stopOpacity="1" />
-                    <stop offset="49%" stopColor={sourceColor} stopOpacity="1" />
-                    <stop offset="51%" stopColor={targetColor} stopOpacity="1" />
-                    <stop offset="100%" stopColor={targetColor} stopOpacity="1" />
-                </linearGradient>
-            </defs>
-
-            {/* Background shadow path - Use CALCULATED points, adjusted style */}
-            {/* Background shadow path - blend source and target color, opacity 0.28 */}
-            {/* Gradient stroke for main connection line background */}
-            <defs>
-                <linearGradient
-  id={`edge-gradient-bg-${id}`}
-  gradientUnits="userSpaceOnUse"
-  x1={visualSourceX}
-  y1={visualSourceY}
-  x2={visualTargetX}
-  y2={visualTargetY}
->
-  <stop offset="0%" stopColor={sourceColor} />
-  <stop offset="49%" stopColor={sourceColor} />
-  <stop offset="51%" stopColor={targetColor} />
-  <stop offset="100%" stopColor={targetColor} />
-</linearGradient>
-            </defs>
-            <path
-                d={`M${visualSourceX},${visualSourceY} L${visualTargetX},${visualTargetY}`}
-                stroke={`url(#edge-gradient-bg-${id})`}
-                strokeWidth="20"
-                fill="none"
-                strokeLinecap="round"
-                style={{ pointerEvents: 'none' }}
-                strokeOpacity={0.28}
-            />
-
-            {/* Main line composed of alternating small PATHS */}
-            <g
-                transform={`translate(${visualSourceX},${visualSourceY}) rotate(${angleDegrees})`}
-                style={{ pointerEvents: 'none' }}
-            >
-                {/* Use the same gradient for both background and squares */}
-                {/* Draw fixed SVG squares/dashes along the distance */}
-                {Array.from({ length: numDashes }).map((_, index) => {
-                    let currentX = 0;
-                    const pairIndex = Math.floor(index / 2);
-                    const isShortDash = index % 2 === 0;
-
-                    currentX = pairIndex * pairWidth;
-                    if (!isShortDash) {
-                        currentX += shortDashWidth + dashGap;
-                    }
-
-                    // verticalOffset for SVG dash alignment
-                    const verticalOffset = -3.5445;
-
-                    // Use the rectangle and outline path from the provided SVG
-                    const rectWidth = isShortDash ? 12.79 : 16.794;
-                    const rectHeight = 7.089;
-                    const rectRx = 2;
-                    const rectStrokeWidth = 1.5;
-                    const rectX = currentX + 0.75;
-                    const rectY = verticalOffset + 0.75;
-                    const outlinePath = isShortDash
-                        ? "M2-.75h8.79A2.753,2.753,0,0,1,13.54,2V5.089a2.753,2.753,0,0,1-2.75,2.75H2A2.753,2.753,0,0,1-.75,5.089V2A2.753,2.753,0,0,1,2-.75Zm8.79,7.089a1.251,1.251,0,0,0,1.25-1.25V2A1.251,1.251,0,0,0,10.79.75H2A1.251,1.251,0,0,0,.75,2V5.089A1.251,1.251,0,0,0,2,6.339Z"
-                        : "M0 0h16.794a2 2 0 0 1 2 2v3.089a2 2 0 0 1-2 2H0a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2zm16.794 7.089a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H0a1 1 0 0 0-1 1v4.089a1 1 0 0 0 1 1z";
-                    const outlineTransform = `translate(${currentX + 0.75}, ${verticalOffset + 0.75})`;
-                    return (
-                        <g key={index}>
-                            {/* Gradient rectangle with white stroke */}
-                            <rect
-                                x={rectX}
-                                y={rectY}
-                                width={rectWidth}
-                                height={rectHeight}
-                                rx={rectRx}
-                                fill={index < Math.ceil(numDashes / 2) ? sourceColor : targetColor}
-                                stroke="#fff"
-                                strokeWidth={rectStrokeWidth}
-                            />
-                            {/* Outline path overlay (white) */}
-                            <path
-                                d={outlinePath}
-                                transform={outlineTransform}
-                                fill="#fff"
-                            />
-                        </g>
-                    );
-                })}
-
-                {/* Animated overlay rectangle - covers distance (keep as simple rect) */}
-                <rect
-                    x="0"
-                    y="-10" // Adjust y to cover the thicker background
-                    width={finalVisualDistance}
-                    height="20" // Adjust height to cover the thicker background
-                    fill="white"
-                    opacity="0.5" // Keep increased opacity
-                >
-                    {/* Animate along the distance - Use animation values/duration from provided code */}
-                    <animate
-                        attributeName="x"
-                        values={`-20;${finalVisualDistance}`} // Use values from provided code
-                        dur="1.5s" // Use duration from provided code
-                        repeatCount="indefinite"
-                    />
-                </rect>
-            </g>
-        </g>
-    );
+// Helper function to get the correct color based on node type and position
+const getNodeColor = (node: Node | undefined, isSource: boolean) => {
+  if (!node) return nodeColors.default;
+  const nodeType = node.type as keyof typeof nodeColors;
+  const colors = nodeColors[nodeType];
+  
+  if (typeof colors === 'string') return colors;
+  return isSource ? colors?.left || nodeColors.default : colors?.right || nodeColors.default;
 };
 
-// 3. Define edgeTypes for React Flow registration
+// Memoized gradient definition component
+const GradientDef = memo(({ 
+  id, 
+  sourceColor, 
+  targetColor,
+  sourceX,
+  sourceY,
+  targetX,
+  targetY,
+  angle
+}: { 
+  id: string, 
+  sourceColor: string, 
+  targetColor: string,
+  sourceX: number,
+  sourceY: number,
+  targetX: number,
+  targetY: number,
+  angle: number
+}) => {
+  // Calculate the gradient vector based on the angle
+  const gradientLength = Math.sqrt(Math.pow(targetX - sourceX, 2) + Math.pow(targetY - sourceY, 2));
+  const midX = (sourceX + targetX) / 2;
+  const midY = (sourceY + targetY) / 2;
+  
+  // Calculate gradient coordinates
+  const x1 = midX - (gradientLength / 2) * Math.cos(angle * Math.PI / 180);
+  const y1 = midY - (gradientLength / 2) * Math.sin(angle * Math.PI / 180);
+  const x2 = midX + (gradientLength / 2) * Math.cos(angle * Math.PI / 180);
+  const y2 = midY + (gradientLength / 2) * Math.sin(angle * Math.PI / 180);
+
+  return (
+    <linearGradient 
+      id={id} 
+      gradientUnits="userSpaceOnUse"
+      x1={x1}
+      y1={y1}
+      x2={x2}
+      y2={y2}
+    >
+      <stop offset="0%" stopColor={sourceColor} stopOpacity="1" />
+      <stop offset="49%" stopColor={sourceColor} stopOpacity="1" />
+      <stop offset="51%" stopColor={targetColor} stopOpacity="1" />
+      <stop offset="100%" stopColor={targetColor} stopOpacity="1" />
+    </linearGradient>
+  );
+});
+
+// Constants for dash calculation
+const shortDashWidth = 12.79;
+const longDashWidth = 16.794;
+const dashGap = 8;
+const pairWidth = shortDashWidth + dashGap + longDashWidth + dashGap;
+const MIN_EDGE_DISTANCE = 30; // Minimum distance to ensure gradient works
+
+// Opacity settings for different parts
+const opacitySettings = {
+  background: 0.15,  // Reduced background opacity
+  sourceDashes: {
+    short: { fill: 1, stroke: 1 },  // Full opacity for dashes
+    long: { fill: 1, stroke: 1 }
+  },
+  targetDashes: {
+    short: { fill: 1, stroke: 1 },
+    long: { fill: 1, stroke: 1 }
+  },
+  animatedOverlay: 0.2
+};
+
+// Calculate number of dashes that fit in a given distance
+const calculateDashes = (distance: number) => {
+  const effectiveDistance = Math.max(distance, MIN_EDGE_DISTANCE);
+  const minDistance = shortDashWidth + dashGap; // Minimum distance needed for one dash
+  
+  if (effectiveDistance < minDistance) {
+    return 1; // Always show at least one dash
+  }
+
+  // Calculate how many complete pairs can fit
+  const availableSpace = effectiveDistance + dashGap; // Add one gap to account for the last element
+  const pairsCount = Math.floor(availableSpace / pairWidth);
+  
+  // Calculate remaining space
+  const remainingSpace = availableSpace - (pairsCount * pairWidth);
+  
+  // Check if we can fit an additional short dash
+  let additionalDashes = 0;
+  if (remainingSpace >= shortDashWidth) {
+    additionalDashes++;
+    if (remainingSpace >= shortDashWidth + dashGap + longDashWidth) {
+      additionalDashes++;
+    }
+  }
+
+  return Math.max(1, (pairsCount * 2) + additionalDashes);
+};
+
+const CustomEdge: React.FC<EdgeProps> = memo(({ 
+  id, 
+  source,
+  target,
+  sourceX: defaultSourceX,
+  sourceY: defaultSourceY,
+  targetX: defaultTargetX,
+  targetY: defaultTargetY,
+}) => {
+  const { nodes } = useStore(nodeSelector);
+  
+  const sourceNode = nodes.find((n: Node) => n.id === source);
+  const targetNode = nodes.find((n: Node) => n.id === target);
+
+  // Calculate coordinates with fallback to default positions
+  const sourceX = sourceNode?.position ? 
+    sourceNode.position.x + (sourceNode.width || 0) + 16.5 : 
+    defaultSourceX;
+  const sourceY = sourceNode?.position ? 
+    sourceNode.position.y + ((sourceNode.height || 0) * 0.4) : 
+    defaultSourceY;
+  const targetX = targetNode?.position ? 
+    targetNode.position.x - 16.5 : 
+    defaultTargetX;
+  const targetY = targetNode?.position ? 
+    targetNode.position.y + ((targetNode.height || 0) * 0.4) : 
+    defaultTargetY;
+
+  // Calculate angle and distance
+  const deltaX = targetX - sourceX;
+  const deltaY = targetY - sourceY;
+  const rawDistance = Math.sqrt(deltaX * deltaX + deltaY * deltaY) || MIN_EDGE_DISTANCE;
+  const distance = Math.max(rawDistance, MIN_EDGE_DISTANCE);
+  const angle = Math.atan2(deltaY, deltaX) * (180 / Math.PI);
+
+  // Get colors using the new helper function
+  const sourceColor = getNodeColor(sourceNode, true);
+  const targetColor = getNodeColor(targetNode, false);
+
+  // Memoize gradient path
+  const gradientPath = useMemo(() => {
+    const isInitialConnection = deltaX === 0 && deltaY === 0;
+    const endX = isInitialConnection ? sourceX + MIN_EDGE_DISTANCE : targetX;
+    const endY = isInitialConnection ? sourceY : targetY;
+    return `M${sourceX},${sourceY} L${endX},${endY}`;
+  }, [sourceX, sourceY, targetX, targetY, deltaX, deltaY]);
+
+  // Calculate number of dashes
+  const numDashes = calculateDashes(distance);
+
+  return (
+    <g style={{ transform: 'translate3d(0,0,0)', willChange: 'transform' }}>
+      <defs>
+        <GradientDef 
+          id={`edge-gradient-${id}`} 
+          sourceColor={sourceColor} 
+          targetColor={targetColor}
+          sourceX={sourceX}
+          sourceY={sourceY}
+          targetX={targetX}
+          targetY={targetY}
+          angle={angle}
+        />
+      </defs>
+
+      {/* Background group with lower z-index */}
+      <g style={{ zIndex: 1 }}>
+        <path
+          d={gradientPath}
+          stroke={`url(#edge-gradient-${id})`}
+          strokeWidth="20"
+          fill="none"
+          strokeLinecap="round"
+          style={{ 
+            pointerEvents: 'none',
+            transform: 'translate3d(0,0,0)',
+            willChange: 'transform',
+            mixBlendMode: 'multiply'
+          }}
+          strokeOpacity={opacitySettings.background}
+        />
+      </g>
+
+      {/* Dashes group with higher z-index */}
+      <g style={{ zIndex: 2 }}>
+        <g transform={`translate(${sourceX},${sourceY}) rotate(${angle})`}>
+          {Array.from({ length: numDashes }).map((_, index) => {
+            const isShortDash = index % 2 === 0;
+            const pairIndex = Math.floor(index / 2);
+            let currentX = pairIndex * pairWidth;
+            
+            if (!isShortDash) {
+              currentX += shortDashWidth + dashGap;
+            }
+
+            const rectWidth = isShortDash ? shortDashWidth : longDashWidth;
+            const rectHeight = 7.089;
+            const rectRx = 2;
+            const rectX = currentX + 0.75;
+            const rectY = -3.5445 + 0.75;
+
+            const isSourceSide = index < Math.ceil(numDashes / 2);
+            const opacities = isSourceSide 
+              ? opacitySettings.sourceDashes[isShortDash ? 'short' : 'long']
+              : opacitySettings.targetDashes[isShortDash ? 'short' : 'long'];
+
+            return (
+              <g key={index}>
+                <rect
+                  x={rectX}
+                  y={rectY}
+                  width={rectWidth}
+                  height={rectHeight}
+                  rx={rectRx}
+                  fill={isSourceSide ? sourceColor : targetColor}
+                  stroke="#fff"
+                  strokeWidth={1.5}
+                  fillOpacity={opacities.fill}
+                  strokeOpacity={opacities.stroke}
+                  style={{ mixBlendMode: 'normal' }}
+                />
+              </g>
+            );
+          })}
+
+          {/* Animated overlay with highest z-index */}
+          <g style={{ zIndex: 3 }}>
+            <rect
+              x="0"
+              y="-10"
+              width={distance}
+              height="20"
+              fill="white"
+              opacity={opacitySettings.animatedOverlay}
+            >
+              <animate
+                attributeName="x"
+                values={`-20;${distance}`}
+                dur="1.5s"
+                repeatCount="indefinite"
+              />
+            </rect>
+          </g>
+        </g>
+      </g>
+    </g>
+  );
+});
+
+CustomEdge.displayName = 'CustomEdge';
+
 export const edgeTypes = {
-    customGradientEdge: CustomEdge, // You can name the type key whatever you like
+  customGradientEdge: CustomEdge,
 };
 
 export default CustomEdge; 

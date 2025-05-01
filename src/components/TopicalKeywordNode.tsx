@@ -43,7 +43,6 @@ const TopicalKeywordNode: React.FC<NodeProps<ExtendedTopicalKeywordNodeData & {
   const [replaceMenuOpen, setReplaceMenuOpen] = useState(false);
   const popupAnchorRef = useRef<HTMLDivElement>(null);
   const { setNodes } = useReactFlow();
-  const [clickedPlusZone, setClickedPlusZone] = useState(false);
 
   const openMenu = data.openMenu;
   const setOpenMenu = data.setOpenMenu;
@@ -53,23 +52,10 @@ const TopicalKeywordNode: React.FC<NodeProps<ExtendedTopicalKeywordNodeData & {
      data.isNew && notifyNode(data.nodeType || 'topicalKeyword', id);
   }, [data.isNew, data.nodeType, id]); // Add dependencies
 
-  useEffect(() => {
-    if (!selected) {
-      setClickedPlusZone(false);
-    }
-  }, [selected]);
-
   const menuOpen = openMenu?.type === 'add' && openMenu.nodeId === id;
   const TopReplaceOpen = openMenu?.type === 'popselect' && openMenu.nodeId === id;
 
-  const handlePlusClick = (e: React.MouseEvent) => {
-    if (data.isLocked) return;
-    e.stopPropagation();
-    e.preventDefault();
-    setClickedPlusZone(true);
-    setOpenMenu?.(menuOpen ? null : { type: 'add', nodeId: id });
-    setReplaceMenuOpen(false);
-  };
+
 
   const handleSelectOption = (parentId: string, type: ContentType) => {
     if (data.isLocked) return;
@@ -121,8 +107,8 @@ const TopicalKeywordNode: React.FC<NodeProps<ExtendedTopicalKeywordNodeData & {
     <div
       className={`relative flex flex-col items-center ${animationClass}`}
     >
-      {/* Only show PopupSelect if not locked and selected but not from plus zone click */}
-      {selected && !data.isLocked && !clickedPlusZone && (
+      {/* Only show PopupSelect if not locked and selected */}
+      {selected && !data.isLocked && !menuOpen && (
         <div ref={popupAnchorRef}>
           <PopupSelect
             onSettingsClick={handleSettingsClick}
@@ -144,10 +130,18 @@ const TopicalKeywordNode: React.FC<NodeProps<ExtendedTopicalKeywordNodeData & {
       )}
       <div
         className={`relative node-wrapper group node-type-${data.nodeType || 'topicalKeyword'} w-32 h-32 transition-transform duration-200 ${selected ? 'selected' : ''} ${data.isRightConnected ? 'is-connected' : ''}`}
-        onMouseEnter={() => !data.isLocked && console.log(`[${id}] Mouse ENTER node wrapper`)}
-        onMouseLeave={() => !data.isLocked && console.log(`[${id}] Mouse LEAVE node wrapper`)}
         style={{ '--node-color': nodeColor } as React.CSSProperties}
-        onMouseDown={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          const target = e.target as HTMLElement;
+          const isPlusZone = target.closest('[data-type="plus-zone"]');
+          const isMenu = target.closest('[data-type="menu"]');
+          
+          if (isPlusZone || isMenu) {
+            console.log(`[TopicalKeywordNode ${id}] Preventing node selection - clicked ${isPlusZone ? 'plus zone' : 'menu'}`);
+            e.stopPropagation();
+            return;
+          }
+        }}
       >
         <svg
             viewBox="0 0 116.5 116.5"
@@ -246,8 +240,13 @@ const TopicalKeywordNode: React.FC<NodeProps<ExtendedTopicalKeywordNodeData & {
           <>
             <div
               className="topical-keyword-connector-plus absolute right-[-16.5px] top-1/2 transform -translate-y-1/2 cursor-pointer z-30 hover:scale-110 transition-all duration-200"
-              onClick={handlePlusClick}
-              title="Add content"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (data.isLocked) return;
+                setOpenMenu?.({ type: 'add', nodeId: id });
+                setReplaceMenuOpen(false);
+              }}
+              data-type="plus-zone"
             >
               <svg width="17" height="25" viewBox="0 0 17 25" >
                 {RightConnectorShape}

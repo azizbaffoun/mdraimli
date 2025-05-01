@@ -12,14 +12,7 @@ import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
 import TextAlign from '@tiptap/extension-text-align';
 import FloatingMenu from './FloatingMenu';
-
-// Data structure for the node
-interface NoteNodeData {
-  title?: string;
-  content?: string;
-  viewport?: { zoom: number };
-  onChange?: (id: string, data: { title?: string; content?: string }) => void;
-}
+import { Editor } from '@tiptap/core';
 
 // Define default values
 const defaultTitle = "Note Title Here";
@@ -29,12 +22,13 @@ const LINE_HEIGHT = 21;
 const MIN_CONTENT_HEIGHT = LINE_HEIGHT + 24; // Base height + padding
 const MAX_CONTENT_HEIGHT = LINE_HEIGHT * 7; // 7 lines max
 
-const NoteNode: React.FC<NodeProps<NoteNodeData>> = ({ id, data }) => {
+export default function NoteNode({ id, data }: NodeProps) {
   const { setNodes, getNode } = useReactFlow();
   const optionsMenuRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [title, setTitle] = useState(data.title ?? defaultTitle);
   const [isOptionsMenuOpen, setIsOptionsMenuOpen] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   // --- Tiptap Editor Setup ---
   const editor = useEditor({
@@ -52,12 +46,16 @@ const NoteNode: React.FC<NodeProps<NoteNodeData>> = ({ id, data }) => {
       }),
     ],
     content: data.content ?? '',
-    onUpdate: ({ editor }) => {
+    onUpdate: useCallback(({ editor }: { editor: Editor }) => {
       const content = editor.getHTML();
-      console.log("[NoteNode] onUpdate - Content Changed:", content.substring(0, 50) + "..."); // Log content change
-      setNodes(nds => nds.map(node => node.id === id ? { ...node, data: { ...node.data, content } } : node));    },
+      // Debounce the node update to prevent excessive re-renders
+      const timeoutId = setTimeout(() => {
+        setNodes(nds => nds.map(node => node.id === id ? { ...node, data: { ...node.data, content } } : node));
+      }, 100);
+      return () => clearTimeout(timeoutId);
+    }, [id, setNodes]),
      
-      onSelectionUpdate: ({ editor }) => {
+    onSelectionUpdate: useCallback(({ editor }: { editor: Editor }) => {
       const { from, to } = editor.state.selection;
       if (from !== to) {
         const start = editor.view.coordsAtPos(from);
@@ -68,9 +66,8 @@ const NoteNode: React.FC<NodeProps<NoteNodeData>> = ({ id, data }) => {
         const bottom = Math.max(start.bottom, end.bottom);
         const rect = { left, top, right, bottom, width: right - left, height: bottom - top };
         console.log('[NoteNode] Text selected:', { from, to, rect });
-      } else {
       }
-    },
+    }, []),
     editorProps: {
       attributes: {
         class: 'note-editor-inner w-full resize-none focus:outline-none text-black',
@@ -79,56 +76,64 @@ const NoteNode: React.FC<NodeProps<NoteNodeData>> = ({ id, data }) => {
     },
   });
 
-  // Simple textarea for note content
-  const [content, setContent] = useState(data.content ?? '');
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-  // State for scrollable detection and hover
-  const [isScrollable, setIsScrollable] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
+  // Single, unified wheel event handler for the container
+  const handleWheel = useCallback((e: WheelEvent) => {
+    // Get the target element that's actually scrolling
+    const target = e.target as HTMLElement;
+    const scrollableTarget = target.closest('.ProseMirror') as HTMLElement;
+    
+    if (!scrollableTarget) return;
 
-  useEffect(() => {
-    setContent(data.content ?? '');
-  }, [data.content]);
+    const isScrollable = scrollableTarget.scrollHeight > scrollableTarget.clientHeight;
+    const atTop = scrollableTarget.scrollTop === 0;
+    const atBottom = scrollableTarget.scrollTop + scrollableTarget.clientHeight >= scrollableTarget.scrollHeight;
+    const scrollingUp = e.deltaY < 0;
+    const scrollingDown = e.deltaY > 0;
 
-  // Auto-expand textarea up to 7 lines and detect scrollable
-  useEffect(() => {
-    const textarea = textareaRef.current;
-    if (textarea) {
-      textarea.style.height = 'auto';
-      const scrollHeight = textarea.scrollHeight;
-      const maxHeight = MAX_CONTENT_HEIGHT;
-      textarea.style.height = Math.min(scrollHeight, maxHeight) + 'px';
-      textarea.style.overflowY = scrollHeight > maxHeight ? 'auto' : 'hidden';
-      // Debug log
-      console.log('[NoteNode] textarea scrollHeight:', scrollHeight, 'maxHeight:', maxHeight, 'isScrollable:', scrollHeight > maxHeight);
-      // Detect if content is scrollable (over 7 lines)
-      setIsScrollable(scrollHeight > maxHeight);
+    // Always stop propagation to prevent canvas zoom while over note
+    e.stopPropagation();
+
+    // Prevent default only when:
+    // 1. Content is not scrollable, or
+    // 2. Trying to scroll up when already at top, or
+    // 3. Trying to scroll down when already at bottom
+    if (!isScrollable || (scrollingUp && atTop) || (scrollingDown && atBottom)) {
+      e.preventDefault();
+      console.log('[NoteNode] Preventing scroll:', {
+        isScrollable,
+        atTop,
+        atBottom,
+        scrollingUp,
+        scrollingDown,
+        deltaY: e.deltaY
+      });
     }
-  }, [content]);
+  }, []);
 
-  // Native wheel event listener for textarea (to catch events React might miss)
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    return () => {
+      container.removeEventListener('wheel', handleWheel);
+    };
+  }, [handleWheel]);
+
+  // Remove the old wheel handlers from the textarea and editor
   useEffect(() => {
     const textarea = textareaRef.current;
     if (!textarea) return;
-    const handler = (e: WheelEvent) => {
-      const el = textarea;
-      const isScrollable = el.scrollHeight > el.clientHeight;
-      const atTop = el.scrollTop === 0;
-      const atBottom = el.scrollTop + el.clientHeight === el.scrollHeight;
-      const scrollingUp = e.deltaY < 0;
-      const scrollingDown = e.deltaY > 0;
-      console.log('[NoteNode] native textarea wheel', { isHovered, isScrollable, atTop, atBottom, deltaY: e.deltaY });
-      // Always stop propagation to prevent canvas zoom
-      e.stopPropagation();
-      // Only preventDefault if not scrollable, or at edge and trying to scroll past
-      if (!isScrollable || (scrollingUp && atTop) || (scrollingDown && atBottom)) {
-        console.log('[NoteNode] native preventDefault called onWheel (block canvas zoom at edge)');
-        e.preventDefault();
+
+    const resizeObserver = new ResizeObserver(() => {
+      if (textarea.scrollHeight > textarea.clientHeight) {
+        // Handle scrollable state if needed
       }
-    };
-    textarea.addEventListener('wheel', handler, { passive: false });
-    return () => textarea.removeEventListener('wheel', handler);
-  }, [isHovered, isScrollable]);
+    });
+
+    resizeObserver.observe(textarea);
+    return () => resizeObserver.disconnect();
+  }, []);
 
   const handleTitleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newTitle = event.target.value;
@@ -259,20 +264,12 @@ const NoteNode: React.FC<NodeProps<NoteNodeData>> = ({ id, data }) => {
   return (
     <div
       ref={containerRef}
-      className="note-node-container relative bg-white rounded-lg shadow-md border border-gray-200 flex flex-col"
+      className="note-node-container relative bg-white rounded-lg shadow-md border border-gray-200 flex flex-col hover:shadow-lg transition-shadow"
       style={{ width: 270, minHeight: 110 }}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
       onMouseDown={(e) => {
         // Stop clicks inside the node from propagating to ReactFlow
         console.log('[NoteNode] onMouseDown on root div, stopping propagation.');
         e.stopPropagation();
-      }}
-      onWheel={e => {
-        const isTextArea = textareaRef.current && textareaRef.current.contains(e.target as Node);
-        if (isHovered && isScrollable && isTextArea) {
-          e.stopPropagation();
-        }
       }}
     >
       <Handle 
@@ -402,66 +399,6 @@ const NoteNode: React.FC<NodeProps<NoteNodeData>> = ({ id, data }) => {
             <div style={{ width: '100%' }}>
               <EditorContent editor={editor} />
             </div>
-
-            {/* Native wheel event interception for robust scroll/canvas zoom blocking */}
-            {editor && (
-              (() => {
-                // Attach native event listener to the ProseMirror element
-                // Use a ref to ensure we only attach once
-                const proseMirrorRef = useRef<HTMLElement | null>(null);
-                useEffect(() => {
-                  // Find the actual ProseMirror element
-                  const el = document.querySelector('.ProseMirror') as HTMLElement | null;
-                  proseMirrorRef.current = el;
-                  if (!el) return;
-                  const handler = (e: WheelEvent) => {
-                    const isScrollable = el.scrollHeight > el.clientHeight;
-                    const atTop = el.scrollTop === 0;
-                    const atBottom = el.scrollTop + el.clientHeight === el.scrollHeight;
-                    const scrollingUp = e.deltaY < 0;
-                    const scrollingDown = e.deltaY > 0;
-                    const nodeId = id;
-                    const logObj = {
-                      file: '[src/components/NoteNode.tsx]',
-                      nodeId,
-                      clientX: e.clientX,
-                      clientY: e.clientY,
-                      isScrollable,
-                      atTop,
-                      atBottom,
-                      scrollingUp,
-                      scrollingDown,
-                      deltaY: e.deltaY,
-                      scrollTop: el.scrollTop,
-                      scrollHeight: el.scrollHeight,
-                      clientHeight: el.clientHeight,
-                    };
-                    let stopped = false;
-                    let prevented = false;
-                    // Always stop propagation to prevent canvas zoom
-                    e.stopPropagation();
-                    stopped = true;
-                    // Only preventDefault if overscrolling (at edge)
-                    if ((scrollingUp && atTop) || (scrollingDown && atBottom) || !isScrollable) {
-                      e.preventDefault();
-                      prevented = true;
-                      (logObj as any).canvasZoomBlocked = true;
-                      console.log('[src/components/NoteNode.tsx] onWheel (overscroll/canvas zoom blocked) [native]', logObj);
-                    } else {
-                      (logObj as any).canvasZoomBlocked = false;
-                      console.log('[src/components/NoteNode.tsx] onWheel (scroll allowed, only stopPropagation) [native]', logObj);
-                    }
-                    (logObj as any).stopped = stopped;
-                    (logObj as any).prevented = prevented;
-                  };
-                  el.addEventListener('wheel', handler, { passive: false });
-                  return () => {
-                    el.removeEventListener('wheel', handler);
-                  };
-                }, [editor, id]);
-                return null;
-              })()
-            )}
           </>
         )}
       </div>
@@ -544,6 +481,4 @@ const NoteNode: React.FC<NodeProps<NoteNodeData>> = ({ id, data }) => {
       )}
     </div>
   );
-};
-
-export default NoteNode; 
+} 

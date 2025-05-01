@@ -24,7 +24,7 @@ body {
 }
 
 /* Add custom animation keyframes */
-.node-bouncing-in {
+.node-bouncing-in:not(.note-node-container) {
   animation: bounceIn 0.35s ease-out forwards; /* Even faster duration */
 }
 

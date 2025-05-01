@@ -140,17 +140,6 @@ const SocialMediaNode: React.FC<NodeProps<SocialMediaNodeData>> = ({ id, data, s
           </svg>
         </div>
 
-        {/* Right connector - Only show if right connected or if not locked/not last node */}
-        {(data.isRightConnected || (!data.isLocked || !data.isLastNode)) && (
-          <div
-            className={`social-media-connector-right-connected absolute right-[-16.5px] top-1/2 transform -translate-y-1/2 pointer-events-none z-20`}
-          >
-            <svg width="17" height="25" viewBox="0 0 17 25" >
-              <path d="M0,0H4A12,12,0,0,1,16,12v0A12,12,0,0,1,4,24H0a0,0,0,0,1,0,0V0A0,0,0,0,1,0,0Z" transform="translate(0.5 0.5)" fill="#fc8500" stroke="rgba(0,0,0,0)" strokeMiterlimit="10" strokeWidth="1"/>
-            </svg>
-          </div>
-        )}
-
       </div>
       <div className="mt-[10px] text-sm text-black">Social Media</div>
     </div>

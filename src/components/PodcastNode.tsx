@@ -39,12 +39,7 @@ const PodcastNode: React.FC<NodeProps<PodcastNodeData>> = ({ id, data, selected 
     data.isNew && notifyNode('podcast', id);
   }, []);
 
-  const handlePlusClick = (e: React.MouseEvent) => {
-    if (data.isLocked) return;
-    e.stopPropagation();
-    setMenuOpen(!menuOpen);
-    setReplaceMenuOpen(false);
-  };
+
 
   const handleSelectOption = (parentId: string, type: ContentType) => {
     if (data.isLocked) return;
@@ -83,7 +78,7 @@ const PodcastNode: React.FC<NodeProps<PodcastNodeData>> = ({ id, data, selected 
 
   // Define the right connector shape inline (used in two places now)
   const RightConnectorShape = (
-    <path d="M0,0H4A12,12,0,0,1,16,12v0A12,12,0,0,1,4,24H0a0,0,0,0,1,0,0V0A0,0,0,0,1,0,0Z" transform="translate(0.5 0.5)" fill="#b99bd6" stroke="rgba(0,0,0,0)" strokeMiterlimit="10" strokeWidth="1"/>
+    <path d="M0,0H4A12,12,0,0,1,16,12v0A12,12,0,0,1,4,24H0a0,0,0,0,1,0,0V0A0,0,0,0,1,0,0Z" transform="translate(0.5 0.5)" fill="#b388de" stroke="rgba(0,0,0,0)" strokeMiterlimit="10" strokeWidth="1"/>
   );
   // Define the plus icon shape inline
   const PlusIconShape = (
@@ -116,7 +111,17 @@ const PodcastNode: React.FC<NodeProps<PodcastNodeData>> = ({ id, data, selected 
         onMouseEnter={() => !data.isLocked && console.log(`[${id}] Mouse ENTER node wrapper`)}
         onMouseLeave={() => !data.isLocked && console.log(`[${id}] Mouse LEAVE node wrapper`)}
         style={{ '--node-color': '#b99bd6' } as React.CSSProperties}
-        onMouseDown={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          const target = e.target as HTMLElement;
+          const isPlusZone = target.closest('[data-type="plus-zone"]');
+          const isMenu = target.closest('[data-type="menu"]');
+
+          if (isPlusZone || isMenu) {
+            console.log(`[PodcastNode ${id}] Preventing node selection - clicked ${isPlusZone ? 'plus zone' : 'menu'}`);
+            e.stopPropagation();
+            return;
+          }
+        }}
       >
         {/* Main SVG for Node Appearance */}
         <svg
@@ -171,7 +176,7 @@ const PodcastNode: React.FC<NodeProps<PodcastNodeData>> = ({ id, data, selected 
         <div 
           className={`podcast-node-connector-left absolute left-[-16.5px] top-1/2 transform -translate-y-1/2 pointer-events-none z-20 ${data.isLeftConnected ? 'is-connected' : ''}`}>
             <svg width="17" height="25" viewBox="0 0 17 25">
-              <path d="M12,0h4a0,0,0,0,1,0,0V24a0,0,0,0,1,0,0H12A12,12,0,0,1,0,12v0A12,12,0,0,1,12,0Z" transform="translate(0.5 0.5)" fill="#b99bd6" stroke="rgba(0,0,0,0)" strokeMiterlimit="10" strokeWidth="1"/>
+              <path d="M12,0h4a0,0,0,0,1,0,0V24a0,0,0,0,1,0,0H12A12,12,0,0,1,0,12v0A12,12,0,0,1,12,0Z" transform="translate(0.5 0.5)" fill="#b388de" stroke="rgba(0,0,0,0)" strokeMiterlimit="10" strokeWidth="1"/>
             </svg>
         </div>
 
@@ -180,8 +185,14 @@ const PodcastNode: React.FC<NodeProps<PodcastNodeData>> = ({ id, data, selected 
           <>
             <div 
               className="podcast-node-connector-plus absolute right-[-16.5px] top-1/2 transform -translate-y-1/2 cursor-pointer group z-30 hover:scale-110 transition-transform"
-              onClick={handlePlusClick}
-              title="Add content"
+              onClick={(e) => {
+                console.log(`[PodcastNode ${id}] Plus zone clicked`);
+                if (data.isLocked) return;
+                e.stopPropagation();
+                setMenuOpen(!menuOpen);
+                setReplaceMenuOpen(false);
+              }}
+              data-type="plus-zone"
             >
               <svg width="17" height="25" viewBox="0 0 17 25" >
                 {RightConnectorShape}
