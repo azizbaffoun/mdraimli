@@ -7,6 +7,8 @@ export interface BaseNodeData {
   isEntering?: boolean; 
   isExiting?: boolean;
   isNew?: boolean;
+  isLocked?: boolean;
+  isLastNode?: boolean;
 }
 
 // Data for the initial start node

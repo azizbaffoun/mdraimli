@@ -233,7 +233,7 @@ const NoteNode: React.FC<NodeProps<NoteNodeData>> = ({ id, data }) => {
     setIsOptionsMenuOpen(!isOptionsMenuOpen);
   };
 
-  
+ 
 
   return (
     <div
