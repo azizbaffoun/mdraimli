@@ -81,11 +81,7 @@ export interface NoteNodeFlowData extends BaseNodeData {
 
 
 // Union type for any possible node data in our workflow
-export type WorkflowNodeData = (StartNodeData | TopicalKeywordNodeData | ContentNodeData | NoteNodeFlowData) & {
-  isLocked?: boolean;
-  isLastNode?: boolean;
-  nodeType?: 'topicalKeyword' | 'offer' | 'event';
-};
+export type WorkflowNodeData = StartNodeData | TopicalKeywordNodeData | ContentNodeData | NoteNodeFlowData;
 
 // You might also want a type for the overall workflow structure if saving/loading
 export interface WorkflowData {
@@ -103,6 +99,8 @@ declare global {
   interface Window {
     notifyNodeAdded?: (type: string, nodeId?: string) => void;
     getWorkflowData?: () => void; // Add this line,
+    saveWorkFlowToMVC?: () => void; // Add this line
+    saveWorkflow?: () => void; // Add this line
   }
 }
 
@@ -117,6 +115,13 @@ export function notifyNode(type: string, nodeId?: string) {
 export function getWorkflowData() {
   if (typeof window.getWorkflowData === 'function') {
     return window.getWorkflowData();
+  }
+  return null; // or handle the case when the function is not available
+}
+
+export function saveWorkFlowToMVC() {
+  if (typeof window.saveWorkflow === 'function') {
+    window.saveWorkflow();
   }
   return null; // or handle the case when the function is not available
 }
