@@ -23,7 +23,7 @@ export default defineConfig({
           if (assetInfo.name && assetInfo.name.endsWith('.css')) {
             return 'assets/style.css';
           }
-          // Keep other assets (like images) in their default structure
+//hello
           return `assets/[name].[ext]`;
         },
         manualChunks: {
