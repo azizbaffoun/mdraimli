@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { NodeProps, useReactFlow, Handle, Position } from 'reactflow';
 import { v4 as uuidv4 } from 'uuid';
-import ReactDOM from 'react-dom';
-
-import { EditorContent, useEditor, BubbleMenu } from '@tiptap/react';
+import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -11,8 +9,9 @@ import Highlight from '@tiptap/extension-highlight';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
 import TextAlign from '@tiptap/extension-text-align';
-import FloatingMenu from './FloatingMenu';
 import { Editor } from '@tiptap/core';
+import BubbleMenuWrapper from './NoteMenus/BubbleMenuWrapper';
+import OptionsMenu from './NoteMenus/OptionsMenu';
 
 // Define default values
 const defaultTitle = "Note Title Here";
@@ -24,7 +23,6 @@ const MAX_CONTENT_HEIGHT = LINE_HEIGHT * 7; // 7 lines max
 
 export default function NoteNode({ id, data }: NodeProps) {
   const { setNodes, getNode } = useReactFlow();
-  const optionsMenuRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [title, setTitle] = useState(data.title ?? defaultTitle);
   const [isOptionsMenuOpen, setIsOptionsMenuOpen] = useState(false);
@@ -54,20 +52,6 @@ export default function NoteNode({ id, data }: NodeProps) {
       }, 100);
       return () => clearTimeout(timeoutId);
     }, [id, setNodes]),
-     
-    onSelectionUpdate: useCallback(({ editor }: { editor: Editor }) => {
-      const { from, to } = editor.state.selection;
-      if (from !== to) {
-        const start = editor.view.coordsAtPos(from);
-        const end = editor.view.coordsAtPos(to);
-        const left = Math.min(start.left, end.left);
-        const right = Math.max(start.right, end.right);
-        const top = Math.min(start.top, end.top);
-        const bottom = Math.max(start.bottom, end.bottom);
-        const rect = { left, top, right, bottom, width: right - left, height: bottom - top };
-        console.log('[NoteNode] Text selected:', { from, to, rect });
-      }
-    }, []),
     editorProps: {
       attributes: {
         class: 'note-editor-inner w-full resize-none focus:outline-none text-black',
@@ -99,14 +83,6 @@ export default function NoteNode({ id, data }: NodeProps) {
     // 3. Trying to scroll down when already at bottom
     if (!isScrollable || (scrollingUp && atTop) || (scrollingDown && atBottom)) {
       e.preventDefault();
-      console.log('[NoteNode] Preventing scroll:', {
-        isScrollable,
-        atTop,
-        atBottom,
-        scrollingUp,
-        scrollingDown,
-        deltaY: e.deltaY
-      });
     }
   }, []);
 
@@ -162,37 +138,10 @@ export default function NoteNode({ id, data }: NodeProps) {
     const bubbleWidth = 240;
     const bubbleHeight = 90;
     const bubbleGap = 16;
-    const leftOffset = -40; // Add offset to move menu more to the left
+    const leftOffset = -40;
   
-    // Get container position for relative positioning
-    const container = containerRef.current?.getBoundingClientRect();
-    
-    // Calculate position in screen coordinates
     const left = rect.left + (rect.width / 2) - (bubbleWidth / 2) + leftOffset;
     const top = rect.top - bubbleHeight - bubbleGap;
-  
-    console.log('[NoteNode] Text Selection Position:', {
-      textRect: {
-        left: rect.left,
-        top: rect.top,
-        width: rect.width,
-        height: rect.height,
-        raw: rect
-      },
-      containerRect: container,
-      calculatedMenuPosition: {
-        left,
-        top,
-        width: bubbleWidth,
-        height: bubbleHeight,
-        raw: {
-          left,
-          top,
-          right: left + bubbleWidth,
-          bottom: top + bubbleHeight
-        }
-      }
-    });
   
     return {
       width: bubbleWidth,
@@ -209,11 +158,6 @@ export default function NoteNode({ id, data }: NodeProps) {
 
   // --- Menu Handlers ---
   const handleDelete = () => {
-    console.log('[NoteNode] Menu Action:', {
-      action: 'delete',
-      nodeId: id,
-      timestamp: new Date().toISOString()
-    });
     if (data.onDelete) {
       data.onDelete(id);
     }
@@ -221,11 +165,6 @@ export default function NoteNode({ id, data }: NodeProps) {
   };
 
   const handleDuplicate = () => {
-    console.log('[NoteNode] Menu Action:', {
-      action: 'duplicate',
-      nodeId: id,
-      timestamp: new Date().toISOString()
-    });
     const nodeToDuplicate = getNode(id);
     if (!nodeToDuplicate) return;
 
@@ -241,7 +180,7 @@ export default function NoteNode({ id, data }: NodeProps) {
       position,
       data: { 
         ...nodeToDuplicate.data,
-        onDelete: data.onDelete  // Pass along the onDelete handler
+        onDelete: data.onDelete
       },
       selected: false,
       dragHandle: `#note-header-${newNodeId}`,
@@ -251,31 +190,37 @@ export default function NoteNode({ id, data }: NodeProps) {
     setIsOptionsMenuOpen(false);
   };
 
-
   // --- Options Menu Handlers ---
   const toggleOptionsMenu = (event: React.MouseEvent) => {
-    console.log('[NoteNode] Menu State:', {
-      action: 'toggle',
-      isOpen: !isOptionsMenuOpen,
-      nodeId: id,
-      timestamp: new Date().toISOString()
-    });
     event.stopPropagation();
     setIsOptionsMenuOpen(!isOptionsMenuOpen);
   };
 
- 
+  // Main cleanup effect for editor destruction on unmount
+  useEffect(() => {
+    if (data.isExiting) {
+      setIsOptionsMenuOpen(false);
+      if (editor && !editor.isDestroyed) {
+        editor.setOptions({ editable: false });
+        editor.destroy();
+      }
+    }
+    
+    return () => {
+      setIsOptionsMenuOpen(false);
+      if (editor && !editor.isDestroyed) {
+        editor.setOptions({ editable: false });
+        editor.destroy();
+      }
+    };
+  }, [data.isExiting, editor]);
 
   return (
     <div
       ref={containerRef}
-      className="note-node-container relative bg-white rounded-lg shadow-md border border-gray-200 flex flex-col hover:shadow-lg transition-shadow"
+      className={`note-node-container relative bg-white rounded-lg shadow-md border border-gray-200 flex flex-col hover:shadow-lg transition-all duration-150 ${data.isExiting ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}
       style={{ width: 270, minHeight: 110 }}
-      onMouseDown={(e) => {
-        // Stop clicks inside the node from propagating to ReactFlow
-        console.log('[NoteNode] onMouseDown on root div, stopping propagation.');
-        e.stopPropagation();
-      }}
+      onMouseDown={(e) => e.stopPropagation()}
     >
       <Handle 
         type="target" 
@@ -356,46 +301,13 @@ export default function NoteNode({ id, data }: NodeProps) {
         {/* Tiptap Rich Text Editor */}
         {editor && (
           <>
-            {ReactDOM.createPortal(
-              <BubbleMenu 
-                editor={editor} 
-                shouldShow={({ state }) => {
-                  const { from, to } = state.selection;
-                  return from !== to; // Show menu when text is selected
-                }}
-                tippyOptions={{
-                  getReferenceClientRect: getSelectionBoundingRect,
-                  placement: 'top',
-                  appendTo: () => document.body,
-                  interactive: true,
-                  zIndex: 9999,
-                  onHide: () => {
-                    // Clean up any leftover tippy elements
-                    const tippyElements = document.querySelectorAll('[data-tippy-root]');
-                    tippyElements.forEach(el => el.remove());
-                  },
-                  onDestroy: () => {
-                    // Additional cleanup when tippy instance is destroyed
-                    const tippyElements = document.querySelectorAll('[data-tippy-root]');
-                    tippyElements.forEach(el => el.remove());
-                  }
-                }}
-              >
-                <div style={{ 
-                  position: 'fixed',
-                  zIndex: 9999,
-                  transformOrigin: 'top left',
-                  pointerEvents: 'auto',
-                  backgroundColor: 'white',
-                  borderRadius: '8px',
-                  padding: '8px',
-                  listStyle: 'none'
-                }}>
-                  <FloatingMenu editor={editor} placement="top" />
-                </div>
-              </BubbleMenu>,
-              document.body
-            )}
+            {/* BubbleMenu */}
+            <BubbleMenuWrapper
+              editor={editor}
+              id={id}
+              isExiting={!!data.isExiting}
+              getSelectionBoundingRect={getSelectionBoundingRect}
+            />
 
             {/* Editor content */}
             <div style={{ width: '100%' }}>
@@ -405,81 +317,12 @@ export default function NoteNode({ id, data }: NodeProps) {
         )}
       </div>
 
-
-      {/* Options Menu - Replaced with SVG */}
+      {/* Options Menu */}
       {isOptionsMenuOpen && (
-        <div
-          ref={optionsMenuRef}
-          className="absolute top-[-4px] left-[266px] z-[70]"
-          onMouseDown={(e) => e.stopPropagation()}
-          style={{ width: '133.872px', height: '84.42px' }}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink" width="133.872" height="84.42" viewBox="0 0 133.872 84.42">
-            <defs>
-              <filter id="Union_9" x="0" y="0" width="133.872" height="84.42" filterUnits="userSpaceOnUse">
-                {/* @ts-ignore */}
-                <feOffset dy="2" input="SourceAlpha"/>
-                {/* @ts-ignore */}
-                <feGaussianBlur stdDeviation="1" result="blur"/>
-                <feFlood floodOpacity="0.071"/>
-                {/* @ts-ignore */}
-                <feComposite operator="in" in2="blur"/>
-                <feComposite in="SourceGraphic"/>
-              </filter>
-              <linearGradient id="linear-gradient" y1="0.365" x2="1" y2="0.058" gradientUnits="objectBoundingBox">
-                <stop offset="0" stopColor="#3799db"/>
-                <stop offset="1" stopColor="#2db4a6"/>
-              </linearGradient>
-            </defs>
-            <g id="Group_5042" data-name="Group 5042" transform="translate(-67.445 -507.58)">
-              <g transform="matrix(1, 0, 0, 1, 67.44, 507.58)" filter="url(#Union_9)">
-                <g id="Union_9-2" data-name="Union 9" transform="translate(5.24 -0.58)" fill="#fff">
-                  {/* SVG Path for background shape */}
-                  <path d="M 111.6305999755859 79.50009918212891 L 14.3163013458252 79.50009918212891 C 10.71041774749756 79.50009918212891 7.320384502410889 78.09577941894531 4.770651340484619 75.54581451416016 C 2.220968008041382 72.99591827392578 0.8168013095855713 69.60569763183594 0.8168013095855713 65.99970245361328 L 0.8168013095855713 27.04506492614746 L 0.8168013095855713 26.86246490478516 L 0.6991346478462219 26.72284889221191 L -1.515765309333801 24.09478187561035 C -1.782815337181091 23.7774829864502 -1.817298650741577 23.25718307495117 -1.589331984519958 22.98159980773926 L 0.7018846273422241 20.21491622924805 L 0.8168013095855713 20.07614898681641 L 0.8168013095855713 19.89599800109863 L 0.8168013095855713 15.57989883422852 C 0.8168013095855713 11.97396564483643 2.220968008041382 8.583915710449219 4.770634651184082 6.034232139587402 C 7.32031774520874 3.484565496444702 10.71036815643311 2.080398797988892 14.3163013458252 2.080398797988892 L 111.6305999755859 2.080398797988892 C 115.2366027832031 2.080398797988892 118.6268157958984 3.484565496444702 121.1767196655273 6.034248828887939 C 123.7266845703125 8.583982467651367 125.1310043334961 11.97401523590088 125.1310043334961 15.57989883422852 L 125.1310043334961 65.99970245361328 C 125.1310043334961 69.60562896728516 123.7266693115234 72.995849609375 121.1767196655273 75.54581451416016 C 118.6267547607422 78.09576416015625 115.2365341186523 79.50009918212891 111.6305999755859 79.50009918212891 Z" stroke="none"/>
-                  <path d="M 111.6305999755859 79.00009918212891 C 115.1029815673828 79.00009918212891 118.3676376342773 77.64778137207031 120.8231506347656 75.19224548339844 C 123.2786865234375 72.73673248291016 124.6310043334961 69.47208404541016 124.6310043334961 65.99970245361328 L 124.6310043334961 15.57989883422852 C 124.6310043334961 12.10758209228516 123.2787017822266 8.84311580657959 120.8231811523438 6.387832164764404 C 118.3677215576172 3.932565450668335 115.1030502319336 2.580398797988892 111.6305999755859 2.580398797988892 L 14.3163013458252 2.580398797988892 C 10.84391784667969 2.580398797988892 7.579434871673584 3.932565450668335 5.12420129776001 6.38779878616333 C 2.668967962265015 8.843031883239746 1.316801309585571 12.10751533508301 1.316801309585571 15.57989883422852 L 1.316801309585571 20.25631523132324 L -1.204048633575439 23.3002815246582 C -1.259515404701233 23.36733245849609 -1.267648696899414 23.61309814453125 -1.133448719978333 23.7725658416748 L 1.316801309585571 26.67986488342285 L 1.316801309585571 65.99970245361328 C 1.316801309585571 69.47214508056641 2.668967962265015 72.73681640625 5.124234676361084 75.19228363037109 C 7.579517841339111 77.64779663085938 10.84398460388184 79.00009918212891 14.3163013458252 79.00009918212891 L 111.6305999755859 79.00009918212891 M 111.6305999755859 80.00009918212891 L 14.3163013458252 80.00009918212891 C 6.58440113067627 80.00009918212891 0.3168013095855713 73.73159790039062 0.3168013095855713 65.99970245361328 L 0.3168013095855713 27.04506492614746 L -1.898098707199097 24.41699981689453 C -2.323798656463623 23.91119956970215 -2.357998609542847 23.12639808654785 -1.97459864616394 22.66289901733398 L 0.3168013095855713 19.89599800109863 L 0.3168013095855713 15.57989883422852 C 0.3168013095855713 7.847999095916748 6.58440113067627 1.580398917198181 14.3163013458252 1.580398917198181 L 111.6305999755859 1.580398917198181 C 119.3625030517578 1.580398917198181 125.6310043334961 7.847999095916748 125.6310043334961 15.57989883422852 L 125.6310043334961 65.99970245361328 C 125.6310043334961 73.73159790039062 119.3625030517578 80.00009918212891 111.6305999755859 80.00009918212891 Z" stroke="none" fill="#e4e9ee"/>
-                </g>
-              </g>
-              {/* -- Duplicate Button Area -- */}
-              <g
-                onClick={handleDuplicate}
-                style={{ cursor: 'pointer' }}
-                aria-label="Duplicate Note"
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleDuplicate(); }}
-              >
-                <rect x="70" y="515" width="125" height="30" fill="transparent" />
-                <text id="Duplicate_Text" data-name="Duplicate" transform="translate(111.843 536.026)" fill="#222" stroke="rgba(0,0,0,0)" strokeWidth="1" fontSize="15" fontFamily="SegoeUI, Segoe UI">
-                  <tspan x="0" y="0">Duplicate</tspan>
-                </text>
-                <g id="Iconly_Light-Outline_Paper-Plus" data-name="Iconly/Light-Outline/Paper-Plus" transform="translate(83.291 519.026)">
-                  <g id="Paper-Plus" transform="translate(3 2)">
-                    <path id="Combined-Shape" d="M10.974,0A.753.753,0,0,1,11.1.011h.136a.752.752,0,0,1,.541.23l5.066,5.279a.753.753,0,0,1,.208.519v9.3a4.533,4.533,0,0,1-4.471,4.526H4.4A4.473,4.473,0,0,1,0,15.327V4.491A4.6,4.6,0,0,1,4.57.012h6.279A.753.753,0,0,1,10.974,0Zm-.75,1.511H4.573a3.086,3.086,0,0,0-3.072,3V15.34a2.969,2.969,0,0,0,2.913,3.027h8.159a3.028,3.028,0,0,0,2.979-3.025V6.983H13.543a3.332,3.332,0,0,1-3.319-3.325Zm-1.88,6.2a.75.75,0,0,1,.75.75v1.7h1.7a.75.75,0,1,1,0,1.5h-1.7v1.7a.75.75,0,0,1-1.5,0v-1.7h-1.7a.75.75,0,0,1,0-1.5h1.7v-1.7A.75.75,0,0,1,8.344,7.714Zm3.38-5.362V3.659a1.829,1.829,0,0,0,1.821,1.825h1.183Z" fillRule="evenodd" fill="url(#linear-gradient)"/>
-                  </g>
-                </g>
-              </g>
-              {/* -- Delete Button Area -- */}
-              <g
-                onClick={handleDelete}
-                style={{ cursor: 'pointer' }}
-                aria-label="Delete Note"
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleDelete(); }}
-              >
-                <rect x="70" y="545" width="125" height="30" fill="transparent" />
-                <text id="Delete_Text" data-name="Delete" transform="translate(111.843 570.026)" fill="#222" stroke="rgba(0,0,0,0)" strokeWidth="1" fontSize="15" fontFamily="SegoeUI, Segoe UI">
-                  <tspan x="0" y="0">Delete</tspan>
-                </text>
-                <g id="Iconly_Light-Outline_Delete" data-name="Iconly/Light-Outline/Delete" transform="translate(84.52 552.026)">
-                  <g id="Delete" transform="translate(3 2)">
-                    <path id="Combined-Shape-2" data-name="Combined-Shape" d="M16.385,6.72a.751.751,0,0,1,.688.808c-.006.068-.548,6.779-.86,9.594a2.976,2.976,0,0,1-3.09,2.842C11.79,19.987,10.5,20,9.247,20c-1.355,0-2.676-.015-3.983-.042a2.967,2.967,0,0,1-3.018-2.829c-.315-2.84-.854-9.534-.859-9.6a.749.749,0,0,1,.687-.808.77.77,0,0,1,.808.687c0,.043.224,2.777.464,5.482l.048.54c.121,1.344.244,2.636.343,3.536a1.472,1.472,0,0,0,1.558,1.494c2.5.053,5.051.056,7.8.006a1.5,1.5,0,0,0,1.626-1.507c.31-2.794.85-9.482.856-9.55A.766.766,0,0,1,16.385,6.72ZM11.345,0a2.033,2.033,0,0,1,1.962,1.506l.254,1.261a.9.9,0,0,0,.865.722h3.282a.75.75,0,1,1,0,1.5H.75a.75.75,0,1,1,0-1.5H4.031l.1-.006A.9.9,0,0,0,4.9,2.767L5.14,1.551A2.043,2.043,0,0,1,7.112,0Zm0,1.5H7.112a.529.529,0,0,0-.512.392l-.233,1.17a2.379,2.379,0,0,1-.128.427h5.979a2.386,2.386,0,0,1-.128-.427l-.243-1.216A.524.524,0,0,0,11.345,1.5Z" fillRule="evenodd" fill="url(#linear-gradient)"/>
-                  </g>
-                </g>
-              </g>
-            </g>
-          </svg>
-        </div>
+        <OptionsMenu
+          onDuplicate={handleDuplicate}
+          onDelete={handleDelete}
+        />
       )}
     </div>
   );

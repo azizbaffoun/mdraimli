@@ -148,34 +148,21 @@ const WorkflowEditorContent: React.FC = () => {
   const nodeTypes = nodeTypesDefinition;
   const edgeTypes = useMemo(() => edgeTypesDefinition, []);
   
-  // Handle node deletion 
+  // Function to handle node deletion safely - split into two separate functions
   const handleDeleteNode = useCallback((nodeId: string) => {
     // Push current state to history before change
     setHistory(prev => [...prev, { nodes: getNodes(), edges: getEdges() }]);
     setFuture([]);
-    console.log('🗑️ Starting node deletion process for node:', nodeId);
     
-    // Save current state before deletion
+    console.log('📍 Node to delete:', getNode(nodeId));
+
     const currentNodes = getNodes();
-    const currentEdges = getEdges();
-    
-    // Get the node to be deleted
-    const nodeToDelete = currentNodes.find(n => n.id === nodeId);
+    const nodeToDelete = currentNodes.find((n) => n.id === nodeId);
+
     if (!nodeToDelete) {
-      console.error('❌ Node to delete not found:', nodeId);
+      console.error('❌ Node not found for deletion:', nodeId);
       return;
     }
-
-    console.log('📍 Node to delete:', {
-      id: nodeToDelete.id,
-      type: nodeToDelete.type,
-      data: {
-        ...nodeToDelete.data,
-        canAddChild: nodeToDelete.data?.canAddChild,
-        isLeftConnected: nodeToDelete.data?.isLeftConnected,
-        isRightConnected: nodeToDelete.data?.isRightConnected
-      }
-    });
 
     // Don't allow deletion of the topical keyword node
     if (nodeToDelete.type === 'topicalKeyword') {
@@ -183,6 +170,62 @@ const WorkflowEditorContent: React.FC = () => {
       return;
     }
 
+    // Route to separate handlers for different node types
+    if (nodeToDelete.type === 'note') {
+      handleDeleteNoteNode(nodeId);
+    } else {
+      handleDeleteContentNode(nodeId);
+    }
+  }, [getNodes, getEdges, setHistory, setFuture]);
+
+  // Separate handler for note nodes which need special cleanup
+  const handleDeleteNoteNode = useCallback((nodeId: string) => {
+    const currentNodes = getNodes();
+    
+    // Check if node still exists before trying to update it
+    const nodeToDelete = currentNodes.find(n => n.id === nodeId);
+    if (!nodeToDelete) {
+      console.warn(`[WorkflowEditor] Note node ${nodeId} not found for deletion, may have been deleted already`);
+      return;
+    }
+    
+    // Flag to prevent duplicate deletions
+    let deletionInProgress = false;
+    
+    // First update the node to mark it as exiting - this triggers cleanup
+    setNodes(currentNodes.map(node => 
+      node.id === nodeId 
+        ? { ...node, data: { ...node.data, isExiting: true } } 
+        : node
+    ));
+    
+    // Allow cleanup to complete before actually removing the node
+    setTimeout(() => {
+      if (deletionInProgress) return;
+      deletionInProgress = true;
+      
+      try {
+        // Now remove the node after cleanup has time to finish
+        setNodes(nodes => {
+          // Double check the node still exists
+          if (nodes.some(n => n.id === nodeId)) {
+            console.log('✅ Note node deletion completed', nodeId);
+            return nodes.filter(n => n.id !== nodeId);
+          }
+          return nodes;
+        });
+        setSelectedNodeId(null);
+      } catch (e) {
+        console.error('[WorkflowEditor] Error while removing note node:', e);
+      }
+    }, 200); // Give it more time for cleanup
+  }, [getNodes, setNodes]);
+
+  // Separate handler for regular content nodes
+  const handleDeleteContentNode = useCallback((nodeId: string) => {
+    const currentNodes = getNodes();
+    const currentEdges = getEdges();
+    
     // Find edges connected to the node being deleted
     const incomingEdge = currentEdges.find(edge => edge.target === nodeId);
     const outgoingEdge = currentEdges.find(edge => edge.source === nodeId);
@@ -221,18 +264,21 @@ const WorkflowEditorContent: React.FC = () => {
       newEdges.push(newEdge);
     }
 
-    // Reset canAddChild for previously connected nodes
-    const newNodes = currentNodes.map(node => {
-      if (node.id === nodeId) return node;
+    // First, remove edges connected to the node
+    setEdges(newEdges);
+
+    // For non-note nodes, proceed with immediate removal
+    const finalNodes = currentNodes.map(node => {
+      if (node.id === nodeId) return node; // Keep the node temporarily for filter later
       
       // If this is the node that was connected TO the deleted node (e.g., B when deleting C)
       if (incomingEdge?.source === node.id) {
-        console.log('🔄 Processing previous node:', node.id);
+        console.log('🔄 [Unified] Processing previous node:', node.id);
 
         // Restore the plus button if the node is of a type that can have children 
         // (Article, Video, Podcast) because its outgoing connection is being removed.
-        if (node.type !== 'socialMedia' && node.type !== 'topicalKeyword') {
-          console.log('✨ Restoring plus button to previous node:', node.id);
+        if (node.type !== 'socialMedia' && node.type !== 'topicalKeyword' && node.type !== 'note') {
+          console.log('✨ [Unified] Restoring plus button to previous node:', node.id);
           return {
             ...node,
             data: {
@@ -244,21 +290,20 @@ const WorkflowEditorContent: React.FC = () => {
         }
       }
       return node;
-    }).filter(n => n.id !== nodeId);
+    }).filter(n => n.id !== nodeId); // Filter out the deleted node
 
-    console.log('📊 State update summary:', {
-      nodesRemoved: currentNodes.length - newNodes.length,
-      edgesRemoved: currentEdges.length - newEdges.length,
-      newNodesCount: newNodes.length,
+    // Log state changes
+    console.log('📊 [Unified] State update summary:', {
+      nodesRemoved: 1,
+      edgesRemoved: currentEdges.length - newEdges.length, // Edges were removed earlier
+      finalNodesCount: finalNodes.length,
       newEdgesCount: newEdges.length,
-      nodesPlusbuttonRestored: newNodes.filter(n => n.data?.canAddChild).length
     });
 
-    setNodes(newNodes);
-    setEdges(newEdges);
-    setSelectedNodeId(null);
-    
-    console.log('✅ Node deletion completed');
+    // Update nodes state immediately
+    setNodes(finalNodes);
+    setSelectedNodeId(null); // Clear selection
+    console.log('✅ [Unified] Content node deletion completed');
   }, [getNodes, getEdges, setNodes, setEdges]);
 
   // Custom nodes change handler that records history
@@ -960,7 +1005,7 @@ const WorkflowEditorContent: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [handleDeleteNode, selectedNodeId, handleUndo, handleRedo]);
 
-  // Add handleDeleteNodeRef
+  // Add handleDeleteNodeRef with the updated implementation
   const handleDeleteNodeRef = useRef<Function | null>(null);
   useEffect(() => {
     handleDeleteNodeRef.current = handleDeleteNode;
