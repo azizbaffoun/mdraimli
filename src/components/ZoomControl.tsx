@@ -9,7 +9,7 @@ interface ZoomControlProps {
 
 const ZoomControl: React.FC<ZoomControlProps> = ({ zoomLevel, onZoomIn, onZoomOut }) => {
   return (
-    <div className="fixed bottom-6 right-6 z-30" style={{ width: 99, height: 39 }}>
+    <div className="fixed bottom-16 right-6 z-30" style={{ width: 99, height: 39 }}>
       {/* Overlay clickable halves */}
       <div style={{ position: 'absolute', left: 0, top: 0, width: '50%', height: '100%', zIndex: 10, cursor: 'pointer' }} onClick={onZoomOut} />
       <div style={{ position: 'absolute', right: 0, top: 0, width: '50%', height: '100%', zIndex: 10, cursor: 'pointer' }} onClick={onZoomIn} />

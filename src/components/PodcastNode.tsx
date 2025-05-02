@@ -61,6 +61,7 @@ const PodcastNode: React.FC<NodeProps<PodcastNodeData>> = ({ id, data, selected 
     if (data.isLocked) return;
     setMenuOpen(false);
     setReplaceMenuOpen(true);
+    notifyNode('podcast', id);
   };
 
   const handleCloseReplaceMenu = () => {
