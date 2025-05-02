@@ -5,17 +5,26 @@ import { EdgeProps, useStore, Node } from 'reactflow';
 const nodeColors = {
   start: '#888888',         // Default gray for start
   topicalKeyword: {
-    left: '#82ced1',       // Left connector color (teal)
-    right: '#82ced1'       // Right connector color (teal)
+    left: '#2fafb0',       // Teal
+    right: '#2fafb0'       // Teal
+  },
+  article: {
+    left: '#2C93EA',       // Blue
+    right: '#2C93EA'       // Blue
+  },
+  podcast: {
+    left: '#8b5abc',       // Purple
+    right: '#8b5abc'       // Purple
   },
   video: {
-    left: '#86c1e9',       // Left connector color
-    right: '#86c1e9'       // Right connector color
+    left: '#3799db',       // Blue on left
+    right: '#2fafb0'       // Teal/green on right
   },
-  article: '#3799DB',       // Article blue
-  podcast: '#b388de',       // Podcast purple
-  socialMedia: '#FC8500',   // Orange
-  default: '#888888'        // Default fallback color
+  socialMedia: {
+    left: '#ffbb70',       // Keep original
+    right: '#fc8500'       // Keep original
+  },
+  default: '#888888'       // Default fallback color
 };
 
 // Helper function to select node data from the store
@@ -30,7 +39,10 @@ const getNodeColor = (node: Node | undefined, isSource: boolean) => {
   const colors = nodeColors[nodeType];
   
   if (typeof colors === 'string') return colors;
-  return isSource ? colors?.left || nodeColors.default : colors?.right || nodeColors.default;
+  
+  // For source nodes, use right color if it's the source (connecting from right side)
+  // For target nodes, use left color if it's the target (connecting to left side)
+  return isSource ? colors?.right || nodeColors.default : colors?.left || nodeColors.default;
 };
 
 // Memoized gradient definition component
@@ -42,7 +54,8 @@ const GradientDef = memo(({
   sourceY,
   targetX,
   targetY,
-  angle
+  angle,
+  distance
 }: { 
   id: string, 
   sourceColor: string, 
@@ -51,7 +64,8 @@ const GradientDef = memo(({
   sourceY: number,
   targetX: number,
   targetY: number,
-  angle: number
+  angle: number,
+  distance: number
 }) => {
   // Calculate the gradient vector based on the angle
   const gradientLength = Math.sqrt(Math.pow(targetX - sourceX, 2) + Math.pow(targetY - sourceY, 2));
@@ -65,19 +79,36 @@ const GradientDef = memo(({
   const y2 = midY + (gradientLength / 2) * Math.sin(angle * Math.PI / 180);
 
   return (
-    <linearGradient 
-      id={id} 
-      gradientUnits="userSpaceOnUse"
-      x1={x1}
-      y1={y1}
-      x2={x2}
-      y2={y2}
-    >
-      <stop offset="0%" stopColor={sourceColor} stopOpacity="1" />
-      <stop offset="49%" stopColor={sourceColor} stopOpacity="1" />
-      <stop offset="51%" stopColor={targetColor} stopOpacity="1" />
-      <stop offset="100%" stopColor={targetColor} stopOpacity="1" />
-    </linearGradient>
+    <>
+      {/* Background gradient */}
+      <linearGradient 
+        id={`${id}-bg`} 
+        gradientUnits="userSpaceOnUse"
+        x1={x1}
+        y1={y1}
+        x2={x2}
+        y2={y2}
+      >
+        <stop offset="0%" stopColor={sourceColor} stopOpacity="1" />
+        <stop offset="49%" stopColor={sourceColor} stopOpacity="1" />
+        <stop offset="51%" stopColor={targetColor} stopOpacity="1" />
+        <stop offset="100%" stopColor={targetColor} stopOpacity="1" />
+      </linearGradient>
+      {/* Updated dash gradient with darker colors */}
+      <linearGradient 
+        id={`${id}-dashes`}
+        gradientUnits="userSpaceOnUse"
+        x1="0"
+        y1="0"
+        x2={distance}
+        y2="0"
+      >
+        <stop offset="0%" stopColor={sourceColor} stopOpacity="1" />
+        <stop offset="49%" stopColor={sourceColor} stopOpacity="1" />
+        <stop offset="51%" stopColor={targetColor} stopOpacity="1" />
+        <stop offset="100%" stopColor={targetColor} stopOpacity="1" />
+      </linearGradient>
+    </>
   );
 });
 
@@ -88,18 +119,30 @@ const dashGap = 8;
 const pairWidth = shortDashWidth + dashGap + longDashWidth + dashGap;
 const MIN_EDGE_DISTANCE = 30; // Minimum distance to ensure gradient works
 
-// Opacity settings for different parts
+// Updated opacity settings
 const opacitySettings = {
-  background: 0.15,  // Reduced background opacity
+  background: 0.28,  // Keep background as is
   sourceDashes: {
-    short: { fill: 1, stroke: 1 },  // Full opacity for dashes
-    long: { fill: 1, stroke: 1 }
+    short: {
+      fill: 1,
+      stroke: 1.5    // Increased stroke opacity
+    },
+    long: {
+      fill: 1,
+      stroke: 1.5    // Increased stroke opacity
+    }
   },
   targetDashes: {
-    short: { fill: 1, stroke: 1 },
-    long: { fill: 1, stroke: 1 }
+    short: {
+      fill: 1,
+      stroke: 1.5    // Make consistent with source
+    },
+    long: {
+      fill: 1,
+      stroke: 1.5    // Increased stroke opacity
+    }
   },
-  animatedOverlay: 0.2
+  animatedOverlay: 0.25  // Reduced to make dashes appear darker
 };
 
 // Calculate number of dashes that fit in a given distance
@@ -184,36 +227,36 @@ const CustomEdge: React.FC<EdgeProps> = memo(({
     <g style={{ transform: 'translate3d(0,0,0)', willChange: 'transform' }}>
       <defs>
         <GradientDef 
-          id={`edge-gradient-${id}`} 
-          sourceColor={sourceColor} 
+          id={id}
+          sourceColor={sourceColor}
           targetColor={targetColor}
           sourceX={sourceX}
           sourceY={sourceY}
           targetX={targetX}
           targetY={targetY}
           angle={angle}
+          distance={distance}
         />
       </defs>
 
-      {/* Background group with lower z-index */}
+      {/* Background path with opacity */}
       <g style={{ zIndex: 1 }}>
         <path
           d={gradientPath}
-          stroke={`url(#edge-gradient-${id})`}
+          stroke={`url(#${id}-bg)`}
           strokeWidth="20"
           fill="none"
           strokeLinecap="round"
           style={{ 
             pointerEvents: 'none',
             transform: 'translate3d(0,0,0)',
-            willChange: 'transform',
-            mixBlendMode: 'multiply'
+            willChange: 'transform'
           }}
           strokeOpacity={opacitySettings.background}
         />
       </g>
 
-      {/* Dashes group with higher z-index */}
+      {/* Dashes with gradient across the entire connection */}
       <g style={{ zIndex: 2 }}>
         <g transform={`translate(${sourceX},${sourceY}) rotate(${angle})`}>
           {Array.from({ length: numDashes }).map((_, index) => {
@@ -236,6 +279,9 @@ const CustomEdge: React.FC<EdgeProps> = memo(({
               ? opacitySettings.sourceDashes[isShortDash ? 'short' : 'long']
               : opacitySettings.targetDashes[isShortDash ? 'short' : 'long'];
 
+            // Get the dash color from the gradient
+            const dashColor = `url(#${id}-dashes)`;
+
             return (
               <g key={index}>
                 <rect
@@ -244,18 +290,18 @@ const CustomEdge: React.FC<EdgeProps> = memo(({
                   width={rectWidth}
                   height={rectHeight}
                   rx={rectRx}
-                  fill={isSourceSide ? sourceColor : targetColor}
+                  fill={dashColor}
                   stroke="#fff"
                   strokeWidth={1.5}
                   fillOpacity={opacities.fill}
                   strokeOpacity={opacities.stroke}
-                  style={{ mixBlendMode: 'normal' }}
+                  strokeMiterlimit="10"
                 />
               </g>
             );
           })}
 
-          {/* Animated overlay with highest z-index */}
+          {/* Animated overlay */}
           <g style={{ zIndex: 3 }}>
             <rect
               x="0"

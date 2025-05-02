@@ -1,15 +1,14 @@
 import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import ReactFlow, {
   Background,
-  Controls,
- 
   Node,
   Edge,
-  useReactFlow,
-
   useNodesState,
   useEdgesState,
   addEdge,
+  Connection,
+  useReactFlow,
+  ReactFlowInstance,
   ReactFlowProvider,
   ConnectionMode,
   XYPosition,
@@ -17,8 +16,6 @@ import ReactFlow, {
   OnNodesChange,
   OnEdgesChange,
   getOutgoers,
-  Connection,
-  ReactFlowInstance,
   NodeChange,
   EdgeChange
 } from 'reactflow';
@@ -330,7 +327,8 @@ const WorkflowEditorContent: React.FC = () => {
       data: {
         title: "New Note",
         content: "",
-        isEntering: false, // Explicitly set to false to prevent animation
+        isEntering: false,
+        onDelete: handleDeleteNode
       },
       width: 295,
       height: 235,
@@ -338,7 +336,7 @@ const WorkflowEditorContent: React.FC = () => {
     };
     const newNodes = [...getNodes(), newNode];
     setNodes(newNodes);
-  }, [project, setNodes, getNodes, getEdges]);
+  }, [project, setNodes, getNodes, getEdges, handleDeleteNode]);
 
   // organizeLayout function
   const organizeLayout = useCallback(() => {
@@ -1062,7 +1060,6 @@ const WorkflowEditorContent: React.FC = () => {
           proOptions={{ hideAttribution: true }}
         >
           <Background />
-          <Controls />
         </ReactFlow>
       </div>
       

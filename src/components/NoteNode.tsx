@@ -214,7 +214,9 @@ export default function NoteNode({ id, data }: NodeProps) {
       nodeId: id,
       timestamp: new Date().toISOString()
     });
-    setNodes((nds) => nds.filter((node) => node.id !== id));
+    if (data.onDelete) {
+      data.onDelete(id);
+    }
     setIsOptionsMenuOpen(false);
   };
 
@@ -237,7 +239,10 @@ export default function NoteNode({ id, data }: NodeProps) {
       ...nodeToDuplicate,
       id: newNodeId,
       position,
-      data: { ...nodeToDuplicate.data },
+      data: { 
+        ...nodeToDuplicate.data,
+        onDelete: data.onDelete  // Pass along the onDelete handler
+      },
       selected: false,
       dragHandle: `#note-header-${newNodeId}`,
     };
@@ -354,27 +359,25 @@ export default function NoteNode({ id, data }: NodeProps) {
             {ReactDOM.createPortal(
               <BubbleMenu 
                 editor={editor} 
+                shouldShow={({ state }) => {
+                  const { from, to } = state.selection;
+                  return from !== to; // Show menu when text is selected
+                }}
                 tippyOptions={{
                   getReferenceClientRect: getSelectionBoundingRect,
                   placement: 'top',
                   appendTo: () => document.body,
                   interactive: true,
                   zIndex: 9999,
-                  onMount: (instance) => {
-                    const menuEl = instance.popper;
-                    console.log('[NoteNode] Menu Mounted:', {
-                      menuElement: menuEl?.getBoundingClientRect(),
-                      popperStyles: menuEl?.style,
-                      timestamp: new Date().toISOString()
-                    });
+                  onHide: () => {
+                    // Clean up any leftover tippy elements
+                    const tippyElements = document.querySelectorAll('[data-tippy-root]');
+                    tippyElements.forEach(el => el.remove());
                   },
-                  onShow: (instance) => {
-                    const styles = instance.popper?.style || {};
-                    console.log('[NoteNode] Menu Shown:', {
-                      styles,
-                      reference: instance.reference,
-                      timestamp: new Date().toISOString()
-                    });
+                  onDestroy: () => {
+                    // Additional cleanup when tippy instance is destroyed
+                    const tippyElements = document.querySelectorAll('[data-tippy-root]');
+                    tippyElements.forEach(el => el.remove());
                   }
                 }}
               >
@@ -385,7 +388,6 @@ export default function NoteNode({ id, data }: NodeProps) {
                   pointerEvents: 'auto',
                   backgroundColor: 'white',
                   borderRadius: '8px',
-                 
                   padding: '8px',
                   listStyle: 'none'
                 }}>
