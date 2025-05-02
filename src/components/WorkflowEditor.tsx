@@ -145,8 +145,18 @@ const WorkflowEditorContent: React.FC = () => {
   const handleInitiateWorkflowRef = useRef<Function | null>(null);
   
   // Memoize nodeTypes and edgeTypes INSIDE the component
-  const nodeTypes = nodeTypesDefinition;
-  const edgeTypes = useMemo(() => edgeTypesDefinition, []);
+  const nodeTypes = useMemo(() => ({
+    start: StartNode,
+    topicalKeyword: TopicalKeywordNode,
+    article: ArticleNode,
+    video: VideoNode,
+    podcast: PodcastNode,
+    socialMedia: SocialMediaNode,
+    note: NoteNode,
+  }), []);
+  const edgeTypes = useMemo(() => ({
+    ...customEdgeTypesImport,
+  }), []);
   
   // Function to handle node deletion safely - split into two separate functions
   const handleDeleteNode = useCallback((nodeId: string) => {
@@ -739,22 +749,14 @@ const WorkflowEditorContent: React.FC = () => {
   }, [handleInitiateWorkflow]);
   
   // Callback to handle node selection
-  const onNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
+  const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
+    event.stopPropagation();
     setSelectedNodeId(node.id);
-    // Close info panel on node click
-    if (showInfoPanel) {
-      setIsInfoPanelExiting(true);
-      setTimeout(() => setShowInfoPanel(false), 300); // Match animation duration
-    }
-  }, [showInfoPanel]);
+  }, []);
 
   const onPaneClick = useCallback(() => {
     setSelectedNodeId(null);
-    // Close any open menus
-    setOpenMenu(null);
-    // Potentially show info panel again when clicking the background?
-    // Or keep it closed until explicitly opened. For now, keep it closed.
-  }, [setOpenMenu]);
+  }, []);
 
   // --- Save Workflow Logic ---
   const saveWorkflow = useCallback(() => {
@@ -774,8 +776,6 @@ const WorkflowEditorContent: React.FC = () => {
     localStorage.setItem('workflowData', jsonString);
     console.log("Workflow data saved to localStorage:", jsonString);
   }, [reactFlowInstance, getWorkflowData]);
-
-  const isNodeSelected = !!selectedNodeId; 
 
   // --- Add useEffect for loading data ---
   useEffect(() => {
@@ -1013,28 +1013,17 @@ const WorkflowEditorContent: React.FC = () => {
 
   // When rendering nodes, inject openMenu and setOpenMenu into data for topicalKeyword nodes
   const viewport = reactFlowInstance?.getViewport?.() || { x: 0, y: 0, zoom: 1 };
-  const nodesWithMenu = nodes.map(node => {
-    if (node.type === 'topicalKeyword') {
-      return {
-        ...node,
-        data: {
-          ...node.data,
-          openMenu,
-          setOpenMenu,
-        },
-      };
-    }
-    if (node.type === 'note') {
-      return {
-        ...node,
-        data: {
-          ...node.data,
-          viewport, // pass zoom and pan to NoteNode
-        },
-      };
-    }
-    return node;
-  });
+  const nodesWithMenu = useMemo(() => {
+    return nodes.map(node => ({
+      ...node,
+      data: {
+        ...node.data,
+        openMenu,
+        setOpenMenu,
+        isSelected: node.id === selectedNodeId
+      }
+    }));
+  }, [nodes, selectedNodeId, openMenu, setOpenMenu]);
 
   // Add handleReplaceNode function after handleDeleteNode
   const handleReplaceNode = useCallback((nodeId: string, newType: ContentType) => {
@@ -1110,7 +1099,7 @@ const WorkflowEditorContent: React.FC = () => {
       
       {nodes.length > 0 && <ItemsBar 
         isVisible={true} 
-        isNodeSelected={isNodeSelected} 
+        isNodeSelected={!!selectedNodeId} 
         selectedNodeId={selectedNodeId}
         onIconClick={onAddChildNode}
         onOrganizeLayout={organizeLayout}
