@@ -61,6 +61,7 @@ const ArticleNode: React.FC<NodeProps<ArticleNodeData>> = ({ id, data, selected 
     if (data.isLocked) return;
     setMenuOpen(false);
     setReplaceMenuOpen(true);
+    notifyNode('article', id);
   };
 
   const handleCloseReplaceMenu = () => {

@@ -45,6 +45,7 @@ const VideoNode: React.FC<NodeProps<VideoNodeData>> = ({ id, data, selected }) =
   const handleSettingsClick = () => {
     if (data.isLocked) return;
     setReplaceMenuOpen(true);
+    notifyNode('viralVids', id);
   };
 
   const handleReplaceNode = (nodeId: string, newType: ContentType) => {

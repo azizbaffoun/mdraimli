@@ -51,7 +51,8 @@ import {
   ContentNodeData,
   NoteNodeFlowData,
   WorkflowNodeData,
-  getWorkflowData
+  getWorkflowData,
+  saveWorkFlowToMVC
 } from '@/types/workflowTypes';
 
 // Extend the global Window interface (Moved back here from types file)
@@ -772,7 +773,8 @@ const WorkflowEditorContent: React.FC = () => {
 
     // 3. Log the JSON to console (or send it to a server)
     localStorage.setItem('workflowData', jsonString);
-    console.log("Workflow data saved to localStorage:", jsonString);
+    
+    saveWorkFlowToMVC();
   }, [reactFlowInstance, getWorkflowData]);
 
   const isNodeSelected = !!selectedNodeId; 

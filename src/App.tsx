@@ -14,7 +14,8 @@ function App() {
   // const handleDummyIconClick = (...) => { ... };
 
   return (
-    <div className="w-screen h-screen flex flex-col relative"> {/* Add relative positioning */}
+    // <div className="height-100 flex flex-col relative">
+    <div className="w-screen h-screen flex flex-col relative">
       {/* Main content area taking remaining space */} 
       <div className="flex-grow relative overflow-hidden"> {/* Updated classes */}
          {/* Remove ref */}

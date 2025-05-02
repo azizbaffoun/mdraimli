@@ -47,6 +47,7 @@ const SocialMediaNode: React.FC<NodeProps<SocialMediaNodeData>> = ({ id, data, s
   const handleSettingsClick = () => {
     if (data.isLocked) return;
     setReplaceMenuOpen(true);
+    notifyNode('socialMedia', id);
   };
 
   const handleReplaceNode = (nodeId: string, newType: ContentType) => {
