@@ -18,8 +18,6 @@ const PopupSelect: React.FC<PopupSelectProps> = ({
   onSettingsClick,
   onDeleteClick,
   isTopicalKeywordNode = false,
-  nodeId,
-  setOpenMenu,
 }) => {
   const handleSettingsClick = () => {
     // Call the onSettingsClick handler which will set replaceMenuOpen to true
@@ -34,7 +32,7 @@ const PopupSelect: React.FC<PopupSelectProps> = ({
 
   return (
     <div
-      className="absolute left-1/2 -translate-x-1/2 top-full -mt-70 z-50"
+      className="absolute left-1/2 -translate-x-1/2 top-full mt-7 z-50"
       data-type="menu"
       onClick={(e) => {
         console.log("PopupSelect container clicked");

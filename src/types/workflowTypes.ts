@@ -1,10 +1,11 @@
 import { Node, Edge, Viewport } from 'reactflow';
+import { NodeExtrasData } from './nodeExtras';
 
 export type ContentType = 'article' | 'video' | 'podcast' | 'socialMedia';
 
 // Base data common to potentially all custom nodes
 export interface BaseNodeData {
-  isEntering?: boolean; 
+  isEntering?: boolean;
   isExiting?: boolean;
   isNew?: boolean;
   isLocked?: boolean;
@@ -64,11 +65,11 @@ export interface EventNodeData extends BaseNodeData {
 }
 
 // Data specific to content nodes (Article, Video, Podcast, SocialMedia)
-export interface ContentNodeData extends BaseNodeData {
+export interface ContentNodeData extends BaseNodeData, NodeExtrasData {
   title: string;
   url?: string;
   description?: string;
-  canAddChild?: boolean; 
+  canAddChild?: boolean;
   isLeftConnected?: boolean;
   isRightConnected?: boolean;
   onDelete?: (nodeId: string) => void;
@@ -89,10 +90,10 @@ export interface NoteNodeData extends BaseNodeData {
 
 
 // Union type for any possible node data in our workflow
-export type WorkflowNodeData = 
-  | StartNodeData 
-  | TopicalKeywordNodeData 
-  | ContentNodeData 
+export type WorkflowNodeData =
+  | StartNodeData
+  | TopicalKeywordNodeData
+  | ContentNodeData
   | NoteNodeData;
 
 // You might also want a type for the overall workflow structure if saving/loading
@@ -104,7 +105,7 @@ export interface WorkflowData {
 
 // Re-export necessary types from reactflow if needed elsewhere
 // Removed re-export as they are imported directly now
-// export type { Node, Edge, Viewport, Connection } from 'reactflow'; 
+// export type { Node, Edge, Viewport, Connection } from 'reactflow';
 
 
 declare global {

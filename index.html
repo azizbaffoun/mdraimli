@@ -9,5 +9,82 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Function to set badge number and time string for any node type (video, article, podcast)
+      window.setNodeBadge = function(nodeId, badgeNumber, timeString) {
+        // Wait for the ReactFlow instance to be available
+        setTimeout(() => {
+          // Get the ReactFlow instance
+          const reactFlowInstance = window.__REACTFLOW_INSTANCE;
+
+          if (!reactFlowInstance) {
+            console.error('ReactFlow instance not found');
+            return;
+          }
+
+          try {
+            // Get the current nodes
+            const { getNodes, setNodes } = reactFlowInstance;
+            const nodes = getNodes();
+
+            // Find the node with the given ID
+            const nodeIndex = nodes.findIndex(node => node.id === nodeId);
+
+            if (nodeIndex === -1) {
+              console.error(`Node with ID ${nodeId} not found`);
+              return;
+            }
+
+            // Check if the node is a supported type (video, article, podcast)
+            const nodeType = nodes[nodeIndex].type;
+            if (!['video', 'article', 'podcast'].includes(nodeType)) {
+              console.error(`Node with ID ${nodeId} is not a supported node type (video, article, podcast)`);
+              return;
+            }
+
+            // Update the node data
+            const updatedNodes = [...nodes];
+            updatedNodes[nodeIndex] = {
+              ...updatedNodes[nodeIndex],
+              data: {
+                ...updatedNodes[nodeIndex].data,
+                badgeNumber: badgeNumber !== undefined ? badgeNumber : undefined,
+                timeString: timeString || undefined
+              }
+            };
+
+            // Set the updated nodes
+            setNodes(updatedNodes);
+            console.log(`Updated ${nodeType} node ${nodeId} with badge number ${badgeNumber} and time string ${timeString}`);
+          } catch (error) {
+            console.error('Error updating node:', error);
+          }
+        }, 1000); // Give the app 1 second to initialize
+      };
+
+      // For backward compatibility
+      window.setVideoNodeBadge = function(nodeId, badgeNumber, timeString) {
+        window.setNodeBadge(nodeId, badgeNumber, timeString);
+      };
+
+      // Function to process all nodes in a workflow and set badges based on data
+      window.processBadgesFromWorkflow = function(workflowData) {
+        if (!workflowData || !workflowData.nodes || !Array.isArray(workflowData.nodes)) {
+          console.error('Invalid workflow data');
+          return;
+        }
+
+        // Process each node in the workflow
+        workflowData.nodes.forEach(node => {
+          // Check if the node has badge data
+          if (node.data && (node.data.badgeNumber !== undefined || node.data.timeString)) {
+            // Set the badge for this node
+            window.setNodeBadge(node.id, node.data.badgeNumber, node.data.timeString);
+          }
+        });
+
+        console.log('Processed badges for all nodes in workflow');
+      };
+    </script>
   </body>
-</html> 
+</html>

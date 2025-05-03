@@ -141,7 +141,7 @@ const NodeAddMenu: React.FC<NodeAddMenuProps> = ({
       {/* Menu content overlays SVG */}
       <div style={{ position: 'relative', zIndex: 2, width: '100%', height: '100%' }}>
         <ul style={{ padding: 0, margin: 0, width: '100%', listStyle: 'none' }}>
-          {itemsToShow.map((item, index) => (
+          {itemsToShow.map((item) => (
             <li key={item.type} style={{ width: '100%', height: 36, display: 'flex', alignItems: 'center', padding: 0, margin: 0, position: 'relative' }}>
               {/* No divider divs, SVG lines are used instead */}
               <button

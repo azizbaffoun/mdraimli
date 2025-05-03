@@ -109,7 +109,7 @@ const TopicalKeywordNode: React.FC<NodeProps<ExtendedTopicalKeywordNodeData & {
 
   return (
     <div
-      className={`relative flex flex-col items-center ${animationClass}`}
+      className={`relative ${animationClass}`}
     >
       {/* Only show PopupSelect if not locked and selected */}
       {selected && !data.isLocked && !menuOpen && (
@@ -282,8 +282,10 @@ const TopicalKeywordNode: React.FC<NodeProps<ExtendedTopicalKeywordNodeData & {
         )}
       </div>
 
-      <div className="mt-[10px] text-sm text-black">
-        {data.nodeType === 'offer' ? 'Offer' : data.nodeType === 'event' ? 'Event' : 'Topical Keyword'}
+      <div className="absolute w-full text-center" style={{ top: 'calc(100% + 10px)' }}>
+        <div className="text-sm text-black">
+          {data.nodeType === 'offer' ? 'Offer' : data.nodeType === 'event' ? 'Event' : 'Topical Keyword'}
+        </div>
       </div>
     </div>
   );

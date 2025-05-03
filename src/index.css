@@ -143,11 +143,11 @@ body {
 .node-type-video .video-node-connector-left:not(.is-connected) {
   opacity: 0;
   transition: opacity 0.2s ease-in-out;
-  pointer-events: none; 
+  pointer-events: none;
 }
 
 /* Make connector-plus visible by default when rendered (opacity 1), ensure clickable */
-.node-type-video .video-node-connector-plus { 
+.node-type-video .video-node-connector-plus {
   opacity: 1; /* Default to visible */
   transition: opacity 0.2s ease-in-out; /* Keep transition for potential future use */
   pointer-events: auto; /* Make it clickable */
@@ -155,7 +155,7 @@ body {
 
 /* Show ONLY glow on hover */
 .react-flow__node:hover .node-type-video .video-node-glow {
-  opacity: 0.28; 
+  opacity: 0.28;
 }
 /* REMOVE hover rule for connector-plus */
 /* .react-flow__node:hover .node-type-video .video-node-connector-plus { ... } */
@@ -163,7 +163,7 @@ body {
 
 /* Show ONLY glow on selection */
 .react-flow__node.selected .node-type-video .video-node-glow {
-  opacity: 0.28; 
+  opacity: 0.28;
 }
 /* REMOVE selection rule for connector-plus */
 /* .react-flow__node.selected .node-type-video .video-node-connector-plus { ... } */
@@ -172,6 +172,34 @@ body {
 /* Show left connector ONLY when is-connected class is present */
 .node-type-video .video-node-connector-left.is-connected {
   opacity: 1;
+}
+
+/* Ensure proper alignment of node connectors */
+.node-type-video .video-node-connector-left,
+.node-type-article .article-node-connector-left,
+.node-type-podcast .podcast-node-connector-left,
+.node-type-socialMedia .socialMedia-node-connector-left,
+.node-type-video .video-node-connector-plus,
+.node-type-article .article-node-connector-plus,
+.node-type-podcast .podcast-node-connector-plus,
+.node-type-video .video-node-connector-right-connected,
+.node-type-article .article-node-connector-right-connected,
+.node-type-podcast .podcast-node-connector-right-connected {
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+}
+
+/* Fix for ReactFlow node positioning */
+.react-flow__node {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Ensure node handles are properly positioned */
+.react-flow__handle {
+  z-index: 100;
+  position: absolute !important;
 }
 
 /* No specific rules needed for .video-node-connector-right-connected */
@@ -185,21 +213,21 @@ body {
 .node-type-podcast .podcast-node-connector-left:not(.is-connected) {
   opacity: 0;
   transition: opacity 0.2s ease-in-out;
-  pointer-events: none; 
+  pointer-events: none;
 }
 /* Make connector-plus visible by default when rendered */
-.node-type-podcast .podcast-node-connector-plus { 
-  opacity: 1; 
-  transition: opacity 0.2s ease-in-out; 
-  pointer-events: auto; 
+.node-type-podcast .podcast-node-connector-plus {
+  opacity: 1;
+  transition: opacity 0.2s ease-in-out;
+  pointer-events: auto;
 }
 /* Show ONLY glow on hover */
 .react-flow__node:hover .node-type-podcast .podcast-node-glow {
-  opacity: 0.28; 
+  opacity: 0.28;
 }
 /* Show ONLY glow on selection */
 .react-flow__node.selected .node-type-podcast .podcast-node-glow {
-  opacity: 0.28; 
+  opacity: 0.28;
 }
 /* Show left connector ONLY when is-connected class is present */
 .node-type-podcast .podcast-node-connector-left.is-connected {
@@ -213,21 +241,21 @@ body {
 .node-type-article .article-node-connector-left:not(.is-connected) {
   opacity: 0;
   transition: opacity 0.2s ease-in-out;
-  pointer-events: none; 
+  pointer-events: none;
 }
 /* Make connector-plus visible by default when rendered */
-.node-type-article .article-node-connector-plus { 
-  opacity: 1; 
-  transition: opacity 0.2s ease-in-out; 
-  pointer-events: auto; 
+.node-type-article .article-node-connector-plus {
+  opacity: 1;
+  transition: opacity 0.2s ease-in-out;
+  pointer-events: auto;
 }
 /* Show ONLY glow on hover */
 .react-flow__node:hover .node-type-article .article-node-glow {
-  opacity: 0.28; 
+  opacity: 0.28;
 }
 /* Show ONLY glow on selection */
 .react-flow__node.selected .node-type-article .article-node-glow {
-  opacity: 0.28; 
+  opacity: 0.28;
 }
 /* Show left connector ONLY when is-connected class is present */
 .node-type-article .article-node-connector-left.is-connected {
@@ -241,17 +269,17 @@ body {
 .node-type-socialMedia .socialMedia-node-connector-left:not(.is-connected) {
   opacity: 0;
   transition: opacity 0.2s ease-in-out;
-  pointer-events: none; 
+  pointer-events: none;
 }
 
 /* Show ONLY glow on hover */
 .react-flow__node:hover .node-type-socialMedia .socialMedia-node-glow {
-  opacity: 0.28; 
+  opacity: 0.28;
 }
 
 /* Show ONLY glow on selection */
 .react-flow__node.selected .node-type-socialMedia .socialMedia-node-glow {
-  opacity: 0.28; 
+  opacity: 0.28;
 }
 
 /* Show left connector ONLY when is-connected class is present */
@@ -272,7 +300,7 @@ body {
   to {
     opacity: 0;
     /* Optional: add slight scale or translation */
-    /* transform: scale(0.95); */ 
+    /* transform: scale(0.95); */
   }
 }
 
@@ -424,7 +452,7 @@ body {
   float: left;
   height: 0;
   pointer-events: none;
-} 
+}
 
 .height-100 {
   height: 100%;

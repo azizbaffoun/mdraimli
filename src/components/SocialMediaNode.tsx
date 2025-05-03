@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import PopupSelect from './PopupSelect';
 import { ContentType, ContentNodeData } from '../types/workflowTypes';
+import SocialMediaNodeTimer from './SocialMediaNodeTimer';
 
 // Remove SVG imports
 // import socialMediaSvg from '@/assets/nodes/social media.svg';
@@ -22,6 +23,8 @@ interface SocialMediaNodeData extends ContentNodeData {
   onReplaceNode?: (nodeId: string, newType: ContentType) => void;
   isLocked?: boolean;
   isLastNode?: boolean;
+  badgeNumber?: number;
+  timeString?: string;
 }
 
 // Node component
@@ -64,7 +67,7 @@ const SocialMediaNode: React.FC<NodeProps<SocialMediaNodeData>> = ({ id, data, s
 
   return (
     <div
-      className={`relative flex flex-col items-center ${animationClass}`}
+      className={`relative ${animationClass}`}
     >
       {/* Only show PopupSelect if not locked */}
       {selected && !data.isLocked && (
@@ -133,7 +136,7 @@ const SocialMediaNode: React.FC<NodeProps<SocialMediaNodeData>> = ({ id, data, s
 
         {/* Visible Left Connector ONLY - Conditionally Rendered */}
         <div
-          className={`socialMedia-node-connector-left absolute left-[-16.5px] top-1/2 transform -translate-y-1/2 pointer-events-none z-20 ${data.isLeftConnected ? 'is-connected' : ''}`}
+          className={`socialMedia-node-connector-left absolute left-[-16.5px] top-[50%] transform -translate-y-1/2 pointer-events-none z-20 ${data.isLeftConnected ? 'is-connected' : ''}`}
         >
           <svg width="17" height="25" viewBox="0 0 17 25">
             {/* Use path from user SVG Rectangle_1649 */}
@@ -142,7 +145,15 @@ const SocialMediaNode: React.FC<NodeProps<SocialMediaNodeData>> = ({ id, data, s
         </div>
 
       </div>
-      <div className="mt-[10px] text-sm text-black">Social Media</div>
+      <div className="absolute w-full text-center" style={{ top: 'calc(100% + 10px)' }}>
+        <SocialMediaNodeTimer
+          badgeNumber={data.badgeNumber}
+          delayValue={data.delayValue}
+          color="#fc8500"
+          nodeName="Social Post"
+          gradientId="social-media-node-gradient"
+        />
+      </div>
     </div>
   );
 };

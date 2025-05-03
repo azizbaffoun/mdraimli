@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Workflow Editor</title>
+  <link rel="stylesheet" href="dist/assets/style.css" />
+  <style>
+    body { margin: 0; }
+    #root { height: 100vh; }
+    .toolbar { position: fixed; top: 10px; right: 10px; z-index: 1000; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <div class="toolbar">
+    <button id="saveBtn">Save Workflow</button>
+    <input type="file" id="loadInput" style="display:none" accept=".json"/>
+    <button id="loadBtn">Load Workflow</button>
+    <button id="loadLockBtn">Load Locked</button>
+  </div>
+  <script type="module" src="dist/assets/main.js"></script>
+  <script>
+    // Save: called by React app with JSON string
+    window.passData = function(jsonString) {
+      // Download as file
+      const blob = new Blob([jsonString], {type: "application/json"});
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "workflow.json";
+      a.click();
+      URL.revokeObjectURL(a.href);
+    };
+
+    // Variable to store the load mode ('edit' or 'locked')
+    window.loadMode = 'edit'; // Default to edit
+
+    // Load Edit: Trigger file input for editable workflow
+    document.getElementById('loadBtn').onclick = function() {
+      window.loadMode = 'edit';
+      document.getElementById('loadInput').click();
+    };
+
+    // Load Locked: Trigger file input for locked workflow
+    document.getElementById('loadLockBtn').onclick = function() {
+      window.loadMode = 'locked';
+      document.getElementById('loadInput').click();
+    };
+
+    // Handle file selection for both load types
+    document.getElementById('loadInput').onchange = function(e) {
+      const file = e.target.files[0];
+      // Reset the input value to allow loading the same file again
+      e.target.value = null;
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        try {
+          const data = JSON.parse(evt.target.result);
+          const isLocked = window.loadMode === 'locked';
+
+          // Example of how to add badge numbers and time strings to nodes
+          if (data.nodes) {
+            data.nodes = data.nodes.map(node => {
+              // Add badge numbers and time strings to specific node types
+              if (['video', 'article', 'podcast'].includes(node.type)) {
+                // You can customize this logic based on your needs
+                // For example, you might want to read these values from the JSON file
+                return {
+                  ...node,
+                  data: {
+                    ...node.data,
+                    badgeNumber: node.data.badgeNumber || null,  // Use existing value or null
+                    timeString: node.data.timeString || null     // Use existing value or null
+                  }
+                };
+              }
+              return node;
+            });
+          }
+
+          const finalData = { ...data, isLocked: isLocked }; // Set isLocked based on mode
+
+          if (window.loadDataIntoReact) {
+            window.loadDataIntoReact(finalData);
+          } else {
+            alert("Editor not ready yet!");
+          }
+        } catch (err) {
+          console.error("Error loading workflow:", err);
+          alert("Invalid workflow file.");
+        }
+      };
+      reader.onerror = function() {
+        alert("Error reading file.");
+      };
+      reader.readAsText(file);
+    };
+
+    // Optional: Save button triggers the React app's save logic
+    document.getElementById('saveBtn').onclick = function() {
+      // Find the save button in the React app and click it, or trigger save logic if exposed
+      // If your React app exposes a save function globally, call it here
+      // Otherwise, instruct users to use the in-app save button
+      alert("Use the in-app Save button to export your workflow.");
+    };
+  </script>
+</body>
+</html>

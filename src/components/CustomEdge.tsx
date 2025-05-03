@@ -37,18 +37,18 @@ const getNodeColor = (node: Node | undefined, isSource: boolean) => {
   if (!node) return nodeColors.default;
   const nodeType = node.type as keyof typeof nodeColors;
   const colors = nodeColors[nodeType];
-  
+
   if (typeof colors === 'string') return colors;
-  
+
   // For source nodes, use right color if it's the source (connecting from right side)
   // For target nodes, use left color if it's the target (connecting to left side)
   return isSource ? colors?.right || nodeColors.default : colors?.left || nodeColors.default;
 };
 
 // Memoized gradient definition component
-const GradientDef = memo(({ 
-  id, 
-  sourceColor, 
+const GradientDef = memo(({
+  id,
+  sourceColor,
   targetColor,
   sourceX,
   sourceY,
@@ -56,9 +56,9 @@ const GradientDef = memo(({
   targetY,
   angle,
   distance
-}: { 
-  id: string, 
-  sourceColor: string, 
+}: {
+  id: string,
+  sourceColor: string,
   targetColor: string,
   sourceX: number,
   sourceY: number,
@@ -71,7 +71,7 @@ const GradientDef = memo(({
   const gradientLength = Math.sqrt(Math.pow(targetX - sourceX, 2) + Math.pow(targetY - sourceY, 2));
   const midX = (sourceX + targetX) / 2;
   const midY = (sourceY + targetY) / 2;
-  
+
   // Calculate gradient coordinates
   const x1 = midX - (gradientLength / 2) * Math.cos(angle * Math.PI / 180);
   const y1 = midY - (gradientLength / 2) * Math.sin(angle * Math.PI / 180);
@@ -81,8 +81,8 @@ const GradientDef = memo(({
   return (
     <>
       {/* Background gradient */}
-      <linearGradient 
-        id={`${id}-bg`} 
+      <linearGradient
+        id={`${id}-bg`}
         gradientUnits="userSpaceOnUse"
         x1={x1}
         y1={y1}
@@ -95,7 +95,7 @@ const GradientDef = memo(({
         <stop offset="100%" stopColor={targetColor} stopOpacity="1" />
       </linearGradient>
       {/* Updated dash gradient with darker colors */}
-      <linearGradient 
+      <linearGradient
         id={`${id}-dashes`}
         gradientUnits="userSpaceOnUse"
         x1="0"
@@ -149,7 +149,7 @@ const opacitySettings = {
 const calculateDashes = (distance: number) => {
   const effectiveDistance = Math.max(distance, MIN_EDGE_DISTANCE);
   const minDistance = shortDashWidth + dashGap; // Minimum distance needed for one dash
-  
+
   if (effectiveDistance < minDistance) {
     return 1; // Always show at least one dash
   }
@@ -157,10 +157,10 @@ const calculateDashes = (distance: number) => {
   // Calculate how many complete pairs can fit
   const availableSpace = effectiveDistance + dashGap; // Add one gap to account for the last element
   const pairsCount = Math.floor(availableSpace / pairWidth);
-  
+
   // Calculate remaining space
   const remainingSpace = availableSpace - (pairsCount * pairWidth);
-  
+
   // Check if we can fit an additional short dash
   let additionalDashes = 0;
   if (remainingSpace >= shortDashWidth) {
@@ -173,8 +173,8 @@ const calculateDashes = (distance: number) => {
   return Math.max(1, (pairsCount * 2) + additionalDashes);
 };
 
-const CustomEdge: React.FC<EdgeProps> = memo(({ 
-  id, 
+const CustomEdge: React.FC<EdgeProps> = memo(({
+  id,
   source,
   target,
   sourceX: defaultSourceX,
@@ -183,22 +183,22 @@ const CustomEdge: React.FC<EdgeProps> = memo(({
   targetY: defaultTargetY,
 }) => {
   const { nodes } = useStore(nodeSelector);
-  
+
   const sourceNode = nodes.find((n: Node) => n.id === source);
   const targetNode = nodes.find((n: Node) => n.id === target);
 
   // Calculate coordinates with fallback to default positions
-  const sourceX = sourceNode?.position ? 
-    sourceNode.position.x + (sourceNode.width || 0) + 16.5 : 
+  const sourceX = sourceNode?.position ?
+    sourceNode.position.x + (sourceNode.width || 0) + 16.5 :
     defaultSourceX;
-  const sourceY = sourceNode?.position ? 
-    sourceNode.position.y + ((sourceNode.height || 0) * 0.4) : 
+  const sourceY = sourceNode?.position ?
+    sourceNode.position.y + ((sourceNode.height || 0) * 0.5) :
     defaultSourceY;
-  const targetX = targetNode?.position ? 
-    targetNode.position.x - 16.5 : 
+  const targetX = targetNode?.position ?
+    targetNode.position.x - 16.5 :
     defaultTargetX;
-  const targetY = targetNode?.position ? 
-    targetNode.position.y + ((targetNode.height || 0) * 0.4) : 
+  const targetY = targetNode?.position ?
+    targetNode.position.y + ((targetNode.height || 0) * 0.5) :
     defaultTargetY;
 
   // Calculate angle and distance
@@ -226,7 +226,7 @@ const CustomEdge: React.FC<EdgeProps> = memo(({
   return (
     <g style={{ transform: 'translate3d(0,0,0)', willChange: 'transform' }}>
       <defs>
-        <GradientDef 
+        <GradientDef
           id={id}
           sourceColor={sourceColor}
           targetColor={targetColor}
@@ -247,7 +247,7 @@ const CustomEdge: React.FC<EdgeProps> = memo(({
           strokeWidth="20"
           fill="none"
           strokeLinecap="round"
-          style={{ 
+          style={{
             pointerEvents: 'none',
             transform: 'translate3d(0,0,0)',
             willChange: 'transform'
@@ -263,7 +263,7 @@ const CustomEdge: React.FC<EdgeProps> = memo(({
             const isShortDash = index % 2 === 0;
             const pairIndex = Math.floor(index / 2);
             let currentX = pairIndex * pairWidth;
-            
+
             if (!isShortDash) {
               currentX += shortDashWidth + dashGap;
             }
@@ -275,7 +275,7 @@ const CustomEdge: React.FC<EdgeProps> = memo(({
             const rectY = -3.5445 + 0.75;
 
             const isSourceSide = index < Math.ceil(numDashes / 2);
-            const opacities = isSourceSide 
+            const opacities = isSourceSide
               ? opacitySettings.sourceDashes[isShortDash ? 'short' : 'long']
               : opacitySettings.targetDashes[isShortDash ? 'short' : 'long'];
 
@@ -331,4 +331,4 @@ export const edgeTypes = {
   customGradientEdge: CustomEdge,
 };
 
-export default CustomEdge; 
+export default CustomEdge;

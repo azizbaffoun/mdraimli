@@ -60,6 +60,17 @@ declare global {
   interface Window {
     passData?: (data: string) => void;
     loadDataIntoReact?: (workflowData: WorkflowData) => void;
+    __REACTFLOW_INSTANCE?: {
+      getNodes: () => Node[];
+      setNodes: (nodes: Node[] | ((nodes: Node[]) => Node[])) => void;
+      getEdges: () => Edge[];
+      setEdges: (edges: Edge[] | ((edges: Edge[]) => Edge[])) => void;
+      getViewport: () => Viewport;
+      setViewport: (viewport: Viewport) => void;
+      zoomIn: (options?: { duration?: number }) => void;
+      zoomOut: (options?: { duration?: number }) => void;
+      fitView: (options?: { padding?: number; includeHiddenNodes?: boolean; duration?: number; }) => void;
+    };
   }
 }
 
@@ -85,6 +96,21 @@ const WorkflowEditorContent: React.FC = () => {
   // ... (rest of the code remains the same)
 
   useEffect(() => {
+    // Expose the ReactFlow instance to the window object for external access
+    if (reactFlowInstance) {
+      window.__REACTFLOW_INSTANCE = {
+        getNodes: reactFlowInstance.getNodes,
+        setNodes: reactFlowInstance.setNodes,
+        getEdges: reactFlowInstance.getEdges,
+        setEdges: reactFlowInstance.setEdges,
+        getViewport: reactFlowInstance.getViewport,
+        setViewport: reactFlowInstance.setViewport,
+        zoomIn: reactFlowInstance.zoomIn,
+        zoomOut: reactFlowInstance.zoomOut,
+        fitView: reactFlowInstance.fitView
+      };
+    }
+
     window.getWorkflowData = () => {
       console.log("Getting workflow data...");
       if (!reactFlowInstance) {
@@ -123,6 +149,7 @@ const WorkflowEditorContent: React.FC = () => {
 
     return () => {
       delete window.getWorkflowData;
+      delete window.__REACTFLOW_INSTANCE;
     };
   }, [reactFlowInstance]);
 
