@@ -49,7 +49,7 @@ import {
   ContentType,
   TopicalKeywordNodeData,
   ContentNodeData,
-  NoteNodeFlowData,
+  NoteNodeData,
   WorkflowNodeData,
   getWorkflowData,
   saveWorkFlowToMVC
@@ -63,22 +63,8 @@ declare global {
   }
 }
 
-// Original definitions (kept outside for clarity)
-const nodeTypesDefinition = {
-  start: StartNode,
-  topicalKeyword: TopicalKeywordNode,
-  article: ArticleNode,
-  video: VideoNode,
-  podcast: PodcastNode,
-  socialMedia: SocialMediaNode,
-  note: NoteNode,
-};
-const edgeTypesDefinition = {
-  ...customEdgeTypesImport, 
-};
-
 const initialNodeId = 'start-node';
-// --- End Definitions OUTSIDE the component --- 
+// --- End Definitions OUTSIDE the component ---
 
 const WorkflowEditorContent: React.FC = () => {
   const [nodes, setNodes, onNodesChange] = useNodesState<WorkflowNodeData>([]);
@@ -89,7 +75,7 @@ const WorkflowEditorContent: React.FC = () => {
   const [showInfoPanel, setShowInfoPanel] = useState(true);
   const [isInfoPanelExiting, setIsInfoPanelExiting] = useState(false);
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
-  
+
   // Undo/Redo history state
   const [history, setHistory] = useState<{ nodes: Node<WorkflowNodeData>[]; edges: Edge[] }[]>([]);
   const [future, setFuture] = useState<{ nodes: Node<WorkflowNodeData>[]; edges: Edge[] }[]>([]);
@@ -105,10 +91,10 @@ const WorkflowEditorContent: React.FC = () => {
         console.error("ReactFlow instance not available for getting workflow data.");
         return null;
       }
-  
+
       // 1. Get the full flow state
       const flowState = reactFlowInstance.toObject();
-  
+
       // 2. Clone nodes and set all isEntering = false
       const updatedNodes = flowState.nodes.map(node => {
         if (node.data && typeof node.data === 'object') {
@@ -122,29 +108,29 @@ const WorkflowEditorContent: React.FC = () => {
         }
         return node;
       });
-  
+
       // 3. Create a new flow state object
       const updatedFlowState = {
         ...flowState,
         nodes: updatedNodes,
       };
-  
+
       // 4. Serialize updated JSON
       const jsonString = JSON.stringify(updatedFlowState);
-  
+
       return jsonString;
     };
-  
+
     return () => {
       delete window.getWorkflowData;
     };
   }, [reactFlowInstance]);
 
-  
+
   // We need to use refs to store the function references to avoid circular dependencies
   const onAddChildNodeRef = useRef<Function | null>(null);
   const handleInitiateWorkflowRef = useRef<Function | null>(null);
-  
+
   // Memoize nodeTypes and edgeTypes INSIDE the component
   const nodeTypes = useMemo(() => ({
     start: StartNode,
@@ -158,13 +144,13 @@ const WorkflowEditorContent: React.FC = () => {
   const edgeTypes = useMemo(() => ({
     ...customEdgeTypesImport,
   }), []);
-  
+
   // Function to handle node deletion safely - split into two separate functions
   const handleDeleteNode = useCallback((nodeId: string) => {
     // Push current state to history before change
     setHistory(prev => [...prev, { nodes: getNodes(), edges: getEdges() }]);
     setFuture([]);
-    
+
     console.log('📍 Node to delete:', getNode(nodeId));
 
     const currentNodes = getNodes();
@@ -192,29 +178,29 @@ const WorkflowEditorContent: React.FC = () => {
   // Separate handler for note nodes which need special cleanup
   const handleDeleteNoteNode = useCallback((nodeId: string) => {
     const currentNodes = getNodes();
-    
+
     // Check if node still exists before trying to update it
     const nodeToDelete = currentNodes.find(n => n.id === nodeId);
     if (!nodeToDelete) {
       console.warn(`[WorkflowEditor] Note node ${nodeId} not found for deletion, may have been deleted already`);
       return;
     }
-    
+
     // Flag to prevent duplicate deletions
     let deletionInProgress = false;
-    
+
     // First update the node to mark it as exiting - this triggers cleanup
-    setNodes(currentNodes.map(node => 
-      node.id === nodeId 
-        ? { ...node, data: { ...node.data, isExiting: true } } 
+    setNodes(currentNodes.map(node =>
+      node.id === nodeId
+        ? { ...node, data: { ...node.data, isExiting: true } }
         : node
     ));
-    
+
     // Allow cleanup to complete before actually removing the node
     setTimeout(() => {
       if (deletionInProgress) return;
       deletionInProgress = true;
-      
+
       try {
         // Now remove the node after cleanup has time to finish
         setNodes(nodes => {
@@ -236,7 +222,7 @@ const WorkflowEditorContent: React.FC = () => {
   const handleDeleteContentNode = useCallback((nodeId: string) => {
     const currentNodes = getNodes();
     const currentEdges = getEdges();
-    
+
     // Find edges connected to the node being deleted
     const incomingEdge = currentEdges.find(edge => edge.target === nodeId);
     const outgoingEdge = currentEdges.find(edge => edge.source === nodeId);
@@ -281,12 +267,12 @@ const WorkflowEditorContent: React.FC = () => {
     // For non-note nodes, proceed with immediate removal
     const finalNodes = currentNodes.map(node => {
       if (node.id === nodeId) return node; // Keep the node temporarily for filter later
-      
+
       // If this is the node that was connected TO the deleted node (e.g., B when deleting C)
       if (incomingEdge?.source === node.id) {
         console.log('🔄 [Unified] Processing previous node:', node.id);
 
-        // Restore the plus button if the node is of a type that can have children 
+        // Restore the plus button if the node is of a type that can have children
         // (Article, Video, Podcast) because its outgoing connection is being removed.
         if (node.type !== 'socialMedia' && node.type !== 'topicalKeyword' && node.type !== 'note') {
           console.log('✨ [Unified] Restoring plus button to previous node:', node.id);
@@ -321,10 +307,10 @@ const WorkflowEditorContent: React.FC = () => {
   const onNodesChangeHandler: OnNodesChange = useCallback(
     (changes: NodeChange[]) => {
       console.log('[WorkflowEditor] Node changes detected:', changes);
-      
+
       // Only track meaningful node changes (add/remove)
-      const meaningfulChanges = changes.filter(change => 
-        change.type === 'add' || 
+      const meaningfulChanges = changes.filter(change =>
+        change.type === 'add' ||
         change.type === 'remove'
       );
 
@@ -338,10 +324,10 @@ const WorkflowEditorContent: React.FC = () => {
         });
         setFuture([]);
       }
-      
+
       // Apply the changes
       onNodesChange(changes);
-      
+
       // Update selection state without tracking in history
       changes.forEach((change) => {
         if (change.type === 'select') {
@@ -376,7 +362,7 @@ const WorkflowEditorContent: React.FC = () => {
       y: 50 + yOffset,
     });
     const newNoteId = uuidv4();
-    const newNode: Node<NoteNodeFlowData> = {
+    const newNode: Node<NoteNodeData> = {
       id: newNoteId,
       type: 'note',
       position,
@@ -397,7 +383,7 @@ const WorkflowEditorContent: React.FC = () => {
   // organizeLayout function
   const organizeLayout = useCallback(() => {
     console.log("Organizing layout...");
-    
+
     const allNodes = getNodes();
     const allEdges = getEdges();
     const layoutableNodes = allNodes.filter(n => n.type !== 'note');
@@ -410,7 +396,7 @@ const WorkflowEditorContent: React.FC = () => {
     const nodeWidth = 128;
     const nodeHeight = 128;
     const horizontalGap = 120;
-    const verticalGap = 50; 
+    const verticalGap = 50;
     const rootX = 100;
     const firstColX = rootX + nodeWidth + horizontalGap;
     const rows: Node[][] = [];
@@ -418,7 +404,7 @@ const WorkflowEditorContent: React.FC = () => {
     processedNodes.add(topicalKeywordNode.id);
     const directChildren = getOutgoers(topicalKeywordNode, layoutableNodes, allEdges);
     directChildren.forEach(rowStartNode => {
-        if (processedNodes.has(rowStartNode.id)) return; 
+        if (processedNodes.has(rowStartNode.id)) return;
         const currentRow: Node[] = [];
         let currentNode: Node | undefined = rowStartNode;
         while(currentNode) {
@@ -426,7 +412,7 @@ const WorkflowEditorContent: React.FC = () => {
             currentRow.push(currentNode);
             processedNodes.add(currentNode.id);
             const children: Node[] = getOutgoers(currentNode, layoutableNodes, allEdges);
-            currentNode = children.find((n: Node) => !processedNodes.has(n.id)); 
+            currentNode = children.find((n: Node) => !processedNodes.has(n.id));
         }
         if (currentRow.length > 0) {
             rows.push(currentRow);
@@ -434,7 +420,7 @@ const WorkflowEditorContent: React.FC = () => {
     });
     const numRows = rows.length;
     const totalLayoutHeight = numRows * nodeHeight + Math.max(0, numRows - 1) * verticalGap;
-    const startY = 100; 
+    const startY = 100;
     const rootY = startY + totalLayoutHeight / 2 - nodeHeight / 2;
     const finalNodes: Node[] = [];
     finalNodes.push({ ...topicalKeywordNode, position: { x: rootX, y: rootY } });
@@ -447,7 +433,7 @@ const WorkflowEditorContent: React.FC = () => {
     });
     layoutableNodes.forEach((node: Node) => {
         if (!processedNodes.has(node.id)) {
-            finalNodes.push(node); 
+            finalNodes.push(node);
         }
     });
     finalNodes.push(...noteNodes);
@@ -456,11 +442,15 @@ const WorkflowEditorContent: React.FC = () => {
 
   }, [getNodes, getEdges, setNodes]);
 
-  // onAddChildNode function 
+  // onAddChildNode function
   const onAddChildNode = useCallback((parentId: string, childTypeOrNext: ContentType | 'next') => {
     // Always push to history before any state change
     setHistory(prev => [...prev, { nodes: getNodes(), edges: getEdges() }]);
     setFuture([]);
+
+    // Close any open menu to prevent popupSelect from opening after adding a node
+    setOpenMenu(null);
+
     const parentNode = getNode(parentId);
     // Determine requested child type
     let requestedChildType: ContentType;
@@ -489,7 +479,7 @@ const WorkflowEditorContent: React.FC = () => {
         return;
       }
     }
-    
+
     // (Moved type checks above for rule enforcement)
     if (!parentNode || parentNode.type === 'note') return;
     // Only restrict adding children for TopicalKeyword nodes if needed
@@ -518,14 +508,14 @@ const WorkflowEditorContent: React.FC = () => {
         }
     }
     // Use only UUID for the ID
-    const childNodeId = uuidv4(); 
+    const childNodeId = uuidv4();
     let newNodePosition: XYPosition;
     const horizontalOffset = (parentNode.width ?? 128) + 120;
     const verticalOffset = (parentNode.height ?? 128) + 50;
     if (parentNode.type === 'topicalKeyword') {
         const directChildrenCount = edges.filter(e => e.source === parentId).length;
         newNodePosition = {
-            x: parentNode.position.x + horizontalOffset, 
+            x: parentNode.position.x + horizontalOffset,
             y: parentNode.position.y + (directChildrenCount * verticalOffset)
         };
     } else {
@@ -542,6 +532,7 @@ const WorkflowEditorContent: React.FC = () => {
         height: 128,
         selectable: true,
         data: {
+          title: 'Untitled',
           isEntering: true,
           isNew: true,
           canAddChild: requestedChildType !== 'socialMedia',
@@ -555,13 +546,13 @@ const WorkflowEditorContent: React.FC = () => {
     };
     const newEdge: Edge = {
         // Use plain UUIDs for edge ID
-        id: `e-${parentId}-${childNodeId}`, 
+        id: `e-${parentId}-${childNodeId}`,
         source: parentId,
         target: childNodeId, // Target the plain UUID
-        sourceHandle: 'right-source', 
-        targetHandle: 'left-target',  
+        sourceHandle: 'right-source',
+        targetHandle: 'left-target',
         type: 'customGradientEdge',
-        data: {}, 
+        data: {},
     };
     setNodes((nds) => {
         // Add the new child node
@@ -573,7 +564,7 @@ const WorkflowEditorContent: React.FC = () => {
             const horizontalGap = 120;
             // Traverse the chain starting from prevNextNodeId
             let currentId = prevNextNodeId;
-            let prevNode = childNode;
+            let prevNode: Node<ContentNodeData> = childNode;
             const visited = new Set<string>();
             while (currentId && !visited.has(currentId)) {
                 visited.add(currentId);
@@ -592,7 +583,11 @@ const WorkflowEditorContent: React.FC = () => {
                 );
                 // Find the next node in the chain (outgoing edge from currentId)
                 const nextEdge = edges.find(e => e.source === currentId);
-                prevNode = updatedNodes.find(n => n.id === node.id) || node;
+                // Only assign prevNode if it is a ContentNodeData node (not a start node)
+                const maybeNode = updatedNodes.find(n => n.id === node.id);
+                if (maybeNode && maybeNode.type !== 'start' && 'title' in maybeNode.data) {
+                  prevNode = maybeNode as Node<ContentNodeData>;
+                }
                 currentId = nextEdge ? nextEdge.target : "";
             }
         }
@@ -617,15 +612,15 @@ const WorkflowEditorContent: React.FC = () => {
         return updatedEdges;
     });
     if (parentNode.type !== 'topicalKeyword') {
-        setNodes((nds) => 
-            nds.map(node => 
-                node.id === parentId 
-                    ? { ...node, data: { ...node.data, canAddChild: false } } 
+        setNodes((nds) =>
+            nds.map(node =>
+                node.id === parentId
+                    ? { ...node, data: { ...node.data, canAddChild: false } }
                     : node
             )
         );
     }
-  }, [getNode, getNodes, getEdges, nodes, edges, setNodes, setEdges, showInfoPanel, setIsInfoPanelExiting, handleDeleteNode]);
+  }, [getNode, getNodes, getEdges, nodes, edges, setNodes, setEdges, showInfoPanel, setIsInfoPanelExiting, handleDeleteNode, setOpenMenu]);
 
   // Store the latest version of onAddChildNode in the ref
   useEffect(() => {
@@ -646,7 +641,7 @@ const WorkflowEditorContent: React.FC = () => {
     if (isInfoPanelExiting) {
       timer = setTimeout(() => {
         setShowInfoPanel(false);
-      }, 300); 
+      }, 300);
     }
     return () => clearTimeout(timer);
   }, [isInfoPanelExiting, setShowInfoPanel]);
@@ -670,6 +665,7 @@ const WorkflowEditorContent: React.FC = () => {
     const position = startNode.position;
     const newNodeId = uuidv4();
     const nodeData: TopicalKeywordNodeData & { nodeType: 'topicalKeyword' | 'offer' | 'event' } = {
+      title: 'Untitled',
       isEntering: true,
       isRightConnected: false,
       onAddChildNode: (parentId: string, childType: ContentType) => {
@@ -709,7 +705,7 @@ const WorkflowEditorContent: React.FC = () => {
         id: initialNodeId,
         type: 'start',
         position: { x: 100, y: 100 },
-        data: { 
+        data: {
           // Functions will be added AFTER history is set
         },
       },
@@ -733,7 +729,7 @@ const WorkflowEditorContent: React.FC = () => {
       }
       return node;
     });
-    
+
     // Set the actual state using nodes with functions
     setNodes(nodesWithFuncs as Node<WorkflowNodeData>[]);
     setEdges([]); // Start with no edges initially
@@ -744,20 +740,32 @@ const WorkflowEditorContent: React.FC = () => {
   useEffect(() => {
     onAddChildNodeRef.current = onAddChildNode;
   }, [onAddChildNode]);
-  
+
   useEffect(() => {
     handleInitiateWorkflowRef.current = handleInitiateWorkflow;
   }, [handleInitiateWorkflow]);
-  
+
   // Callback to handle node selection
   const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
     event.stopPropagation();
+
+    // Check if nodeAddMenu is open
+    if (openMenu?.type === 'add') {
+      // If nodeAddMenu is open, just close it without opening popupSelect
+      setOpenMenu(null);
+    } else {
+      // Always set the openMenu to null when clicking on a node
+      // This will allow the PopupSelect to be shown (not the TopReplace menu)
+      setOpenMenu(null);
+    }
+
     setSelectedNodeId(node.id);
-  }, []);
+  }, [openMenu, setOpenMenu]);
 
   const onPaneClick = useCallback(() => {
+    if (openMenu) setOpenMenu(null);
     setSelectedNodeId(null);
-  }, []);
+  }, [openMenu, setOpenMenu]);
 
   // --- Save Workflow Logic ---
   const saveWorkflow = useCallback(() => {
@@ -767,7 +775,7 @@ const WorkflowEditorContent: React.FC = () => {
     }
 
     // 1. Generate the workflow state JSON
-    const flowState = reactFlowInstance.toObject(); 
+    const flowState = reactFlowInstance.toObject();
     // Note: toObject() conveniently gives nodes, edges, and viewport
 
     // 2. Serialize the JSON (compact)
@@ -775,19 +783,27 @@ const WorkflowEditorContent: React.FC = () => {
 
     // 3. Log the JSON to console (or send it to a server)
     localStorage.setItem('workflowData', jsonString);
-    
+
     saveWorkFlowToMVC();
   }, [reactFlowInstance, getWorkflowData]);
 
   // --- Add useEffect for loading data ---
   useEffect(() => {
     // Define the function globally on the window object
-    window.loadDataIntoReact = (workflowData: WorkflowData) => {
+    window.loadDataIntoReact = (workflowData: WorkflowData & { isLocked?: boolean }) => {
       console.log("React App: Received data via loadDataIntoReact", workflowData);
+
+      let nodesToLoad = workflowData.nodes;
+      if (workflowData.isLocked) {
+        nodesToLoad = nodesToLoad.map(node => ({
+          ...node,
+          data: { ...node.data, isLocked: true }
+        }));
+      }
 
       if (workflowData && workflowData.nodes && workflowData.edges) {
         // Restore function references just like in handleUndo (important if you save/load complex data)
-        const restoredNodes = workflowData.nodes.map(node => {
+        const restoredNodes = nodesToLoad.map(node => {
           let nodeData = { ...node.data };
 
           // Attach onDelete handler to all nodes
@@ -869,7 +885,7 @@ const WorkflowEditorContent: React.FC = () => {
         const targetHandleId = `${node.id}-left-target`;
         const currentIsLeftConnected = (newData as ContentNodeData).isLeftConnected ?? false;
         const newIsLeftConnected = connectedTargets.has(targetHandleId);
-        
+
         // Handle Right connection only for relevant types
         let currentIsRightConnected = false;
         let newIsRightConnected = false;
@@ -886,7 +902,7 @@ const WorkflowEditorContent: React.FC = () => {
             ...newData,
             isLeftConnected: newIsLeftConnected,
             // Only set isRightConnected if it's not social media
-            ...(node.type !== 'socialMedia' && { isRightConnected: newIsRightConnected }), 
+            ...(node.type !== 'socialMedia' && { isRightConnected: newIsRightConnected }),
           };
           dataChanged = true;
         }
@@ -914,7 +930,7 @@ const WorkflowEditorContent: React.FC = () => {
 
     // Only update state if connection status actually changed for any relevant node
     if (nodesChanged) {
-      setNodes(updatedNodes); 
+      setNodes(updatedNodes);
     }
   }, [edges, nodes, setNodes]); // Rerun when edges or nodes change
 
@@ -941,19 +957,19 @@ const WorkflowEditorContent: React.FC = () => {
       return;
     }
     const prev = history[history.length - 1];
-    console.log('[WorkflowEditor] Restoring previous state:', { 
+    console.log('[WorkflowEditor] Restoring previous state:', {
       nodesCount: prev.nodes.length,
       edgesCount: prev.edges.length
     });
     setHistory(h => h.slice(0, -1));
     setFuture(f => [{ nodes, edges }, ...f]);
-    
+
     // Keep track of whether the currently selected node still exists after undo
     const selectedNodeExists = prev.nodes.some(node => node.id === selectedNodeId);
     if (!selectedNodeExists) {
       setSelectedNodeId(null);
     }
-    
+
     setNodes(prev.nodes);
     setEdges(prev.edges);
   }, [history, nodes, edges, setNodes, setEdges, selectedNodeId]);
@@ -971,13 +987,13 @@ const WorkflowEditorContent: React.FC = () => {
     });
     setFuture(f => f.slice(1));
     setHistory(h => [...h, { nodes, edges }]);
-    
+
     // Keep track of whether the currently selected node still exists after redo
     const selectedNodeExists = next.nodes.some(node => node.id === selectedNodeId);
     if (!selectedNodeExists) {
       setSelectedNodeId(null);
     }
-    
+
     setNodes(next.nodes);
     setEdges(next.edges);
   }, [future, nodes, edges, setNodes, setEdges, selectedNodeId]);
@@ -989,13 +1005,13 @@ const WorkflowEditorContent: React.FC = () => {
       if (event.key === 'Delete' && selectedNodeId) {
         handleDeleteNode(selectedNodeId);
       }
-      
+
       // Undo (Ctrl+Z)
       if (event.ctrlKey && event.key === 'z') {
         event.preventDefault(); // Prevent browser's default undo
         handleUndo();
       }
-      
+
       // Redo (Ctrl+Y)
       if (event.ctrlKey && event.key === 'y') {
         event.preventDefault(); // Prevent browser's default redo
@@ -1014,10 +1030,11 @@ const WorkflowEditorContent: React.FC = () => {
   }, [handleDeleteNode]);
 
   // When rendering nodes, inject openMenu and setOpenMenu into data for topicalKeyword nodes
-  const viewport = reactFlowInstance?.getViewport?.() || { x: 0, y: 0, zoom: 1 };
   const nodesWithMenu = useMemo(() => {
     return nodes.map(node => ({
       ...node,
+      draggable: node.data && node.data.isLocked === true ? false : true,
+      selectable: node.data && node.data.isLocked === true ? false : true,
       data: {
         ...node.data,
         openMenu,
@@ -1068,10 +1085,12 @@ const WorkflowEditorContent: React.FC = () => {
     setNodes(nds => nds.map(node => node.id === nodeId ? newNode : node));
   }, [getNode, getNodes, getEdges, setNodes, onAddChildNode, handleDeleteNode]);
 
+  const isAnyLocked = nodes.some(node => node.data && node.data.isLocked === true);
+
   return (
     <>
       {showInfoPanel && <WorkflowInfoPanel isExiting={isInfoPanelExiting} />}
-      
+
       <div ref={reactFlowWrapper} className="w-full h-full">
         <ReactFlow
           nodes={nodesWithMenu}
@@ -1098,10 +1117,10 @@ const WorkflowEditorContent: React.FC = () => {
           <Background />
         </ReactFlow>
       </div>
-      
-      {nodes.length > 0 && <ItemsBar 
-        isVisible={true} 
-        isNodeSelected={!!selectedNodeId} 
+
+      {nodes.length > 0 && !isAnyLocked && <ItemsBar
+        isVisible={true}
+        isNodeSelected={!!selectedNodeId}
         selectedNodeId={selectedNodeId}
         onIconClick={onAddChildNode}
         onOrganizeLayout={organizeLayout}
@@ -1127,6 +1146,7 @@ const WorkflowEditor: React.FC = () => {
     const targetTag = (e.target as HTMLElement)?.tagName;
     const logObj = {
       file: '[src/components/WorkflowEditor.tsx]',
+      event: 'onWheel',
       clientX: e.clientX,
       clientY: e.clientY,
       targetTag,
@@ -1134,19 +1154,25 @@ const WorkflowEditor: React.FC = () => {
       allowed: true,
       zoomAction: null as string | null,
     };
-    // If the event was stopped by a child (e.g., NoteNode), it won't reach here
-    // Otherwise, log that the canvas is zooming
-    // (You may need to hook into your zoom logic if you want to log actual zooming)
     logObj.zoomAction = 'canvasZoom';
     console.log('[src/components/WorkflowEditor.tsx] onWheel', logObj);
   };
 
-  // Attach a document-level fallback wheel listener for ultimate reliability
+  // Add mouse/click tracking for canvas
+  const handleCanvasMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    console.log('[WorkflowEditor] Canvas onMouseDown', { x: e.clientX, y: e.clientY, target: e.target });
+  };
+  const handleCanvasClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    console.log('[WorkflowEditor] Canvas onClick', { x: e.clientX, y: e.clientY, target: e.target });
+  };
+
+  // Attach a document-level fallback wheel and click listener for ultimate reliability
   React.useEffect(() => {
     function docWheelHandler(e: WheelEvent) {
       const logObj = {
         file: '[src/components/WorkflowEditor.tsx]',
         source: 'document',
+        event: 'onWheel',
         clientX: e.clientX,
         clientY: e.clientY,
         deltaY: e.deltaY,
@@ -1158,12 +1184,29 @@ const WorkflowEditor: React.FC = () => {
       };
       console.log('[src/components/WorkflowEditor.tsx] onWheel (document)', logObj);
     }
+    function docClickHandler(e: MouseEvent) {
+      console.log('[src/components/WorkflowEditor.tsx] onClick (document)', {
+        x: e.clientX,
+        y: e.clientY,
+        target: e.target,
+        composedPath: (e.composedPath && typeof e.composedPath === 'function') ? e.composedPath().map(n => (n as HTMLElement).tagName || n.constructor?.name).join(' > ') : undefined,
+      });
+    }
     document.addEventListener('wheel', docWheelHandler, { capture: true });
-    return () => document.removeEventListener('wheel', docWheelHandler, { capture: true });
+    document.addEventListener('click', docClickHandler, { capture: true });
+    return () => {
+      document.removeEventListener('wheel', docWheelHandler, { capture: true });
+      document.removeEventListener('click', docClickHandler, { capture: true });
+    };
   }, []);
 
   return (
-    <div onWheel={handleCanvasWheel} style={{ width: '100%', height: '100%' }}>
+    <div
+      onWheel={handleCanvasWheel}
+      onMouseDown={handleCanvasMouseDown}
+      onClick={handleCanvasClick}
+      style={{ width: '100%', height: '100%' }}
+    >
       <ReactFlowProvider>
         <WorkflowEditorContent />
       </ReactFlowProvider>

@@ -203,8 +203,8 @@ const ArticleNode: React.FC<NodeProps<ArticleNodeData>> = ({ id, data, selected 
               onClose={() => setMenuOpen(false)}
               onSelectOption={handleSelectOption}
               availableOptions={availableMenuOptions}
-              positionStyle={{ left: 'calc(100% + 32px)', top: '50%', transform: 'translateY(-50%)' }}
-            />
+              positionStyle={{ left: 'calc(100% + 15px)', top: '67%', transform: 'translateY(-50%)' }}
+/>
           </>
         )}
 

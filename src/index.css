@@ -429,3 +429,10 @@ body {
 .height-100 {
   height: 100%;
 }
+
+/* --- FORCE TIPTAP FORMATTING VISIBLE --- */
+.ProseMirror strong { font-weight: bold !important; }
+.ProseMirror em { font-style: italic !important; }
+.ProseMirror u { text-decoration: underline !important; }
+.ProseMirror s { text-decoration: line-through !important; }
+

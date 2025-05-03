@@ -16,6 +16,7 @@ const BubbleMenuWrapper: React.FC<BubbleMenuWrapperProps> = ({
   isExiting,
   getSelectionBoundingRect
 }) => {
+  if (!editor) return null;
   return (
     <BubbleMenu 
       key={`bubble-menu-${id}`}
@@ -88,4 +89,4 @@ const BubbleMenuWrapper: React.FC<BubbleMenuWrapperProps> = ({
   );
 };
 
-export default BubbleMenuWrapper; 
+export default BubbleMenuWrapper;

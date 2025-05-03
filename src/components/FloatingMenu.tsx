@@ -14,7 +14,11 @@ const FloatingMenu: React.FC<FloatingMenuProps> = ({ editor, placement = 'top', 
   const buttons = [
     {
       label: 'Bold',
-      onClick: () => editor.chain().focus().toggleBold().run(),
+      onClick: () => {
+        console.log('Bold button clicked', editor, editor.isFocused);
+        const result = editor.chain().focus().toggleBold().run();
+        console.log('Bold command result:', result, 'Selection:', editor.state.selection);
+      },
       isActive: editor.isActive('bold'),
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" width="10.7" height="14" viewBox="0 0 10.7 14">
@@ -24,7 +28,11 @@ const FloatingMenu: React.FC<FloatingMenuProps> = ({ editor, placement = 'top', 
     },
     {
       label: 'Italic',
-      onClick: () => editor.chain().focus().toggleItalic().run(),
+      onClick: () => {
+        console.log('Italic button clicked', editor, editor.isFocused);
+        const result = editor.chain().focus().toggleItalic().run();
+        console.log('Italic command result:', result, 'Selection:', editor.state.selection);
+      },
       isActive: editor.isActive('italic'),
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" width="4.88" height="14" viewBox="0 0 4.88 14">
@@ -35,7 +43,11 @@ const FloatingMenu: React.FC<FloatingMenuProps> = ({ editor, placement = 'top', 
     },
     {
       label: 'Underline',
-      onClick: () => editor.chain().focus().toggleUnderline().run(),
+      onClick: () => {
+        console.log('Underline button clicked', editor, editor.isFocused);
+        const result = editor.chain().focus().toggleUnderline().run();
+        console.log('Underline command result:', result, 'Selection:', editor.state.selection);
+      },
       isActive: editor.isActive('underline'),
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="17" viewBox="0 0 14 17">
@@ -46,7 +58,11 @@ const FloatingMenu: React.FC<FloatingMenuProps> = ({ editor, placement = 'top', 
     },
     {
       label: 'Strike',
-      onClick: () => editor.chain().focus().toggleStrike().run(),
+      onClick: () => {
+        console.log('Strike button clicked', editor, editor.isFocused);
+        const result = editor.chain().focus().toggleStrike().run();
+        console.log('Strike command result:', result, 'Selection:', editor.state.selection);
+      },
       isActive: editor.isActive('strike'),
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="14.011" viewBox="0 0 18 14.011">
@@ -57,7 +73,11 @@ const FloatingMenu: React.FC<FloatingMenuProps> = ({ editor, placement = 'top', 
     },
     {
       label: 'Highlight',
-      onClick: () => editor.chain().focus().toggleHighlight().run(),
+      onClick: () => {
+        console.log('Highlight button clicked', editor, editor.isFocused);
+        const result = editor.chain().focus().toggleHighlight().run();
+        console.log('Highlight command result:', result, 'Selection:', editor.state.selection);
+      },
       isActive: editor.isActive('highlight'),
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" width="18.412" height="15.002" viewBox="0 0 18.412 15.002">
@@ -71,7 +91,11 @@ const FloatingMenu: React.FC<FloatingMenuProps> = ({ editor, placement = 'top', 
   const listButtons = [
     {
       label: 'Task List',
-      onClick: () => editor.chain().focus().toggleTaskList().run(),
+      onClick: () => {
+        console.log('Task List button clicked', editor, editor.isFocused);
+        const result = editor.chain().focus().toggleTaskList().run();
+        console.log('Task List command result:', result, 'Selection:', editor.state.selection);
+      },
       isActive: editor.isActive('taskList'),
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" width="29" height="12" viewBox="0 0 29 12">
@@ -85,7 +109,11 @@ const FloatingMenu: React.FC<FloatingMenuProps> = ({ editor, placement = 'top', 
     },
     {
       label: 'Ordered List',
-      onClick: () => editor.chain().focus().toggleOrderedList().run(),
+      onClick: () => {
+        console.log('Ordered List button clicked', editor, editor.isFocused);
+        const result = editor.chain().focus().toggleOrderedList().run();
+        console.log('Ordered List command result:', result, 'Selection:', editor.state.selection);
+      },
       isActive: editor.isActive('orderedList'),
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" width="29.5" height="14" viewBox="0 0 29.5 14">
@@ -99,7 +127,11 @@ const FloatingMenu: React.FC<FloatingMenuProps> = ({ editor, placement = 'top', 
     },
     {
       label: 'Bullet List',
-      onClick: () => editor.chain().focus().toggleBulletList().run(),
+      onClick: () => {
+        console.log('Bullet List button clicked', editor, editor.isFocused);
+        const result = editor.chain().focus().toggleBulletList().run();
+        console.log('Bullet List command result:', result, 'Selection:', editor.state.selection);
+      },
       isActive: editor.isActive('bulletList'),
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" width="29.5" height="13" viewBox="0 0 29.5 13">
@@ -114,7 +146,11 @@ const FloatingMenu: React.FC<FloatingMenuProps> = ({ editor, placement = 'top', 
     },
     {
       label: 'Align Left',
-      onClick: () => editor.chain().focus().setTextAlign('left').run(),
+      onClick: () => {
+        console.log('Align Left button clicked', editor, editor.isFocused);
+        const result = editor.chain().focus().setTextAlign('left').run();
+        console.log('Align Left command result:', result, 'Selection:', editor.state.selection);
+      },
       isActive: editor.isActive({ textAlign: 'left' }),
       icon: (
 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="14" viewBox="0 0 18 14">
@@ -126,7 +162,11 @@ const FloatingMenu: React.FC<FloatingMenuProps> = ({ editor, placement = 'top', 
     },
     {
       label: 'Align Right',
-      onClick: () => editor.chain().focus().setTextAlign('right').run(),
+      onClick: () => {
+        console.log('Align Right button clicked', editor, editor.isFocused);
+        const result = editor.chain().focus().setTextAlign('right').run();
+        console.log('Align Right command result:', result, 'Selection:', editor.state.selection);
+      },
       isActive: editor.isActive({ textAlign: 'right' }),
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="14" viewBox="0 0 18 14">
@@ -149,7 +189,14 @@ const FloatingMenu: React.FC<FloatingMenuProps> = ({ editor, placement = 'top', 
         {buttons.map((button) => (
           <button
             key={button.label}
-            onClick={button.onClick}
+            ref={el => {
+              if (el) {
+                el.onmousedown = e => {
+                  e.preventDefault();
+                  button.onClick();
+                };
+              }
+            }}
             className={`${styles.menuButton} ${button.isActive ? styles.active : ''}`}
             title={button.label}
             type="button"
@@ -165,7 +212,14 @@ const FloatingMenu: React.FC<FloatingMenuProps> = ({ editor, placement = 'top', 
         {listButtons.map((button) => (
           <button
             key={button.label}
-            onClick={button.onClick}
+            ref={el => {
+              if (el) {
+                el.onmousedown = e => {
+                  e.preventDefault();
+                  button.onClick();
+                };
+              }
+            }}
             className={`${styles.menuButton} ${button.isActive ? styles.active : ''}`}
             title={button.label}
             type="button"

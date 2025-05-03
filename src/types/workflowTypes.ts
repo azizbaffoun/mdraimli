@@ -9,11 +9,13 @@ export interface BaseNodeData {
   isNew?: boolean;
   isLocked?: boolean;
   isLastNode?: boolean;
+  onDelete?: (nodeId: string) => void;
+  isSelected?: boolean;
 }
 
 // Data for the initial start node
 export interface StartNodeData extends BaseNodeData {
-  onInitiateWorkflow: (type: string) => void;
+  onInitiateWorkflow?: (type: string) => void;
   onDelete?: (nodeId: string) => void;
   onAddChildNode?: (parentId: string, childType: ContentType) => void;
 }
@@ -21,7 +23,8 @@ export interface StartNodeData extends BaseNodeData {
 
 // Data for the topical keyword node
 export interface TopicalKeywordNodeData extends BaseNodeData {
-  onAddChildNode: (parentId: string, childType: ContentType) => void;
+  title: string;
+  onAddChildNode?: (parentId: string, childType: ContentType) => void;
   isRightConnected?: boolean;
   isLeftConnected?: boolean;
   canAddChild?: boolean;
@@ -62,6 +65,9 @@ export interface EventNodeData extends BaseNodeData {
 
 // Data specific to content nodes (Article, Video, Podcast, SocialMedia)
 export interface ContentNodeData extends BaseNodeData {
+  title: string;
+  url?: string;
+  description?: string;
   canAddChild?: boolean; 
   isLeftConnected?: boolean;
   isRightConnected?: boolean;
@@ -73,9 +79,9 @@ export interface ContentNodeData extends BaseNodeData {
 
 
 // Data for the note node
-export interface NoteNodeFlowData extends BaseNodeData { 
-  title?: string;
-  content?: string;
+export interface NoteNodeData extends BaseNodeData {
+  title: string;
+  content: string;
   onDelete?: (nodeId: string) => void;
   onAddChildNode?: (parentId: string, childType: ContentType) => void;
   onInitiateWorkflow?: (type: string) => void;
@@ -83,7 +89,11 @@ export interface NoteNodeFlowData extends BaseNodeData {
 
 
 // Union type for any possible node data in our workflow
-export type WorkflowNodeData = StartNodeData | TopicalKeywordNodeData | ContentNodeData | NoteNodeFlowData;
+export type WorkflowNodeData = 
+  | StartNodeData 
+  | TopicalKeywordNodeData 
+  | ContentNodeData 
+  | NoteNodeData;
 
 // You might also want a type for the overall workflow structure if saving/loading
 export interface WorkflowData {
@@ -126,4 +136,29 @@ export function saveWorkFlowToMVC() {
     window.saveWorkflow();
   }
   return null; // or handle the case when the function is not available
+}
+
+export interface WorkflowMetadata {
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+  description?: string;
+}
+
+export interface WorkflowSnapshot {
+  data: WorkflowData;
+  metadata: WorkflowMetadata;
+}
+
+export interface WorkflowValidationError {
+  nodeId?: string;
+  edgeId?: string;
+  message: string;
+  severity: 'error' | 'warning';
+}
+
+export interface WorkflowValidationResult {
+  isValid: boolean;
+  errors: WorkflowValidationError[];
 }

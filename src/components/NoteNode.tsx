@@ -9,9 +9,9 @@ import Highlight from '@tiptap/extension-highlight';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
 import TextAlign from '@tiptap/extension-text-align';
-import { Editor } from '@tiptap/core';
 import BubbleMenuWrapper from './NoteMenus/BubbleMenuWrapper';
 import OptionsMenu from './NoteMenus/OptionsMenu';
+import PortalContainer from './PortalContainer';
 
 // Define default values
 const defaultTitle = "Note Title Here";
@@ -44,14 +44,10 @@ export default function NoteNode({ id, data }: NodeProps) {
       }),
     ],
     content: data.content ?? '',
-    onUpdate: useCallback(({ editor }: { editor: Editor }) => {
+    onUpdate: ({ editor }) => {
       const content = editor.getHTML();
-      // Debounce the node update to prevent excessive re-renders
-      const timeoutId = setTimeout(() => {
-        setNodes(nds => nds.map(node => node.id === id ? { ...node, data: { ...node.data, content } } : node));
-      }, 100);
-      return () => clearTimeout(timeoutId);
-    }, [id, setNodes]),
+      setNodes(nds => nds.map(node => node.id === id ? { ...node, data: { ...node.data, content } } : node));
+    },
     editorProps: {
       attributes: {
         class: 'note-editor-inner w-full resize-none focus:outline-none text-black',
@@ -59,6 +55,8 @@ export default function NoteNode({ id, data }: NodeProps) {
       },
     },
   });
+
+  console.log('Tiptap editor:', editor);
 
   // Single, unified wheel event handler for the container
   const handleWheel = useCallback((e: WheelEvent) => {
@@ -196,31 +194,18 @@ export default function NoteNode({ id, data }: NodeProps) {
     setIsOptionsMenuOpen(!isOptionsMenuOpen);
   };
 
-  // Main cleanup effect for editor destruction on unmount
-  useEffect(() => {
-    if (data.isExiting) {
-      setIsOptionsMenuOpen(false);
-      if (editor && !editor.isDestroyed) {
-        editor.setOptions({ editable: false });
-        editor.destroy();
-      }
-    }
-    
-    return () => {
-      setIsOptionsMenuOpen(false);
-      if (editor && !editor.isDestroyed) {
-        editor.setOptions({ editable: false });
-        editor.destroy();
-      }
-    };
-  }, [data.isExiting, editor]);
-
   return (
     <div
       ref={containerRef}
       className={`note-node-container relative bg-white rounded-lg shadow-md border border-gray-200 flex flex-col hover:shadow-lg transition-all duration-150 ${data.isExiting ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}
       style={{ width: 270, minHeight: 110 }}
-      onMouseDown={(e) => e.stopPropagation()}
+      onMouseDown={(e) => {
+        console.log('[NoteNode] Container onMouseDown', { x: e.clientX, y: e.clientY, target: e.target });
+        e.stopPropagation();
+      }}
+      onClick={e => {
+        console.log('[NoteNode] Container onClick', { x: e.clientX, y: e.clientY, target: e.target });
+      }}
     >
       <Handle 
         type="target" 
@@ -297,24 +282,36 @@ export default function NoteNode({ id, data }: NodeProps) {
           paddingTop: 0,
           boxSizing: 'border-box',
         }}
+        onMouseDown={e => {
+          console.log('[NoteNode] Editor outer onMouseDown', { x: e.clientX, y: e.clientY, target: e.target });
+        }}
+        onClick={e => {
+          console.log('[NoteNode] Editor outer onClick', { x: e.clientX, y: e.clientY, target: e.target });
+        }}
       >
         {/* Tiptap Rich Text Editor */}
-        {editor && (
+        {editor ? (
           <>
-            {/* BubbleMenu */}
             <BubbleMenuWrapper
               editor={editor}
               id={id}
               isExiting={!!data.isExiting}
               getSelectionBoundingRect={getSelectionBoundingRect}
             />
-
-            {/* Editor content */}
             <div style={{ width: '100%' }}>
-              <EditorContent editor={editor} />
+              <EditorContent 
+                editor={editor} 
+                key={id} 
+                onClick={e => {
+                  console.log('[NoteNode] EditorContent onClick', { x: e.clientX, y: e.clientY, target: e.target });
+                }}
+                onMouseDown={e => {
+                  console.log('[NoteNode] EditorContent onMouseDown', { x: e.clientX, y: e.clientY, target: e.target });
+                }}
+              />
             </div>
           </>
-        )}
+        ) : null}
       </div>
 
       {/* Options Menu */}
@@ -324,6 +321,9 @@ export default function NoteNode({ id, data }: NodeProps) {
           onDelete={handleDelete}
         />
       )}
+
+      {/* BubbleMenu Portal Container (required for BubbleMenuWrapper tippy appendTo) */}
+      <PortalContainer id={id}>{null}</PortalContainer>
     </div>
   );
 } 

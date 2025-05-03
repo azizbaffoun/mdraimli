@@ -22,8 +22,9 @@ const PopupSelect: React.FC<PopupSelectProps> = ({
   setOpenMenu,
 }) => {
   const handleSettingsClick = () => {
+    // Call the onSettingsClick handler which will set replaceMenuOpen to true
+    console.log("PopupSelect: Settings button clicked");
     onSettingsClick?.();
-    setOpenMenu?.({ type: 'popselect', nodeId: nodeId || '' });
   };
 
   // Adjusted dimensions for 1 icon (topicalKeyword) vs 2 icons (settings, delete)
@@ -34,12 +35,22 @@ const PopupSelect: React.FC<PopupSelectProps> = ({
   return (
     <div
       className="absolute left-1/2 -translate-x-1/2 top-full -mt-70 z-50"
+      data-type="menu"
+      onClick={(e) => {
+        console.log("PopupSelect container clicked");
+        e.stopPropagation();
+      }}
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
         width={svgWidth}
         height="56.207"
         viewBox={svgViewBox}
+        data-type="menu"
+        onClick={(e) => {
+          console.log("PopupSelect SVG clicked");
+          e.stopPropagation();
+        }}
       >
         <defs>
           <filter id="Rounded_Rectangle_5320" x="-4.5" y="-0.293" width={isTopicalKeywordNode ? "65" : "106"} height="61" filterUnits="userSpaceOnUse">
@@ -64,7 +75,7 @@ const PopupSelect: React.FC<PopupSelectProps> = ({
             <stop offset="1" stopColor="#2db4a6"/>
           </linearGradient>
         </defs>
-        <g 
+        <g
           transform="translate(-389.5 -535.293)"
         >
           {/* Background Rect and Top Gradient */}
@@ -77,7 +88,7 @@ const PopupSelect: React.FC<PopupSelectProps> = ({
             </g>
           </g>
 
-          {/* Separator */} 
+          {/* Separator */}
           {!isTopicalKeywordNode && (
             <rect width="1" height="40" transform="translate(437 544)" fill="#ecf0f3"/>
           )}
@@ -85,47 +96,62 @@ const PopupSelect: React.FC<PopupSelectProps> = ({
           {/* --- Clickable Areas --- */}
           {isTopicalKeywordNode ? (
             // Clickable area for single icon (Settings)
-            <rect 
-              transform="translate(394 541)" 
-              width={rectWidth} 
-              height="43" 
-              fill="transparent" 
-              onClick={handleSettingsClick} 
+            <rect
+              transform="translate(394 541)"
+              width={rectWidth}
+              height="43"
+              fill="transparent"
+              onClick={(e) => {
+                console.log("Settings rect clicked");
+                e.stopPropagation();
+                handleSettingsClick();
+              }}
               className="cursor-pointer"
+              data-type="menu"
             />
           ) : (
             // Clickable areas for two icons (Settings, Delete)
             <>
-              <rect 
-                transform="translate(395 541)" 
+              <rect
+                transform="translate(395 541)"
                 width="43" // Width of Settings section
-                height="43" 
-                fill="transparent" 
-                onClick={handleSettingsClick} 
+                height="43"
+                fill="transparent"
+                onClick={(e) => {
+                  console.log("Settings rect clicked (non-topical)");
+                  e.stopPropagation();
+                  handleSettingsClick();
+                }}
                 className="cursor-pointer"
+                data-type="menu"
               />
-              <rect 
+              <rect
                 transform="translate(437 541)" // Starts after separator
                 width="44" // Width of Delete section
-                height="43" 
-                fill="transparent" 
-                onClick={onDeleteClick} 
+                height="43"
+                fill="transparent"
+                onClick={(e) => {
+                  console.log("Delete rect clicked");
+                  e.stopPropagation();
+                  onDeleteClick?.();
+                }}
                 className="cursor-pointer"
+                data-type="menu"
               />
             </>
           )}
 
           {/* --- Visual Icons (No Click Handlers Here) --- */}
           {/* Settings Icon (Visual Only) - Adjusted position */}
-          <g 
-            transform={`translate(${isTopicalKeywordNode ? 406.5 : 405} 552)`} 
+          <g
+            transform={`translate(${isTopicalKeywordNode ? 406.5 : 405} 552)`}
             style={{ pointerEvents: 'none' }} // Prevent icon itself from capturing events
           >
             <g transform="translate(1.5 2)">
               <path d="M10.217,0a2.152,2.152,0,0,1,1.819,1.04,1.778,1.778,0,0,1,.276,1.06,1.546,1.546,0,0,0,.235.88,1.973,1.973,0,0,0,2.575.69,2.112,2.112,0,0,1,2.872.76h0l.685,1.18a2.027,2.027,0,0,1-.756,2.83,1.822,1.822,0,0,0-.654,2.5,1.547,1.547,0,0,0,.634.64,2.3,2.3,0,0,1,.828.79,2.018,2.018,0,0,1-.02,2.05h0l-.715,1.2a2.1,2.1,0,0,1-2.892.74,1.63,1.63,0,0,0-.9-.23,1.909,1.909,0,0,0-1.891,1.82A2.068,2.068,0,0,1,10.2,20H8.807a2.07,2.07,0,0,1-2.126-2.05A1.892,1.892,0,0,0,4.8,16.13a1.586,1.586,0,0,0-.9.23,2.161,2.161,0,0,1-1.083.3A2.134,2.134,0,0,1,1,15.62H1l-.705-1.2a2,2,0,0,1-.02-2.05,2.118,2.118,0,0,1,.818-.79,1.634,1.634,0,0,0,.644-.64,1.834,1.834,0,0,0-.664-2.5A2.044,2.044,0,0,1,.314,5.61h0L1,4.43a2.124,2.124,0,0,1,2.882-.76,1.963,1.963,0,0,0,2.565-.69,1.546,1.546,0,0,0,.235-.88,1.785,1.785,0,0,1,.286-1.06A2.195,2.195,0,0,1,8.776,0h1.441ZM9.512,7.18a2.826,2.826,0,1,0,0,5.65,2.825,2.825,0,1,0,0-5.65Z" fill="url(#linear-gradient)"/>
             </g>
           </g>
-          
+
           {/* Arrow */}
           <path
             d="M2,0H9c1.1,0-9,9-9,9V2A2,2,0,0,1,2,0Z"
@@ -139,8 +165,8 @@ const PopupSelect: React.FC<PopupSelectProps> = ({
 
           {/* Delete Icon (Visual Only) - Adjusted position */}
           {!isTopicalKeywordNode && (
-            <g 
-              transform="translate(447 552)" 
+            <g
+              transform="translate(447 552)"
               style={{ pointerEvents: 'none' }} // Prevent icon itself from capturing events
             >
               <g transform="translate(3 2)">
@@ -154,4 +180,4 @@ const PopupSelect: React.FC<PopupSelectProps> = ({
   );
 };
 
-export default PopupSelect; 
+export default PopupSelect;

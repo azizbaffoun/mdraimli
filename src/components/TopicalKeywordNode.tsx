@@ -21,7 +21,7 @@ const RightConnectorShape = (
 );
 // Define the plus icon shape inline (adjust transform as needed)
 const PlusIconShape = (
-  <g transform="translate(-3.3 0.7)"> 
+  <g transform="translate(-3.3 0.7)">
       <path d="M15.613,12.657H7.829a.829.829,0,1,1,0-1.657h7.784a.829.829,0,1,1,0,1.657Z" transform="translate(0 -0.108)" fill="#fff"/>
       <path d="M11.829,16.442A.829.829,0,0,1,11,15.613V7.829a.829.829,0,1,1,1.657,0v7.784A.829.829,0,0,1,11.829,16.442Z" transform="translate(-0.108)" fill="#fff"/>
   </g>
@@ -53,7 +53,7 @@ const TopicalKeywordNode: React.FC<NodeProps<ExtendedTopicalKeywordNodeData & {
   }, [data.isNew, data.nodeType, id]); // Add dependencies
 
   const menuOpen = openMenu?.type === 'add' && openMenu.nodeId === id;
-  const TopReplaceOpen = openMenu?.type === 'popselect' && openMenu.nodeId === id;
+  // We're now using replaceMenuOpen directly in the TopReplace component
 
 
 
@@ -77,13 +77,17 @@ const TopicalKeywordNode: React.FC<NodeProps<ExtendedTopicalKeywordNodeData & {
 
   const handleSettingsClick = () => {
     if (data.isLocked) return;
-    setOpenMenu?.(null);
+    // Set replaceMenuOpen to true to show the TopReplace menu
+    console.log("TopicalKeywordNode: Settings clicked, opening TopReplace menu");
+    // Make sure to set replaceMenuOpen to true
     setReplaceMenuOpen(true);
   };
 
   const handleTopReplaceSelect = (type: 'topicalKeyword' | 'offer' | 'event') => {
     if (data.isLocked) return;
-    setOpenMenu?.(null);
+    // Close the replace menu
+    setReplaceMenuOpen(false);
+    // Update the node type
     setNodes((nodes) =>
       nodes.map((node) =>
         node.id === id
@@ -121,9 +125,9 @@ const TopicalKeywordNode: React.FC<NodeProps<ExtendedTopicalKeywordNodeData & {
             setOpenMenu={setOpenMenu}
           />
           <TopReplace
-            isOpen={TopReplaceOpen}
+            isOpen={replaceMenuOpen}
             onSelect={handleTopReplaceSelect}
-            onClose={() => setOpenMenu?.(null)}
+            onClose={() => setReplaceMenuOpen(false)}
             currentType={data.nodeType || 'topicalKeyword'}
           />
         </div>
@@ -135,7 +139,7 @@ const TopicalKeywordNode: React.FC<NodeProps<ExtendedTopicalKeywordNodeData & {
           const target = e.target as HTMLElement;
           const isPlusZone = target.closest('[data-type="plus-zone"]');
           const isMenu = target.closest('[data-type="menu"]');
-          
+
           if (isPlusZone || isMenu) {
             console.log(`[TopicalKeywordNode ${id}] Preventing node selection - clicked ${isPlusZone ? 'plus zone' : 'menu'}`);
             e.stopPropagation();
@@ -260,11 +264,8 @@ const TopicalKeywordNode: React.FC<NodeProps<ExtendedTopicalKeywordNodeData & {
               onClose={() => setOpenMenu?.(null)}
               onSelectOption={handleSelectOption}
               availableOptions={['article', 'video', 'podcast', 'socialMedia']}
-              positionStyle={{
-                left: 'calc(100% + 32px)',
-                top: '50%',
-                transform: 'translateY(-50%)',
-              }}
+  positionStyle={{ left: 'calc(100% + 15px)', top: '67%', transform: 'translateY(-50%)' }}
+
             />
           </>
         )}
