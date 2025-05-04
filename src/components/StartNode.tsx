@@ -75,6 +75,17 @@ const StartNode: React.FC<NodeProps<StartNodeData>> = ({ data }) => {
             {/* Hover overlays */}
             {(isHovered || menuOpen) && (
               <>
+                {/* Background Glow Rectangle */}
+                <rect
+                  id="Rectangle_1632"
+                  data-name="Rectangle 1632"
+                  width="116"
+                  height="116"
+                  rx="40"
+                  transform="translate(680 313)"
+                  fill="#3799db"
+                  opacity="0.28"
+                />
                 {/* Plus Button Group */}
                 <g id="Group_3855" data-name="Group 3855" transform="translate(411.54 -16)" onClick={handlePlusClick} style={{ cursor: 'pointer', outline: 'none' }} tabIndex={0} role="button" aria-label="Add" className="outline-none" data-type="plus-zone">
                   <path id="Rectangle_1636" data-name="Rectangle 1636" d="M0,0H4A12,12,0,0,1,16,12v0A12,12,0,0,1,4,24H0a0,0,0,0,1,0,0V0A0,0,0,0,1,0,0Z" transform="translate(384.46 372)" fill="#86c1e9" stroke="none"/>
@@ -104,4 +115,4 @@ const StartNode: React.FC<NodeProps<StartNodeData>> = ({ data }) => {
   );
 };
 
-export default StartNode; 
+export default StartNode;
