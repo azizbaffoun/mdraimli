@@ -24,9 +24,13 @@ const SocialMediaNodeTimer: React.FC<SocialMediaNodeTimerProps> = ({ badgeNumber
       {/* Node name with badge number if provided */}
       <div className="flex items-center justify-center">
         {badgeNumber !== null && badgeNumber !== undefined && (
-          <span style={{ marginRight: '4px' }}>
+          <span style={{ marginRight: '4px', display: 'flex', alignItems: 'center' }}>
             {useGradient ? (
-              <svg width="16" height="20" viewBox="0 0 16 20">
+              <svg
+                width={`${String(badgeNumber).length > 2 ? 40 : String(badgeNumber).length > 1 ? 30 : 16}`}
+                height="20"
+                viewBox={`0 0 ${String(badgeNumber).length > 2 ? 40 : String(badgeNumber).length > 1 ? 30 : 16} 20`}
+              >
                 <text x="0" y="16" fontSize="16" fontWeight="700" fill={fillColor}>{badgeNumber}</text>
               </svg>
             ) : (
@@ -46,7 +50,7 @@ const SocialMediaNodeTimer: React.FC<SocialMediaNodeTimerProps> = ({ badgeNumber
             width="16"
             height="16"
             viewBox="0 0 16.378 18.058"
-            style={{ marginRight: '3px' }}
+            style={{ marginRight: '3px', display: 'flex', alignItems: 'center' }}
           >
             <g id="calendar" transform="translate(-2.25 -1.25)">
               <path id="Path_470" data-name="Path_470" d="M7.886,5.069a.636.636,0,0,1-.636-.636V1.886a.636.636,0,0,1,1.273,0V4.432A.636.636,0,0,1,7.886,5.069Z" transform="translate(-0.804 0)" fill={fillColor}/>
@@ -61,7 +65,7 @@ const SocialMediaNodeTimer: React.FC<SocialMediaNodeTimerProps> = ({ badgeNumber
               <path id="Path_479" data-name="Path_479" d="M8.15,17.4H8.143a.849.849,0,0,1,0-1.7H8.15a.849.849,0,1,1,0,1.7Z" transform="translate(-0.813 -2.326)" fill={fillColor}/>
             </g>
           </svg>
-          <span style={{ fontSize: '16px', color: '#222' }}>
+          <span style={{ fontSize: '16px', color: '#222', fontWeight: 'bold', display: 'flex', alignItems: 'center' }}>
             {delayValue}
           </span>
         </div>

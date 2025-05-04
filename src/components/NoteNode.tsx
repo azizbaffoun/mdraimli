@@ -24,6 +24,8 @@ const MAX_CONTENT_HEIGHT = LINE_HEIGHT * 7; // 7 lines max
 export default function NoteNode({ id, data }: NodeProps) {
   const { setNodes, getNode } = useReactFlow();
   const containerRef = useRef<HTMLDivElement>(null);
+  const optionsMenuRef = useRef<HTMLDivElement>(null);
+  const optionsButtonRef = useRef<HTMLButtonElement>(null);
   const [title, setTitle] = useState(data.title ?? defaultTitle);
   const [isOptionsMenuOpen, setIsOptionsMenuOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -63,7 +65,7 @@ export default function NoteNode({ id, data }: NodeProps) {
     // Get the target element that's actually scrolling
     const target = e.target as HTMLElement;
     const scrollableTarget = target.closest('.ProseMirror') as HTMLElement;
-    
+
     if (!scrollableTarget) return;
 
     const isScrollable = scrollableTarget.scrollHeight > scrollableTarget.clientHeight;
@@ -130,17 +132,17 @@ export default function NoteNode({ id, data }: NodeProps) {
         width: 0, height: 0, top: -9999, left: -9999, right: -9999, bottom: -9999, x: -9999, y: -9999, toJSON: () => ({}),
       };
     }
-  
+
     const range = selection.getRangeAt(0);
     const rect = range.getBoundingClientRect();
     const bubbleWidth = 240;
     const bubbleHeight = 90;
     const bubbleGap = 16;
     const leftOffset = -40;
-  
+
     const left = rect.left + (rect.width / 2) - (bubbleWidth / 2) + leftOffset;
     const top = rect.top - bubbleHeight - bubbleGap;
-  
+
     return {
       width: bubbleWidth,
       height: bubbleHeight,
@@ -176,7 +178,7 @@ export default function NoteNode({ id, data }: NodeProps) {
       ...nodeToDuplicate,
       id: newNodeId,
       position,
-      data: { 
+      data: {
         ...nodeToDuplicate.data,
         onDelete: data.onDelete
       },
@@ -187,6 +189,70 @@ export default function NoteNode({ id, data }: NodeProps) {
     setNodes((nds) => nds.concat(newNode));
     setIsOptionsMenuOpen(false);
   };
+
+  // Effect to close options menu when clicking outside
+  useEffect(() => {
+    if (!isOptionsMenuOpen) return;
+
+    // Handler for clicks outside the menu
+    const handleClickOutside = (event: MouseEvent) => {
+      // Check if the click is outside both the menu and the toggle button
+      if (
+        optionsMenuRef.current &&
+        !optionsMenuRef.current.contains(event.target as Node) &&
+        optionsButtonRef.current &&
+        !optionsButtonRef.current.contains(event.target as Node)
+      ) {
+        setIsOptionsMenuOpen(false);
+      }
+    };
+
+    // Add event listeners
+    document.addEventListener('mousedown', handleClickOutside);
+
+    // Cleanup
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOptionsMenuOpen]);
+
+  // Separate effect to close menu on zoom
+  useEffect(() => {
+    if (!isOptionsMenuOpen) return;
+
+    // Store initial viewport
+    const reactFlowInstance = window.__REACTFLOW_INSTANCE;
+    const initialViewport = reactFlowInstance?.getViewport();
+
+    // Function to check if zoom has changed
+    const checkZoom = () => {
+      if (!initialViewport) return;
+
+      const currentViewport = reactFlowInstance?.getViewport();
+      if (currentViewport && initialViewport.zoom !== currentViewport.zoom) {
+        setIsOptionsMenuOpen(false);
+      }
+    };
+
+    // Set up an interval to check zoom changes
+    const zoomCheckInterval = setInterval(checkZoom, 100);
+
+    // Listen for zoom control button clicks
+    const zoomControlHandler = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      // Check if the click is on a zoom control button
+      if (target.closest('.fixed.bottom-16.right-6')) {
+        setIsOptionsMenuOpen(false);
+      }
+    };
+    document.addEventListener('click', zoomControlHandler);
+
+    // Cleanup
+    return () => {
+      clearInterval(zoomCheckInterval);
+      document.removeEventListener('click', zoomControlHandler);
+    };
+  }, [isOptionsMenuOpen]);
 
   // --- Options Menu Handlers ---
   const toggleOptionsMenu = (event: React.MouseEvent) => {
@@ -207,17 +273,17 @@ export default function NoteNode({ id, data }: NodeProps) {
         console.log('[NoteNode] Container onClick', { x: e.clientX, y: e.clientY, target: e.target });
       }}
     >
-      <Handle 
-        type="target" 
-        position={Position.Left} 
+      <Handle
+        type="target"
+        position={Position.Left}
         style={{ opacity: 0 }}
       />
-      <Handle 
-        type="source" 
-        position={Position.Right} 
+      <Handle
+        type="source"
+        position={Position.Right}
         style={{ opacity: 0 }}
       />
-      
+
       {/* Header */}
       <div
         id={`note-header-${id}`}
@@ -243,7 +309,7 @@ export default function NoteNode({ id, data }: NodeProps) {
         </svg>
 
         {/* Title Input */}
-        <input 
+        <input
           type="text"
           value={title}
           onChange={handleTitleChange}
@@ -255,9 +321,10 @@ export default function NoteNode({ id, data }: NodeProps) {
             fontWeight: 400
           }}
         />
-        
+
         {/* Options Button */}
-        <button 
+        <button
+          ref={optionsButtonRef}
           onClick={toggleOptionsMenu}
           className="flex-shrink-0 w-[26px] h-[26px] flex items-center justify-center"
           style={{ marginLeft: 'auto' }}
@@ -299,9 +366,9 @@ export default function NoteNode({ id, data }: NodeProps) {
               getSelectionBoundingRect={getSelectionBoundingRect}
             />
             <div style={{ width: '100%' }}>
-              <EditorContent 
-                editor={editor} 
-                key={id} 
+              <EditorContent
+                editor={editor}
+                key={id}
                 onClick={e => {
                   console.log('[NoteNode] EditorContent onClick', { x: e.clientX, y: e.clientY, target: e.target });
                 }}
@@ -316,14 +383,16 @@ export default function NoteNode({ id, data }: NodeProps) {
 
       {/* Options Menu */}
       {isOptionsMenuOpen && (
-        <OptionsMenu
-          onDuplicate={handleDuplicate}
-          onDelete={handleDelete}
-        />
+        <div ref={optionsMenuRef}>
+          <OptionsMenu
+            onDuplicate={handleDuplicate}
+            onDelete={handleDelete}
+          />
+        </div>
       )}
 
       {/* BubbleMenu Portal Container (required for BubbleMenuWrapper tippy appendTo) */}
       <PortalContainer id={id}>{null}</PortalContainer>
     </div>
   );
-} 
+}

@@ -33,15 +33,27 @@ const NodeAddMenu: React.FC<NodeAddMenuProps> = ({
 
   // Handle clicks outside the menu to close it
   useEffect(() => {
+    // Handle clicks outside the menu
     const handleClickOutside = (event: MouseEvent) => {
+      // Check if the click is outside the menu
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        onClose();
+        // Check if the click is on a plus-zone element (to prevent immediate closing when opening)
+        const target = event.target as HTMLElement;
+        const isPlusZone = target.closest('[data-type="plus-zone"]');
+
+        if (!isPlusZone) {
+          onClose();
+        }
       }
     };
+
     if (isOpen) {
+      // Add click outside event listener
       document.addEventListener('mousedown', handleClickOutside);
     }
+
     return () => {
+      // Remove click outside event listener
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [isOpen, onClose]);

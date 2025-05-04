@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import ReactFlow, {
-  Background,
   Node,
   Edge,
   useNodesState,
@@ -965,15 +964,33 @@ const WorkflowEditorContent: React.FC = () => {
 
   const handleZoomIn = useCallback(() => {
     zoomIn();
+
+    // Dispatch a custom event to notify other components about zoom changes
+    const viewportChangeEvent = new CustomEvent('reactflow:viewportchange', {
+      detail: { action: 'zoomIn' }
+    });
+    document.dispatchEvent(viewportChangeEvent);
   }, [zoomIn]);
 
   const handleZoomOut = useCallback(() => {
     zoomOut();
+
+    // Dispatch a custom event to notify other components about zoom changes
+    const viewportChangeEvent = new CustomEvent('reactflow:viewportchange', {
+      detail: { action: 'zoomOut' }
+    });
+    document.dispatchEvent(viewportChangeEvent);
   }, [zoomOut]);
 
   // Update zoom level when viewport changes
   const handleViewportChange = useCallback((_: any, viewport: Viewport) => {
     setZoomLevel(viewport.zoom);
+
+    // Dispatch a custom event to notify other components about viewport changes
+    const viewportChangeEvent = new CustomEvent('reactflow:viewportchange', {
+      detail: { viewport }
+    });
+    document.dispatchEvent(viewportChangeEvent);
   }, []);
 
   // Undo/Redo handlers
@@ -1141,7 +1158,7 @@ const WorkflowEditorContent: React.FC = () => {
           onMove={handleViewportChange}
           proOptions={{ hideAttribution: true }}
         >
-          <Background />
+
         </ReactFlow>
       </div>
 
