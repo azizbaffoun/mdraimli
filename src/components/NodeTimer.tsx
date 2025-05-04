@@ -24,7 +24,7 @@ const NodeTimer: React.FC<NodeTimerProps> = ({ badgeNumber, delayValue, color = 
       {/* Node name with badge number if provided */}
       <div className="flex items-center justify-center">
         {badgeNumber !== null && badgeNumber !== undefined && (
-          <span style={{ marginRight: '4px' }}>
+          <span style={{ marginRight: '4px', display: 'flex', alignItems: 'center' }}>
             {useGradient ? (
               <svg width="16" height="20" viewBox="0 0 16 20">
                 <text x="0" y="16" fontSize="16" fontWeight="700" fill={fillColor}>{badgeNumber}</text>
@@ -46,7 +46,7 @@ const NodeTimer: React.FC<NodeTimerProps> = ({ badgeNumber, delayValue, color = 
             width="16"
             height="16"
             viewBox="0 0 15.951 18.05"
-            style={{ marginRight: '3px' }}
+            style={{ marginRight: '3px', display: 'flex', alignItems: 'center' }}
           >
             {useGradient ? (
               <g id="timer-pause" transform="translate(-2.5 -1.25)" fill={fillColor}>
@@ -66,7 +66,7 @@ const NodeTimer: React.FC<NodeTimerProps> = ({ badgeNumber, delayValue, color = 
               </g>
             )}
           </svg>
-          <span style={{ fontSize: '16px', color: '#222' }}>
+          <span style={{ fontSize: '16px', color: '#222', fontWeight: 'bold', display: 'flex', alignItems: 'center' }}>
             {delayValue}
           </span>
         </div>

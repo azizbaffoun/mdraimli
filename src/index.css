@@ -174,32 +174,39 @@ body {
   opacity: 1;
 }
 
-/* Ensure proper alignment of node connectors */
+/* Ensure perfect alignment of all node connectors */
 .node-type-video .video-node-connector-left,
 .node-type-article .article-node-connector-left,
 .node-type-podcast .podcast-node-connector-left,
 .node-type-socialMedia .socialMedia-node-connector-left,
+.node-type-topicalKeyword .topical-keyword-connector-left,
 .node-type-video .video-node-connector-plus,
 .node-type-article .article-node-connector-plus,
 .node-type-podcast .podcast-node-connector-plus,
+.node-type-topicalKeyword .topical-keyword-connector-plus,
 .node-type-video .video-node-connector-right-connected,
 .node-type-article .article-node-connector-right-connected,
-.node-type-podcast .podcast-node-connector-right-connected {
+.node-type-podcast .podcast-node-connector-right-connected,
+.node-type-topicalKeyword .topical-keyword-connector-right-connected {
   top: 50% !important;
   transform: translateY(-50%) !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
 }
 
-/* Fix for ReactFlow node positioning */
+/* Fix for ReactFlow node positioning - ensure perfect alignment */
 .react-flow__node {
   display: flex;
   justify-content: center;
   align-items: center;
+  transform-origin: center center;
 }
 
-/* Ensure node handles are properly positioned */
+/* Ensure node handles are perfectly positioned for alignment */
 .react-flow__handle {
   z-index: 100;
   position: absolute !important;
+  transform: translate(-50%, -50%) !important;
 }
 
 /* No specific rules needed for .video-node-connector-right-connected */

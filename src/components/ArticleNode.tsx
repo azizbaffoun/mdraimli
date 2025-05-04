@@ -168,13 +168,15 @@ const ArticleNode: React.FC<NodeProps<ArticleNodeData>> = ({ id, data, selected 
           </g>
         </svg>
 
-        {/* Handles */}
+        {/* Handles - Ensure exact positioning for perfect alignment */}
         <Handle type="target" position={Position.Left} id="left-target" style={{ opacity: 0, width: 20, height: 20, left: '-16.5px', top: '50%', transform: 'translate(-50%, -50%)', zIndex: 50 }} />
         <Handle type="source" position={Position.Right} id="right-source" style={{ opacity: 0, width: 20, height: 20, right: '-16.5px', top: '50%', transform: 'translate(50%, -50%)', zIndex: 10 }} />
 
-        {/* Left Connector Visual */}
+        {/* Left Connector Visual - Ensure exact positioning for perfect alignment */}
         <div
-          className={`article-node-connector-left absolute left-[-16.5px] top-[50%] transform -translate-y-1/2 pointer-events-none z-20 ${data.isLeftConnected ? 'is-connected' : ''}`}>
+          className={`article-node-connector-left absolute left-[-16.5px] top-[50%] transform -translate-y-1/2 pointer-events-none z-20 ${data.isLeftConnected ? 'is-connected' : ''}`}
+          style={{ marginTop: 0 }} // Ensure no additional margin affects alignment
+        >
             <svg width="17" height="25" viewBox="0 0 17 25">
               <path d="M12,0h4a0,0,0,0,1,0,0V24a0,0,0,0,1,0,0H12A12,12,0,0,1,0,12v0A12,12,0,0,1,12,0Z" transform="translate(0.5 0.5)" fill="#8fa8f1" stroke="rgba(0,0,0,0)" strokeMiterlimit="10" strokeWidth="1"/>
             </svg>
@@ -193,6 +195,7 @@ const ArticleNode: React.FC<NodeProps<ArticleNodeData>> = ({ id, data, selected 
                 setReplaceMenuOpen(false);
               }}
               data-type="plus-zone"
+              style={{ marginTop: 0 }} // Ensure no additional margin affects alignment
             >
               <svg width="17" height="25" viewBox="0 0 17 25" >
                 {RightConnectorShape}
@@ -215,6 +218,7 @@ const ArticleNode: React.FC<NodeProps<ArticleNodeData>> = ({ id, data, selected 
         {(data.isRightConnected || (!data.isLocked || !data.isLastNode)) && (
           <div
             className={`article-node-connector-right-connected absolute right-[-16.5px] top-[50%] transform -translate-y-1/2 pointer-events-none z-20`}
+            style={{ marginTop: 0 }} // Ensure no additional margin affects alignment
           >
             <svg width="17" height="25" viewBox="0 0 17 25" >
               {RightConnectorShape}

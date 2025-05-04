@@ -188,17 +188,18 @@ const CustomEdge: React.FC<EdgeProps> = memo(({
   const targetNode = nodes.find((n: Node) => n.id === target);
 
   // Calculate coordinates with fallback to default positions
+  // Use exact positioning to ensure perfect alignment with node connectors
   const sourceX = sourceNode?.position ?
-    sourceNode.position.x + (sourceNode.width || 0) + 16.5 :
+    sourceNode.position.x + (sourceNode.width || 0) + 15.5 :
     defaultSourceX;
   const sourceY = sourceNode?.position ?
-    sourceNode.position.y + ((sourceNode.height || 0) * 0.5) :
+    sourceNode.position.y + ((sourceNode.height || 0) / 2) :
     defaultSourceY;
   const targetX = targetNode?.position ?
-    targetNode.position.x - 16.5 :
+    targetNode.position.x - 10.5 :
     defaultTargetX;
   const targetY = targetNode?.position ?
-    targetNode.position.y + ((targetNode.height || 0) * 0.5) :
+    targetNode.position.y + ((targetNode.height || 0) / 2) :
     defaultTargetY;
 
   // Calculate angle and distance

@@ -36,7 +36,7 @@ const TopReplace: React.FC<StartMenuProps> = ({ isOpen, onSelect, onClose, class
   return (
     <div
       ref={menuRef}
-      className={className ?? "absolute left-[80%] top-[120%] -translate-y-1/2 z-[999]"}
+      className={className ?? "absolute left-[80%] top-[148%] -translate-y-1/2 z-[999]"}
       style={{
         marginLeft: -15,
         marginTop: -4,
