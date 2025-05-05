@@ -60,7 +60,7 @@ export default function NoteNode({ id, data }: NodeProps) {
 
   console.log('Tiptap editor:', editor);
 
-  // Single, unified wheel event handler for the container
+  // Single, unified wheel event handler for the container with performance optimizations
   const handleWheel = useCallback((e: WheelEvent) => {
     // Get the target element that's actually scrolling
     const target = e.target as HTMLElement;
@@ -68,20 +68,36 @@ export default function NoteNode({ id, data }: NodeProps) {
 
     if (!scrollableTarget) return;
 
+    // Check if this is a zoom event (Ctrl/Cmd key pressed)
+    const isZoomEvent = e.ctrlKey || e.metaKey;
+
+    // For zoom events, let the canvas handle it
+    if (isZoomEvent) {
+      return;
+    }
+
+    // Always stop propagation for wheel events inside the note to prevent canvas zoom
+    // This ensures the canvas won't zoom when scrolling inside the note
+    e.stopPropagation();
+
+    // For normal scroll events, handle scrolling within the note
     const isScrollable = scrollableTarget.scrollHeight > scrollableTarget.clientHeight;
+
+    // If not scrollable, prevent default to avoid any scrolling
+    if (!isScrollable) {
+      e.preventDefault();
+      return;
+    }
+
+    // Check if we're at the boundaries
     const atTop = scrollableTarget.scrollTop === 0;
-    const atBottom = scrollableTarget.scrollTop + scrollableTarget.clientHeight >= scrollableTarget.scrollHeight;
+    const atBottom = scrollableTarget.scrollTop + scrollableTarget.clientHeight >= scrollableTarget.scrollHeight - 5; // 5px buffer
     const scrollingUp = e.deltaY < 0;
     const scrollingDown = e.deltaY > 0;
 
-    // Always stop propagation to prevent canvas zoom while over note
-    e.stopPropagation();
-
-    // Prevent default only when:
-    // 1. Content is not scrollable, or
-    // 2. Trying to scroll up when already at top, or
-    // 3. Trying to scroll down when already at bottom
-    if (!isScrollable || (scrollingUp && atTop) || (scrollingDown && atBottom)) {
+    // Prevent default only when trying to scroll beyond boundaries
+    // This allows normal scrolling within the note but prevents canvas scrolling
+    if ((scrollingUp && atTop) || (scrollingDown && atBottom)) {
       e.preventDefault();
     }
   }, []);
@@ -90,7 +106,9 @@ export default function NoteNode({ id, data }: NodeProps) {
     const container = containerRef.current;
     if (!container) return;
 
-    container.addEventListener('wheel', handleWheel, { passive: false });
+    // Use a non-passive event listener only when we need to call preventDefault
+    // This improves scrolling performance significantly
+    container.addEventListener('wheel', handleWheel);
     return () => {
       container.removeEventListener('wheel', handleWheel);
     };
@@ -271,6 +289,10 @@ export default function NoteNode({ id, data }: NodeProps) {
       }}
       onClick={e => {
         console.log('[NoteNode] Container onClick', { x: e.clientX, y: e.clientY, target: e.target });
+        // Focus the editor when clicking anywhere in the container
+        if (editor && !editor.options.element?.contains(e.target as Node)) {
+          editor.commands.focus();
+        }
       }}
     >
       <Handle

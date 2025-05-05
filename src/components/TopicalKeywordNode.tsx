@@ -231,7 +231,10 @@ const TopicalKeywordNode: React.FC<NodeProps<ExtendedTopicalKeywordNodeData & {
         {/* --- Left Connector Visual --- */}
         {/* Show only if left connected */}
         {data.isLeftConnected && (
-          <div className={`topical-keyword-connector-left absolute left-[-16.5px] top-1/2 transform -translate-y-1/2 pointer-events-none z-20`}>
+          <div
+            className={`topical-keyword-connector-left absolute left-[-16.5px] top-[50%] transform -translate-y-1/2 pointer-events-none z-20`}
+            style={{ marginTop: 0 }} /* Ensure no additional margin affects alignment */
+          >
             <svg width="17" height="25" viewBox="0 0 17 25">
               {/* Use the appropriate left connector shape if different, or adapt RightConnectorShape */}
               <path d="M12,0h4a0,0,0,0,1,0,0V24a0,0,0,0,1,0,0H12A12,12,0,0,1,0,12v0A12,12,0,0,1,12,0Z" transform="translate(0.5 0.5)" fill="#81cfce" stroke="rgba(0,0,0,0)" strokeMiterlimit="10" strokeWidth="1"/>
@@ -243,7 +246,7 @@ const TopicalKeywordNode: React.FC<NodeProps<ExtendedTopicalKeywordNodeData & {
         {data.canAddChild && !data.isRightConnected && (!data.isLocked || !data.isLastNode) && (
           <>
             <div
-              className="topical-keyword-connector-plus absolute right-[-16.5px] top-1/2 transform -translate-y-1/2 cursor-pointer z-30 hover:scale-110 transition-all duration-200"
+              className="topical-keyword-connector-plus absolute right-[-16.5px] top-[50%] transform -translate-y-1/2 cursor-pointer z-30 hover:scale-110 transition-all duration-200"
               onClick={(e) => {
                 e.stopPropagation();
                 if (data.isLocked) return;
@@ -273,7 +276,8 @@ const TopicalKeywordNode: React.FC<NodeProps<ExtendedTopicalKeywordNodeData & {
         {/* Right connector - Only show if right connected or if not locked/not last node */}
         {(data.isRightConnected || (!data.isLocked || !data.isLastNode)) && (
           <div
-            className={`topical-keyword-connector-right-connected absolute right-[-16.5px] top-1/2 transform -translate-y-1/2 pointer-events-none z-20`}
+            className="topical-keyword-connector-right-connected absolute right-[-16.5px] top-[50%] transform -translate-y-1/2 pointer-events-none z-20"
+            style={{ marginTop: 0 }} // Ensure no additional margin affects alignment
           >
             <svg width="17" height="25" viewBox="0 0 17 25" >
               {RightConnectorShape}
