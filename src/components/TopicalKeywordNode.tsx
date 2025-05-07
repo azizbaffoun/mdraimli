@@ -243,7 +243,7 @@ const TopicalKeywordNode: React.FC<NodeProps<ExtendedTopicalKeywordNodeData & {
         )}
 
         {/* Right Side Elements - Only show if not locked or not last node */}
-        {data.canAddChild && !data.isRightConnected && (!data.isLocked || !data.isLastNode) && (
+        {data.canAddChild && !data.isRightConnected && (!data.isLocked || !data.isLastNode) && !(data.isLocked && !data.isRightConnected) && (
           <>
             <div
               className="topical-keyword-connector-plus absolute right-[-16.5px] top-[50%] transform -translate-y-1/2 cursor-pointer z-30 hover:scale-110 transition-all duration-200"
@@ -274,7 +274,7 @@ const TopicalKeywordNode: React.FC<NodeProps<ExtendedTopicalKeywordNodeData & {
         )}
 
         {/* Right connector - Only show if right connected or if not locked/not last node */}
-        {(data.isRightConnected || (!data.isLocked || !data.isLastNode)) && (
+        {(data.isRightConnected || (!data.isLocked || !data.isLastNode)) && !(data.isLocked && !data.isRightConnected) && (
           <div
             className="topical-keyword-connector-right-connected absolute right-[-16.5px] top-[50%] transform -translate-y-1/2 pointer-events-none z-20"
             style={{ marginTop: 0 }} // Ensure no additional margin affects alignment

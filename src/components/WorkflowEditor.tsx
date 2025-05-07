@@ -419,12 +419,16 @@ const WorkflowEditorContent: React.FC = () => {
       console.warn("Cannot organize layout: Topical Keyword node not found.");
       return;
     }
+
+    // First, organize the layout with relative positions
     const nodeWidth = 128;
     const nodeHeight = 128;
     const horizontalGap = 120;
     const verticalGap = 50;
-    const rootX = 100;
-    const firstColX = rootX + nodeWidth + horizontalGap;
+
+    // We'll use temporary coordinates for the initial layout
+    const tempRootX = 0;
+    const firstColX = tempRootX + nodeWidth + horizontalGap;
     const rows: Node[][] = [];
     const processedNodes = new Set<string>();
     processedNodes.add(topicalKeywordNode.id);
@@ -444,29 +448,103 @@ const WorkflowEditorContent: React.FC = () => {
             rows.push(currentRow);
         }
     });
+
     const numRows = rows.length;
     const totalLayoutHeight = numRows * nodeHeight + Math.max(0, numRows - 1) * verticalGap;
-    const startY = 100;
-    const rootY = startY + totalLayoutHeight / 2 - nodeHeight / 2;
-    const finalNodes: Node[] = [];
-    finalNodes.push({ ...topicalKeywordNode, position: { x: rootX, y: rootY } });
+
+    // Calculate a better vertical starting position
+    // We'll use a negative value to ensure nodes are positioned above and below the center
+    const startY = -(totalLayoutHeight / 2) + (nodeHeight / 2);
+    const rootY = 0; // Place the topical keyword node exactly at vertical center
+
+    // Create the organized nodes with temporary positions
+    const organizedNodes: Node[] = [];
+    organizedNodes.push({ ...topicalKeywordNode, position: { x: tempRootX, y: rootY } });
+    // Calculate row positions to ensure they're centered vertically
     rows.forEach((row, rowIndex) => {
+        // Calculate Y position for this row
         const currentRowY = startY + rowIndex * (nodeHeight + verticalGap);
+
+        // Position each node in the row
         row.forEach((node: Node, colIndex: number) => {
             const nodeX = firstColX + colIndex * (nodeWidth + horizontalGap);
-            finalNodes.push({ ...node, position: { x: nodeX, y: currentRowY } });
+            organizedNodes.push({ ...node, position: { x: nodeX, y: currentRowY } });
         });
     });
+
+    // Add any remaining nodes that weren't processed
     layoutableNodes.forEach((node: Node) => {
         if (!processedNodes.has(node.id)) {
-            finalNodes.push(node);
+            organizedNodes.push(node);
         }
     });
-    finalNodes.push(...noteNodes);
-    console.log("Applying full layout:", finalNodes);
+
+    // Add note nodes
+    organizedNodes.push(...noteNodes);
+
+    // Now, calculate the viewport center
+    const viewportWidth = reactFlowWrapper.current?.clientWidth || window.innerWidth;
+    const viewportHeight = reactFlowWrapper.current?.clientHeight || window.innerHeight;
+    const viewportCenterX = viewportWidth / 2;
+    const viewportCenterY = viewportHeight / 2;
+
+    console.log("Viewport dimensions for centering:", {
+      width: viewportWidth,
+      height: viewportHeight,
+      center: { x: viewportCenterX, y: viewportCenterY }
+    });
+
+    // Find the topical keyword node in the organized nodes
+    const organizedTopicalNode = organizedNodes.find(n => n.type === 'topicalKeyword');
+    if (!organizedTopicalNode) {
+      console.warn("Cannot center layout: Topical Keyword node not found in organized nodes.");
+      return;
+    }
+
+    // Calculate the offset needed to center the topical keyword node
+    const offsetX = viewportCenterX - organizedTopicalNode.position.x;
+    const offsetY = viewportCenterY - organizedTopicalNode.position.y;
+
+    console.log("Centering organized layout:", {
+      topicalKeywordPosition: organizedTopicalNode.position,
+      viewportCenter: { x: viewportCenterX, y: viewportCenterY },
+      offset: { x: offsetX, y: offsetY }
+    });
+
+    // Apply the offset to all nodes to center the topical keyword node
+    const finalNodes = organizedNodes.map(node => ({
+      ...node,
+      position: {
+        x: node.position.x + offsetX,
+        y: node.position.y + offsetY
+      }
+    }));
+
+    console.log("Applying centered layout:", finalNodes);
+
+    // First reset the viewport to ensure proper centering
+    // This helps prevent the initial "nodes appear down" issue
+    if (window.__REACTFLOW_INSTANCE) {
+      window.__REACTFLOW_INSTANCE.setViewport({ x: 0, y: 0, zoom: 1 });
+    }
+
+    // Update nodes immediately - this is important to prevent the warning
     setNodes(finalNodes);
 
-  }, [getNodes, getEdges, setNodes]);
+    // Then set the viewport with a small delay to ensure the nodes are rendered
+    // This approach prevents the initial "nodes appear down" issue
+    requestAnimationFrame(() => {
+      setViewport({ x: 0, y: 0, zoom: 1 });
+
+      // Apply viewport again after a frame to ensure everything is properly centered
+      requestAnimationFrame(() => {
+        if (window.__REACTFLOW_INSTANCE) {
+          window.__REACTFLOW_INSTANCE.setViewport({ x: 0, y: 0, zoom: 1 });
+        }
+      });
+    });
+
+  }, [getNodes, getEdges, setNodes, setViewport, reactFlowWrapper]);
 
   // onAddChildNode function
   const onAddChildNode = useCallback((parentId: string, childTypeOrNext: ContentType | 'next') => {
@@ -828,6 +906,45 @@ const WorkflowEditorContent: React.FC = () => {
       }
 
       if (workflowData && workflowData.nodes && workflowData.edges) {
+        // Find the topical keyword node to use as the center reference
+        const topicalKeywordNode = nodesToLoad.find(node => node.type === 'topicalKeyword');
+
+        // Get the actual dimensions of the viewport
+        const viewportWidth = reactFlowWrapper.current?.clientWidth || window.innerWidth;
+        const viewportHeight = reactFlowWrapper.current?.clientHeight || window.innerHeight;
+
+        // Calculate the true center of the viewport
+        const viewportCenterX = viewportWidth / 2;
+        const viewportCenterY = viewportHeight / 2;
+
+        console.log("Viewport dimensions:", {
+          width: viewportWidth,
+          height: viewportHeight,
+          center: { x: viewportCenterX, y: viewportCenterY }
+        });
+
+        // If we found a topical keyword node, position it at the center of the viewport
+        if (topicalKeywordNode) {
+          // Calculate the offset needed to center the topical keyword node
+          const offsetX = viewportCenterX - topicalKeywordNode.position.x;
+          const offsetY = viewportCenterY - topicalKeywordNode.position.y;
+
+          console.log("Centering workflow in viewport", {
+            viewportCenter: { x: viewportCenterX, y: viewportCenterY },
+            topicalKeywordPosition: topicalKeywordNode.position,
+            offset: { x: offsetX, y: offsetY }
+          });
+
+          // Apply the offset to all nodes to maintain their relative positions
+          nodesToLoad = nodesToLoad.map(node => ({
+            ...node,
+            position: {
+              x: node.position.x + offsetX,
+              y: node.position.y + offsetY
+            }
+          }));
+        }
+
         // Restore function references just like in handleUndo (important if you save/load complex data)
         const restoredNodes = nodesToLoad.map(node => {
           let nodeData = { ...node.data };
@@ -870,10 +987,21 @@ const WorkflowEditorContent: React.FC = () => {
         setNodes(restoredNodes as Node<WorkflowNodeData>[]); // Cast back to specific type if needed
         setEdges(workflowData.edges);
 
-        // Optional: Update viewport if you save/load it
-        if (workflowData.viewport) {
-          setViewport(workflowData.viewport);
-        }
+        // Use a small timeout to ensure the nodes are rendered before centering
+        // This is crucial for the production build where timing might be different
+        setTimeout(() => {
+          // Reset the viewport to ensure proper centering
+          // First, set the viewport directly through the ReactFlow instance if available
+          if (window.__REACTFLOW_INSTANCE) {
+            window.__REACTFLOW_INSTANCE.setViewport({ x: 0, y: 0, zoom: 1 });
+          }
+
+          // Also use the React Flow hook for redundancy
+          setViewport({ x: 0, y: 0, zoom: 1 });
+
+          // Log the final state for debugging
+          console.log("Workflow loaded and centered");
+        }, 50); // Small delay to ensure nodes are rendered
 
         console.log('Workflow loaded into React!'); // Log instead of alert
       } else {
@@ -886,8 +1014,8 @@ const WorkflowEditorContent: React.FC = () => {
     return () => {
       delete window.loadDataIntoReact;
     };
-    // Add setters and setViewport to dependency array
-  }, [setNodes, setEdges, setViewport]);
+    // Add setters, setViewport, and reactFlowWrapper to dependency array
+  }, [setNodes, setEdges, setViewport, reactFlowWrapper]);
   // --- End of useEffect for loading data ---
 
   // useEffect to update connection status on nodes when edges change
@@ -1074,19 +1202,23 @@ const WorkflowEditorContent: React.FC = () => {
   }, [handleDeleteNode]);
 
   // When rendering nodes, inject openMenu and setOpenMenu into data for topicalKeyword nodes
+  // Use a stable reference for the node transformation function
+  const getNodeWithMenu = useCallback((node: Node<WorkflowNodeData>) => ({
+    ...node,
+    draggable: node.data && node.data.isLocked === true ? false : true,
+    selectable: node.data && node.data.isLocked === true ? false : true,
+    data: {
+      ...node.data,
+      openMenu,
+      setOpenMenu,
+      isSelected: node.id === selectedNodeId
+    }
+  }), [selectedNodeId, openMenu, setOpenMenu]);
+
+  // Memoize the transformed nodes
   const nodesWithMenu = useMemo(() => {
-    return nodes.map(node => ({
-      ...node,
-      draggable: node.data && node.data.isLocked === true ? false : true,
-      selectable: node.data && node.data.isLocked === true ? false : true,
-      data: {
-        ...node.data,
-        openMenu,
-        setOpenMenu,
-        isSelected: node.id === selectedNodeId
-      }
-    }));
-  }, [nodes, selectedNodeId, openMenu, setOpenMenu]);
+    return nodes.map(getNodeWithMenu);
+  }, [nodes, getNodeWithMenu]);
 
   // Add handleReplaceNode function after handleDeleteNode
   const handleReplaceNode = useCallback((nodeId: string, newType: ContentType) => {
