@@ -906,9 +906,6 @@ const WorkflowEditorContent: React.FC = () => {
       }
 
       if (workflowData && workflowData.nodes && workflowData.edges) {
-        // Find the topical keyword node to use as the center reference
-        const topicalKeywordNode = nodesToLoad.find(node => node.type === 'topicalKeyword');
-
         // Get the actual dimensions of the viewport
         const viewportWidth = reactFlowWrapper.current?.clientWidth || window.innerWidth;
         const viewportHeight = reactFlowWrapper.current?.clientHeight || window.innerHeight;
@@ -923,26 +920,137 @@ const WorkflowEditorContent: React.FC = () => {
           center: { x: viewportCenterX, y: viewportCenterY }
         });
 
-        // If we found a topical keyword node, position it at the center of the viewport
-        if (topicalKeywordNode) {
-          // Calculate the offset needed to center the topical keyword node
-          const offsetX = viewportCenterX - topicalKeywordNode.position.x;
-          const offsetY = viewportCenterY - topicalKeywordNode.position.y;
+        // Special handling for locked workflows to ensure the entire diagram is visible
+        if (workflowData.isLocked) {
+          console.log("Loading locked workflow - calculating optimal view");
 
-          console.log("Centering workflow in viewport", {
+          // Calculate the bounding box of all nodes with extra precision
+          let minX = Infinity;
+          let minY = Infinity;
+          let maxX = -Infinity;
+          let maxY = -Infinity;
+
+          // First pass: calculate the raw bounding box
+          nodesToLoad.forEach(node => {
+            // Use node width and height or default values based on node type
+            let nodeWidth = 128;
+            let nodeHeight = 128;
+
+            // Adjust size based on node type for more accurate calculations
+            if (node.type === 'socialMedia') {
+              nodeWidth = 140; // Social media nodes might be slightly wider
+            } else if (node.type === 'article') {
+              nodeWidth = 135; // Article nodes
+            } else if (node.type === 'podcast') {
+              nodeWidth = 135; // Podcast nodes
+            } else if (node.type === 'video') {
+              nodeWidth = 135; // Video nodes
+            } else if (node.type === 'topicalKeyword') {
+              nodeWidth = 135; // Topical keyword nodes
+            }
+
+            // Calculate node boundaries
+            const left = node.position.x;
+            const top = node.position.y;
+            const right = left + nodeWidth;
+            const bottom = top + nodeHeight;
+
+            // Update bounding box
+            minX = Math.min(minX, left);
+            minY = Math.min(minY, top);
+            maxX = Math.max(maxX, right);
+            maxY = Math.max(maxY, bottom);
+          });
+
+          // Calculate diagram dimensions
+          const diagramWidth = maxX - minX;
+          const diagramHeight = maxY - minY;
+
+          // Calculate the exact center of the diagram
+          const diagramCenterX = minX + diagramWidth / 2;
+          const diagramCenterY = minY + diagramHeight / 2;
+
+          console.log("Diagram dimensions:", {
+            minX, minY, maxX, maxY,
+            width: diagramWidth,
+            height: diagramHeight,
+            center: { x: diagramCenterX, y: diagramCenterY }
+          });
+
+          // Calculate the offset to perfectly center the diagram
+          const offsetX = viewportCenterX - diagramCenterX;
+          const offsetY = viewportCenterY - diagramCenterY;
+
+          console.log("Centering offsets:", {
             viewportCenter: { x: viewportCenterX, y: viewportCenterY },
-            topicalKeywordPosition: topicalKeywordNode.position,
             offset: { x: offsetX, y: offsetY }
           });
 
-          // Apply the offset to all nodes to maintain their relative positions
+          // Calculate the zoom level needed to fit the entire diagram
+          // Add padding (0.9) to ensure there's some margin around the diagram
+          const zoomX = (viewportWidth / diagramWidth) * 0.9;
+          const zoomY = (viewportHeight / diagramHeight) * 0.9;
+          const zoom = Math.min(zoomX, zoomY, 1); // Cap at 1 to prevent zooming in too much
+
+          console.log("Diagram dimensions and zoom:", {
+            diagramWidth,
+            diagramHeight,
+            diagramCenter: { x: diagramCenterX, y: diagramCenterY },
+            offset: { x: offsetX, y: offsetY },
+            calculatedZoom: zoom
+          });
+
+          // Apply the offset to all nodes to center the diagram with additional padding
+          // Add extra horizontal padding to ensure the diagram is perfectly centered
+          const horizontalPadding = 80; // Extra padding on each side
+          const verticalPadding = 80;   // Extra padding on top and bottom
+
+          // Adjust offsets to account for padding and ensure perfect centering
+          const adjustedOffsetX = offsetX - (horizontalPadding / 2);
+          const adjustedOffsetY = offsetY - (verticalPadding / 2);
+
+          console.log("Applying adjusted offsets for perfect centering:", {
+            original: { x: offsetX, y: offsetY },
+            adjusted: { x: adjustedOffsetX, y: adjustedOffsetY },
+            padding: { horizontal: horizontalPadding, vertical: verticalPadding }
+          });
+
           nodesToLoad = nodesToLoad.map(node => ({
             ...node,
             position: {
-              x: node.position.x + offsetX,
-              y: node.position.y + offsetY
+              x: node.position.x + adjustedOffsetX,
+              y: node.position.y + adjustedOffsetY
             }
           }));
+
+          // The zoom will be calculated again after nodes are rendered
+        }
+        // Standard centering for non-locked workflows
+        else {
+          // Find the topical keyword node to use as the center reference
+          const topicalKeywordNode = nodesToLoad.find(node => node.type === 'topicalKeyword');
+
+          // If we found a topical keyword node, position it at the center of the viewport
+          if (topicalKeywordNode) {
+            // Calculate the offset needed to center the topical keyword node
+            const offsetX = viewportCenterX - topicalKeywordNode.position.x;
+            const offsetY = viewportCenterY - topicalKeywordNode.position.y;
+
+            console.log("Centering workflow in viewport", {
+              viewportCenter: { x: viewportCenterX, y: viewportCenterY },
+              topicalKeywordPosition: topicalKeywordNode.position,
+              offset: { x: offsetX, y: offsetY }
+            });
+
+            // Apply the offset to all nodes to maintain their relative positions
+            nodesToLoad = nodesToLoad.map(node => ({
+              ...node,
+              position: {
+                x: node.position.x + offsetX,
+                y: node.position.y + offsetY
+              }
+            }));
+          }
         }
 
         // Restore function references just like in handleUndo (important if you save/load complex data)
@@ -987,21 +1095,111 @@ const WorkflowEditorContent: React.FC = () => {
         setNodes(restoredNodes as Node<WorkflowNodeData>[]); // Cast back to specific type if needed
         setEdges(workflowData.edges);
 
-        // Use a small timeout to ensure the nodes are rendered before centering
-        // This is crucial for the production build where timing might be different
-        setTimeout(() => {
-          // Reset the viewport to ensure proper centering
-          // First, set the viewport directly through the ReactFlow instance if available
-          if (window.__REACTFLOW_INSTANCE) {
-            window.__REACTFLOW_INSTANCE.setViewport({ x: 0, y: 0, zoom: 1 });
-          }
+        // For locked workflows, we want to show the diagram immediately without animation
+        // Apply viewport settings right away
+          // For locked workflows, use the calculated zoom level
+          if (workflowData.isLocked) {
+            // Calculate the bounding box of all nodes again
+            let minX = Infinity;
+            let minY = Infinity;
+            let maxX = -Infinity;
+            let maxY = -Infinity;
 
-          // Also use the React Flow hook for redundancy
-          setViewport({ x: 0, y: 0, zoom: 1 });
+            restoredNodes.forEach(node => {
+              // Use more accurate node dimensions based on node type
+              let nodeWidth = node.width || 128;
+              let nodeHeight = node.height || 128;
+
+              // Adjust size based on node type for more accurate calculations
+              if (node.type === 'socialMedia') {
+                nodeWidth = 140; // Social media nodes might be slightly wider
+              } else if (node.type === 'article') {
+                nodeWidth = 135; // Article nodes
+              } else if (node.type === 'podcast') {
+                nodeWidth = 135; // Podcast nodes
+              } else if (node.type === 'video') {
+                nodeWidth = 135; // Video nodes
+              } else if (node.type === 'topicalKeyword') {
+                nodeWidth = 135; // Topical keyword nodes
+              }
+
+              const left = node.position.x;
+              const top = node.position.y;
+              const right = left + nodeWidth;
+              const bottom = top + nodeHeight;
+
+              minX = Math.min(minX, left);
+              minY = Math.min(minY, top);
+              maxX = Math.max(maxX, right);
+              maxY = Math.max(maxY, bottom);
+            });
+
+            // Calculate diagram dimensions
+            const diagramWidth = maxX - minX;
+            const diagramHeight = maxY - minY;
+
+            // Calculate the zoom level needed to fit the entire diagram
+            const viewportWidth = reactFlowWrapper.current?.clientWidth || window.innerWidth;
+            const viewportHeight = reactFlowWrapper.current?.clientHeight || window.innerHeight;
+
+            // Calculate zoom based on diagram dimensions and viewport
+            // Use a lower scale factor (0.75) to ensure there's plenty of space around the diagram
+            const zoomX = (viewportWidth / diagramWidth) * 0.75; // 75% of viewport width
+            const zoomY = (viewportHeight / diagramHeight) * 0.75; // 75% of viewport height
+
+            // Use the minimum of the calculated zooms to ensure the entire diagram fits
+            // But set a minimum zoom of 0.5 to ensure the diagram is not too small
+            // And a maximum of 0.9 to prevent excessive zooming on small diagrams
+            const zoom = Math.max(Math.min(zoomX, zoomY, 0.9), 0.5);
+
+            console.log("Applying calculated zoom for locked workflow:", zoom);
+
+            // For locked workflows, use fitView for best results
+            if (window.__REACTFLOW_INSTANCE) {
+              // For locked workflows, we'll use a two-step approach:
+              // 1. First set the viewport with our calculated zoom
+              window.__REACTFLOW_INSTANCE.setViewport({
+                x: 0,
+                y: 0,
+                zoom
+              });
+
+              // 2. Then use fitView with increased padding for better visibility
+              // This ensures the diagram is perfectly centered and all nodes are fully visible
+              window.__REACTFLOW_INSTANCE.fitView({
+                padding: 0.6, // 60% padding around the diagram to ensure all nodes are visible and perfectly centered
+                includeHiddenNodes: true,
+                duration: 0 // No animation - show immediately
+              });
+
+              // After fitting, ensure the zoom is within our desired range
+              const currentViewport = window.__REACTFLOW_INSTANCE.getViewport();
+              if (currentViewport.zoom < 0.5 || currentViewport.zoom > 0.9) {
+                // Adjust zoom if needed while maintaining the center position
+                const adjustedZoom = Math.max(Math.min(currentViewport.zoom, 0.9), 0.5);
+                window.__REACTFLOW_INSTANCE.setViewport({
+                  ...currentViewport,
+                  zoom: adjustedZoom
+                });
+              }
+            }
+
+            // Also use the React Flow hook for redundancy
+            setViewport({ x: 0, y: 0, zoom });
+          }
+          // For regular workflows, use zoom level 1
+          else {
+            // Reset the viewport to ensure proper centering
+            if (window.__REACTFLOW_INSTANCE) {
+              window.__REACTFLOW_INSTANCE.setViewport({ x: 0, y: 0, zoom: 1 });
+            }
+
+            // Also use the React Flow hook for redundancy
+            setViewport({ x: 0, y: 0, zoom: 1 });
+          }
 
           // Log the final state for debugging
           console.log("Workflow loaded and centered");
-        }, 50); // Small delay to ensure nodes are rendered
 
         console.log('Workflow loaded into React!'); // Log instead of alert
       } else {
