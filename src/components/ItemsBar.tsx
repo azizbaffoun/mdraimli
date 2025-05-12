@@ -70,7 +70,7 @@ const ItemsBar: React.FC<ItemsBarProps> = ({
   };
 
   // Base classes for the main bar container
-  const baseClasses = "fixed bottom-12 left-1/2 transform -translate-x-1/2 transition-all duration-300 ease-in-out z-30";
+  const baseClasses = "absolute bottom-12 left-1/2 transform -translate-x-1/2 transition-all duration-300 ease-in-out z-30";
   // Classes for visibility
   const visibilityClasses = isVisible ? "opacity-100 scale-95" : "opacity-0 scale-95 pointer-events-none";
 

@@ -570,19 +570,6 @@ const WorkflowEditorContent: React.FC = () => {
     } else {
       requestedChildType = childTypeOrNext;
     }
-    // RULE 1: Block Social Post on TopicalKeyword
-    // if (parentNode?.type === 'topicalKeyword' && requestedChildType === 'socialMedia') {
-    //   alert('You cannot add a Social Post node to a TopicalKeyword node.');
-    //   return;
-    // }
-    // RULE 2: Block Social Post on any node with outgoing edge
-    // if (requestedChildType === 'socialMedia') {
-    //   const hasOutgoing = edges.some(e => e.source === parentId);
-    //   if (hasOutgoing) {
-    //     alert('You cannot add a Social Post node to a node that is already connected to another node on the right.');
-    //     return;
-    //   }
-    // }
 
     // (Moved type checks above for rule enforcement)
     if (!parentNode || parentNode.type === 'note') return;
