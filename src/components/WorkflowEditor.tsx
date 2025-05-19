@@ -16,7 +16,7 @@ import ReactFlow, {
   OnEdgesChange,
   getOutgoers,
   NodeChange,
-  EdgeChange
+  EdgeChange,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { v4 as uuidv4 } from 'uuid';
@@ -80,7 +80,7 @@ const WorkflowEditorContent: React.FC = () => {
   const [nodes, setNodes, onNodesChange] = useNodesState<WorkflowNodeData>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
-  const { getNode, getNodes, getEdges, project, setViewport, zoomIn, zoomOut } = useReactFlow();
+  const { getNode, getNodes, getEdges, project, setViewport, getViewport, zoomIn, zoomOut } = useReactFlow();
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [showInfoPanel, setShowInfoPanel] = useState(true);
   const [isInfoPanelExiting, setIsInfoPanelExiting] = useState(false);
@@ -434,19 +434,19 @@ const WorkflowEditorContent: React.FC = () => {
     processedNodes.add(topicalKeywordNode.id);
     const directChildren = getOutgoers(topicalKeywordNode, layoutableNodes, allEdges);
     directChildren.forEach(rowStartNode => {
-        if (processedNodes.has(rowStartNode.id)) return;
-        const currentRow: Node[] = [];
-        let currentNode: Node | undefined = rowStartNode;
-        while(currentNode) {
-            if (processedNodes.has(currentNode.id)) break;
-            currentRow.push(currentNode);
-            processedNodes.add(currentNode.id);
-            const children: Node[] = getOutgoers(currentNode, layoutableNodes, allEdges);
-            currentNode = children.find((n: Node) => !processedNodes.has(n.id));
-        }
-        if (currentRow.length > 0) {
-            rows.push(currentRow);
-        }
+      if (processedNodes.has(rowStartNode.id)) return;
+      const currentRow: Node[] = [];
+      let currentNode: Node | undefined = rowStartNode;
+      while (currentNode) {
+        if (processedNodes.has(currentNode.id)) break;
+        currentRow.push(currentNode);
+        processedNodes.add(currentNode.id);
+        const children: Node[] = getOutgoers(currentNode, layoutableNodes, allEdges);
+        currentNode = children.find((n: Node) => !processedNodes.has(n.id));
+      }
+      if (currentRow.length > 0) {
+        rows.push(currentRow);
+      }
     });
 
     const numRows = rows.length;
@@ -462,21 +462,21 @@ const WorkflowEditorContent: React.FC = () => {
     organizedNodes.push({ ...topicalKeywordNode, position: { x: tempRootX, y: rootY } });
     // Calculate row positions to ensure they're centered vertically
     rows.forEach((row, rowIndex) => {
-        // Calculate Y position for this row
-        const currentRowY = startY + rowIndex * (nodeHeight + verticalGap);
+      // Calculate Y position for this row
+      const currentRowY = startY + rowIndex * (nodeHeight + verticalGap);
 
-        // Position each node in the row
-        row.forEach((node: Node, colIndex: number) => {
-            const nodeX = firstColX + colIndex * (nodeWidth + horizontalGap);
-            organizedNodes.push({ ...node, position: { x: nodeX, y: currentRowY } });
-        });
+      // Position each node in the row
+      row.forEach((node: Node, colIndex: number) => {
+        const nodeX = firstColX + colIndex * (nodeWidth + horizontalGap);
+        organizedNodes.push({ ...node, position: { x: nodeX, y: currentRowY } });
+      });
     });
 
     // Add any remaining nodes that weren't processed
     layoutableNodes.forEach((node: Node) => {
-        if (!processedNodes.has(node.id)) {
-            organizedNodes.push(node);
-        }
+      if (!processedNodes.has(node.id)) {
+        organizedNodes.push(node);
+      }
     });
 
     // Add note nodes
@@ -575,28 +575,28 @@ const WorkflowEditorContent: React.FC = () => {
     if (!parentNode || parentNode.type === 'note') return;
     // Only restrict adding children for TopicalKeyword nodes if needed
     if (parentNode.type === 'topicalKeyword' && parentNode.data?.canAddChild === false) {
-        console.log(`[Workflow Rule] TopicalKeyword node ${parentId} cannot add more children.`);
-        return;
+      console.log(`[Workflow Rule] TopicalKeyword node ${parentId} cannot add more children.`);
+      return;
     }
     if (parentNode.type === 'socialMedia') {
-        console.log('[Workflow Rule] Cannot add children to Social Media node.');
-        return;
+      console.log('[Workflow Rule] Cannot add children to Social Media node.');
+      return;
     }
     let prevNextNodeId: string | null = null;
     if (parentNode.type !== 'topicalKeyword') {
-        // Find the outgoing edge (if any) from this node
-        const outgoingEdge = edges.find(edge => edge.source === parentId);
-        if (outgoingEdge) {
-            prevNextNodeId = outgoingEdge.target;
-        }
-        // Remove all outgoing edges from this node before adding the new one
-        setEdges((currentEdges) => currentEdges.filter(edge => edge.source !== parentId));
+      // Find the outgoing edge (if any) from this node
+      const outgoingEdge = edges.find(edge => edge.source === parentId);
+      if (outgoingEdge) {
+        prevNextNodeId = outgoingEdge.target;
+      }
+      // Remove all outgoing edges from this node before adding the new one
+      setEdges((currentEdges) => currentEdges.filter(edge => edge.source !== parentId));
     }
 
     if (parentNode?.type === 'topicalKeyword') {
-        if (showInfoPanel) {
-            setIsInfoPanelExiting(true);
-        }
+      if (showInfoPanel) {
+        setIsInfoPanelExiting(true);
+      }
     }
     // Use only UUID for the ID
     const childNodeId = uuidv4();
@@ -604,114 +604,139 @@ const WorkflowEditorContent: React.FC = () => {
     const horizontalOffset = (parentNode.width ?? 128) + 120;
     const verticalOffset = (parentNode.height ?? 128) + 50;
     if (parentNode.type === 'topicalKeyword') {
-        const directChildrenCount = edges.filter(e => e.source === parentId).length;
-        newNodePosition = {
-            x: parentNode.position.x + horizontalOffset,
-            y: parentNode.position.y + (directChildrenCount * verticalOffset)
-        };
+      const directChildrenCount = edges.filter(e => e.source === parentId).length;
+      newNodePosition = {
+        x: parentNode.position.x + horizontalOffset,
+        y: parentNode.position.y + (directChildrenCount * verticalOffset)
+      };
     } else {
-        newNodePosition = {
-            x: parentNode.position.x + horizontalOffset,
-            y: parentNode.position.y,
-        };
+      newNodePosition = {
+        x: parentNode.position.x + horizontalOffset,
+        y: parentNode.position.y,
+      };
     }
     const childNode: Node<ContentNodeData> = {
-        id: childNodeId,
-        type: requestedChildType,
-        position: newNodePosition,
-        width: 128,
-        height: 128,
-        selectable: true,
-        data: {
-          title: 'Untitled',
-          isEntering: true,
-          isNew: true,
-          canAddChild: requestedChildType !== 'socialMedia',
-          onAddChildNode: (parentId: string, childType: ContentType) => {
-            onAddChildNode(parentId, childType);
-          },
-          onDelete: handleDeleteNode,
-          onReplaceNode: handleReplaceNode,
-          ...(requestedChildType === 'video' && { isLeftConnected: true, isRightConnected: false })
-        }
+      id: childNodeId,
+      type: requestedChildType,
+      position: newNodePosition,
+      width: 128,
+      height: 128,
+      selectable: true,
+      data: {
+        title: 'Untitled',
+        isEntering: true,
+        isNew: true,
+        canAddChild: requestedChildType !== 'socialMedia',
+        onAddChildNode: (parentId: string, childType: ContentType) => {
+          onAddChildNode(parentId, childType);
+        },
+        onDelete: handleDeleteNode,
+        onReplaceNode: handleReplaceNode,
+        ...(requestedChildType === 'video' && { isLeftConnected: true, isRightConnected: false })
+      }
     };
     const newEdge: Edge = {
-        // Use plain UUIDs for edge ID
-        id: `e-${parentId}-${childNodeId}`,
-        source: parentId,
-        target: childNodeId, // Target the plain UUID
-        sourceHandle: 'right-source',
-        targetHandle: 'left-target',
-        type: 'customGradientEdge',
-        data: {},
+      // Use plain UUIDs for edge ID
+      id: `e-${parentId}-${childNodeId}`,
+      source: parentId,
+      target: childNodeId, // Target the plain UUID
+      sourceHandle: 'right-source',
+      targetHandle: 'left-target',
+      type: 'customGradientEdge',
+      data: {},
     };
     setNodes((nds) => {
-        // Add the new child node
-        let updatedNodes = nds.concat(childNode);
-        // If there was a previous next node, shift all downstream nodes to the right
-        if (prevNextNodeId) {
-            // Constants for spacing
-            const nodeWidth = 128;
-            const horizontalGap = 120;
-            // Traverse the chain starting from prevNextNodeId
-            let currentId = prevNextNodeId;
-            let prevNode: Node<ContentNodeData> = childNode;
-            const visited = new Set<string>();
-            while (currentId && !visited.has(currentId)) {
-                visited.add(currentId);
-                const idx = updatedNodes.findIndex(n => n.id === currentId);
-                if (idx === -1) break;
-                const node = updatedNodes[idx];
-                // Shift this node to the right of prevNode
-                updatedNodes = updatedNodes.map(n =>
-                    n.id === node.id ? {
-                        ...n,
-                        position: {
-                            x: prevNode.position.x + nodeWidth + horizontalGap,
-                            y: prevNode.position.y
-                        }
-                    } : n
-                );
-                // Find the next node in the chain (outgoing edge from currentId)
-                const nextEdge = edges.find(e => e.source === currentId);
-                // Only assign prevNode if it is a ContentNodeData node (not a start node)
-                const maybeNode = updatedNodes.find(n => n.id === node.id);
-                if (maybeNode && maybeNode.type !== 'start' && 'title' in maybeNode.data) {
-                  prevNode = maybeNode as Node<ContentNodeData>;
-                }
-                currentId = nextEdge ? nextEdge.target : "";
-            }
+      // Add the new child node
+      let updatedNodes = nds.concat(childNode);
+      // If there was a previous next node, shift all downstream nodes to the right
+      if (prevNextNodeId) {
+        // Constants for spacing
+        const nodeWidth = 128;
+        const horizontalGap = 120;
+        // Traverse the chain starting from prevNextNodeId
+        let currentId = prevNextNodeId;
+        let prevNode: Node<ContentNodeData> = childNode;
+        const visited = new Set<string>();
+        while (currentId && !visited.has(currentId)) {
+          visited.add(currentId);
+          const idx = updatedNodes.findIndex(n => n.id === currentId);
+          if (idx === -1) break;
+          const node = updatedNodes[idx];
+          // Shift this node to the right of prevNode
+          updatedNodes = updatedNodes.map(n =>
+            n.id === node.id ? {
+              ...n,
+              position: {
+                x: prevNode.position.x + nodeWidth + horizontalGap,
+                y: prevNode.position.y
+              }
+            } : n
+          );
+          // Find the next node in the chain (outgoing edge from currentId)
+          const nextEdge = edges.find(e => e.source === currentId);
+          // Only assign prevNode if it is a ContentNodeData node (not a start node)
+          const maybeNode = updatedNodes.find(n => n.id === node.id);
+          if (maybeNode && maybeNode.type !== 'start' && 'title' in maybeNode.data) {
+            prevNode = maybeNode as Node<ContentNodeData>;
+          }
+          currentId = nextEdge ? nextEdge.target : "";
         }
-        return updatedNodes;
+      }
+      return updatedNodes;
     });
     // Edges were already filtered above for non-TopicalKeyword nodes, so just add the new edge
     setEdges((eds) => {
-        let updatedEdges = addEdge(newEdge, eds);
-        // If there was a previous next node, connect the new node to it
-        if (prevNextNodeId) {
-            const pushEdge: Edge = {
-                id: `e-${childNodeId}-${prevNextNodeId}`,
-                source: childNodeId,
-                target: prevNextNodeId,
-                sourceHandle: 'right-source',
-                targetHandle: 'left-target',
-                type: 'customGradientEdge',
-                data: {},
-            };
-            updatedEdges = addEdge(pushEdge, updatedEdges);
-        }
-        return updatedEdges;
+      let updatedEdges = addEdge(newEdge, eds);
+      // If there was a previous next node, connect the new node to it
+      if (prevNextNodeId) {
+        const pushEdge: Edge = {
+          id: `e-${childNodeId}-${prevNextNodeId}`,
+          source: childNodeId,
+          target: prevNextNodeId,
+          sourceHandle: 'right-source',
+          targetHandle: 'left-target',
+          type: 'customGradientEdge',
+          data: {},
+        };
+        updatedEdges = addEdge(pushEdge, updatedEdges);
+      }
+      return updatedEdges;
     });
     if (parentNode.type !== 'topicalKeyword') {
-        setNodes((nds) =>
-            nds.map(node =>
-                node.id === parentId
-                    ? { ...node, data: { ...node.data, canAddChild: false } }
-                    : node
-            )
-        );
+      setNodes((nds) =>
+        nds.map(node =>
+          node.id === parentId
+            ? { ...node, data: { ...node.data, canAddChild: false } }
+            : node
+        )
+      );
     }
-  }, [getNode, getNodes, getEdges, nodes, edges, setNodes, setEdges, showInfoPanel, setIsInfoPanelExiting, handleDeleteNode, setOpenMenu]);
+    // AFTER React-Flow renders that node, recenter:
+    requestAnimationFrame(() => {
+      const { x, y, zoom } = getViewport();
+      const wrapper = reactFlowWrapper.current!;
+      const { width } = wrapper.getBoundingClientRect();
+
+      // use your node’s width (128px by default)
+      const nodeW = (childNode.width ?? 128) * zoom;
+
+      // screen X of the node’s left edge
+      const screenX = childNode.position.x * zoom + x * 2 ;
+
+      // if it’s within one node-width of the right edge, pan left one node-width
+      if (screenX > width - nodeW) {
+        setViewport(
+          {
+            x: x - nodeW,   // shift left by one node width 
+            y,
+            zoom
+          },
+          { duration: 400 }
+        );
+      }
+    });
+
+  }, [getViewport, setViewport, setNodes, setEdges, reactFlowWrapper, getNode, getNodes, getEdges, nodes, edges, setNodes, setEdges, showInfoPanel, setIsInfoPanelExiting, handleDeleteNode, setOpenMenu]);
 
   // Store the latest version of onAddChildNode in the ref
   useEffect(() => {
@@ -1084,109 +1109,109 @@ const WorkflowEditorContent: React.FC = () => {
 
         // For locked workflows, we want to show the diagram immediately without animation
         // Apply viewport settings right away
-          // For locked workflows, use the calculated zoom level
-          if (workflowData.isLocked) {
-            // Calculate the bounding box of all nodes again
-            let minX = Infinity;
-            let minY = Infinity;
-            let maxX = -Infinity;
-            let maxY = -Infinity;
+        // For locked workflows, use the calculated zoom level
+        if (workflowData.isLocked) {
+          // Calculate the bounding box of all nodes again
+          let minX = Infinity;
+          let minY = Infinity;
+          let maxX = -Infinity;
+          let maxY = -Infinity;
 
-            restoredNodes.forEach(node => {
-              // Use more accurate node dimensions based on node type
-              let nodeWidth = node.width || 128;
-              let nodeHeight = node.height || 128;
+          restoredNodes.forEach(node => {
+            // Use more accurate node dimensions based on node type
+            let nodeWidth = node.width || 128;
+            let nodeHeight = node.height || 128;
 
-              // Adjust size based on node type for more accurate calculations
-              if (node.type === 'socialMedia') {
-                nodeWidth = 140; // Social media nodes might be slightly wider
-              } else if (node.type === 'article') {
-                nodeWidth = 135; // Article nodes
-              } else if (node.type === 'podcast') {
-                nodeWidth = 135; // Podcast nodes
-              } else if (node.type === 'video') {
-                nodeWidth = 135; // Video nodes
-              } else if (node.type === 'topicalKeyword') {
-                nodeWidth = 135; // Topical keyword nodes
-              }
+            // Adjust size based on node type for more accurate calculations
+            if (node.type === 'socialMedia') {
+              nodeWidth = 140; // Social media nodes might be slightly wider
+            } else if (node.type === 'article') {
+              nodeWidth = 135; // Article nodes
+            } else if (node.type === 'podcast') {
+              nodeWidth = 135; // Podcast nodes
+            } else if (node.type === 'video') {
+              nodeWidth = 135; // Video nodes
+            } else if (node.type === 'topicalKeyword') {
+              nodeWidth = 135; // Topical keyword nodes
+            }
 
-              const left = node.position.x;
-              const top = node.position.y;
-              const right = left + nodeWidth;
-              const bottom = top + nodeHeight;
+            const left = node.position.x;
+            const top = node.position.y;
+            const right = left + nodeWidth;
+            const bottom = top + nodeHeight;
 
-              minX = Math.min(minX, left);
-              minY = Math.min(minY, top);
-              maxX = Math.max(maxX, right);
-              maxY = Math.max(maxY, bottom);
+            minX = Math.min(minX, left);
+            minY = Math.min(minY, top);
+            maxX = Math.max(maxX, right);
+            maxY = Math.max(maxY, bottom);
+          });
+
+          // Calculate diagram dimensions
+          const diagramWidth = maxX - minX;
+          const diagramHeight = maxY - minY;
+
+          // Calculate the zoom level needed to fit the entire diagram
+          const viewportWidth = reactFlowWrapper.current?.clientWidth || window.innerWidth;
+          const viewportHeight = reactFlowWrapper.current?.clientHeight || window.innerHeight;
+
+          // Calculate zoom based on diagram dimensions and viewport
+          // Use a lower scale factor (0.75) to ensure there's plenty of space around the diagram
+          const zoomX = (viewportWidth / diagramWidth) * 0.75; // 75% of viewport width
+          const zoomY = (viewportHeight / diagramHeight) * 0.75; // 75% of viewport height
+
+          // Use the minimum of the calculated zooms to ensure the entire diagram fits
+          // But set a minimum zoom of 0.5 to ensure the diagram is not too small
+          // And a maximum of 0.9 to prevent excessive zooming on small diagrams
+          const zoom = Math.max(Math.min(zoomX, zoomY, 0.9), 0.5);
+
+          console.log("Applying calculated zoom for locked workflow:", zoom);
+
+          // For locked workflows, use fitView for best results
+          if (window.__REACTFLOW_INSTANCE) {
+            // For locked workflows, we'll use a two-step approach:
+            // 1. First set the viewport with our calculated zoom
+            window.__REACTFLOW_INSTANCE.setViewport({
+              x: 0,
+              y: 0,
+              zoom
             });
 
-            // Calculate diagram dimensions
-            const diagramWidth = maxX - minX;
-            const diagramHeight = maxY - minY;
+            // 2. Then use fitView with increased padding for better visibility
+            // This ensures the diagram is perfectly centered and all nodes are fully visible
+            window.__REACTFLOW_INSTANCE.fitView({
+              padding: 0.6, // 60% padding around the diagram to ensure all nodes are visible and perfectly centered
+              includeHiddenNodes: true,
+              duration: 0 // No animation - show immediately
+            });
 
-            // Calculate the zoom level needed to fit the entire diagram
-            const viewportWidth = reactFlowWrapper.current?.clientWidth || window.innerWidth;
-            const viewportHeight = reactFlowWrapper.current?.clientHeight || window.innerHeight;
-
-            // Calculate zoom based on diagram dimensions and viewport
-            // Use a lower scale factor (0.75) to ensure there's plenty of space around the diagram
-            const zoomX = (viewportWidth / diagramWidth) * 0.75; // 75% of viewport width
-            const zoomY = (viewportHeight / diagramHeight) * 0.75; // 75% of viewport height
-
-            // Use the minimum of the calculated zooms to ensure the entire diagram fits
-            // But set a minimum zoom of 0.5 to ensure the diagram is not too small
-            // And a maximum of 0.9 to prevent excessive zooming on small diagrams
-            const zoom = Math.max(Math.min(zoomX, zoomY, 0.9), 0.5);
-
-            console.log("Applying calculated zoom for locked workflow:", zoom);
-
-            // For locked workflows, use fitView for best results
-            if (window.__REACTFLOW_INSTANCE) {
-              // For locked workflows, we'll use a two-step approach:
-              // 1. First set the viewport with our calculated zoom
+            // After fitting, ensure the zoom is within our desired range
+            const currentViewport = window.__REACTFLOW_INSTANCE.getViewport();
+            if (currentViewport.zoom < 0.5 || currentViewport.zoom > 0.9) {
+              // Adjust zoom if needed while maintaining the center position
+              const adjustedZoom = Math.max(Math.min(currentViewport.zoom, 0.9), 0.5);
               window.__REACTFLOW_INSTANCE.setViewport({
-                x: 0,
-                y: 0,
-                zoom
+                ...currentViewport,
+                zoom: adjustedZoom
               });
-
-              // 2. Then use fitView with increased padding for better visibility
-              // This ensures the diagram is perfectly centered and all nodes are fully visible
-              window.__REACTFLOW_INSTANCE.fitView({
-                padding: 0.6, // 60% padding around the diagram to ensure all nodes are visible and perfectly centered
-                includeHiddenNodes: true,
-                duration: 0 // No animation - show immediately
-              });
-
-              // After fitting, ensure the zoom is within our desired range
-              const currentViewport = window.__REACTFLOW_INSTANCE.getViewport();
-              if (currentViewport.zoom < 0.5 || currentViewport.zoom > 0.9) {
-                // Adjust zoom if needed while maintaining the center position
-                const adjustedZoom = Math.max(Math.min(currentViewport.zoom, 0.9), 0.5);
-                window.__REACTFLOW_INSTANCE.setViewport({
-                  ...currentViewport,
-                  zoom: adjustedZoom
-                });
-              }
             }
-
-            // Also use the React Flow hook for redundancy
-            setViewport({ x: 0, y: 0, zoom });
-          }
-          // For regular workflows, use zoom level 1
-          else {
-            // Reset the viewport to ensure proper centering
-            if (window.__REACTFLOW_INSTANCE) {
-              window.__REACTFLOW_INSTANCE.setViewport({ x: 0, y: 0, zoom: 1 });
-            }
-
-            // Also use the React Flow hook for redundancy
-            setViewport({ x: 0, y: 0, zoom: 1 });
           }
 
-          // Log the final state for debugging
-          console.log("Workflow loaded and centered");
+          // Also use the React Flow hook for redundancy
+          setViewport({ x: 0, y: 0, zoom });
+        }
+        // For regular workflows, use zoom level 1
+        else {
+          // Reset the viewport to ensure proper centering
+          if (window.__REACTFLOW_INSTANCE) {
+            window.__REACTFLOW_INSTANCE.setViewport({ x: 0, y: 0, zoom: 1 });
+          }
+
+          // Also use the React Flow hook for redundancy
+          setViewport({ x: 0, y: 0, zoom: 1 });
+        }
+
+        // Log the final state for debugging
+        console.log("Workflow loaded and centered");
 
         console.log('Workflow loaded into React!'); // Log instead of alert
       } else {
@@ -1230,10 +1255,10 @@ const WorkflowEditorContent: React.FC = () => {
         let newIsRightConnected = false;
         let rightStatusChanged = false;
         if (node.type !== 'socialMedia') { // Only check right for non-social media
-            const sourceHandleId = `${node.id}-right-source`;
-            currentIsRightConnected = (newData as ContentNodeData).isRightConnected ?? false;
-            newIsRightConnected = connectedSources.has(sourceHandleId);
-            rightStatusChanged = newIsRightConnected !== currentIsRightConnected;
+          const sourceHandleId = `${node.id}-right-source`;
+          currentIsRightConnected = (newData as ContentNodeData).isRightConnected ?? false;
+          newIsRightConnected = connectedSources.has(sourceHandleId);
+          rightStatusChanged = newIsRightConnected !== currentIsRightConnected;
         }
 
         if (newIsLeftConnected !== currentIsLeftConnected || rightStatusChanged) {
