@@ -43,7 +43,7 @@ const NodeTimer: React.FC<NodeTimerProps> = ({ badgeNumber, delayValue, color = 
 
       {/* Timer icon and string if provided */}
       {delayValue !== null && delayValue !== undefined && (
-        <div className="flex items-center mt-2 justify-center">
+        <div className="flex items-center justify-center">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             xmlnsXlink="http://www.w3.org/1999/xlink"
@@ -70,7 +70,7 @@ const NodeTimer: React.FC<NodeTimerProps> = ({ badgeNumber, delayValue, color = 
               </g>
             )}
           </svg>
-          <span style={{ fontSize: '16px', color: '#222', fontWeight: 'bold', display: 'flex', alignItems: 'center' }}>
+          <span style={{ fontSize: '16px', color: '#222', display: 'flex', alignItems: 'center' }}>
             {delayValue}
           </span>
         </div>

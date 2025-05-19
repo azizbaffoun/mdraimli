@@ -25,17 +25,7 @@ const SocialMediaNodeTimer: React.FC<SocialMediaNodeTimerProps> = ({ badgeNumber
       <div className="flex items-center justify-center">
         {badgeNumber !== null && badgeNumber !== undefined && (
           <span style={{ marginRight: '4px', display: 'flex', alignItems: 'center' }}>
-            {useGradient ? (
-              <svg
-                width={`${String(badgeNumber).length > 2 ? 40 : String(badgeNumber).length > 1 ? 30 : 16}`}
-                height="20"
-                viewBox={`0 0 ${String(badgeNumber).length > 2 ? 40 : String(badgeNumber).length > 1 ? 30 : 16} 20`}
-              >
-                <text x="0" y="16" fontSize="16" fontWeight="700" fill={fillColor}>{badgeNumber}</text>
-              </svg>
-            ) : (
-              <span style={{ color, fontWeight: 700, fontSize: '16px' }}>{badgeNumber}</span>
-            )}
+            <span style={{ color : '#FC8500', fontWeight: 700, fontSize: '16px'}}>{badgeNumber}</span>
           </span>
         )}
         <span style={{ fontSize: '16px', color: '#222' }}>{nodeName}</span>
@@ -43,7 +33,7 @@ const SocialMediaNodeTimer: React.FC<SocialMediaNodeTimerProps> = ({ badgeNumber
 
       {/* Calendar icon and string if provided */}
       {delayValue !== null && delayValue !== undefined && (
-        <div className="flex items-center mt-2 justify-center">
+        <div className="flex items-center justify-center">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             xmlnsXlink="http://www.w3.org/1999/xlink"
@@ -65,7 +55,7 @@ const SocialMediaNodeTimer: React.FC<SocialMediaNodeTimerProps> = ({ badgeNumber
               <path id="Path_479" data-name="Path_479" d="M8.15,17.4H8.143a.849.849,0,0,1,0-1.7H8.15a.849.849,0,1,1,0,1.7Z" transform="translate(-0.813 -2.326)" fill={fillColor}/>
             </g>
           </svg>
-          <span style={{ fontSize: '16px', color: '#222', fontWeight: 'bold', display: 'flex', alignItems: 'center' }}>
+          <span style={{ fontSize: '16px', color: '#222', display: 'flex', alignItems: 'center' }}>
             {delayValue}
           </span>
         </div>
