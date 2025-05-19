@@ -86,6 +86,7 @@ const WorkflowEditorContent: React.FC = () => {
   const [isInfoPanelExiting, setIsInfoPanelExiting] = useState(false);
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
 
+
   // Undo/Redo history state
   const [history, setHistory] = useState<{ nodes: Node<WorkflowNodeData>[]; edges: Edge[] }[]>([]);
   const [future, setFuture] = useState<{ nodes: Node<WorkflowNodeData>[]; edges: Edge[] }[]>([]);
@@ -407,145 +408,125 @@ const WorkflowEditorContent: React.FC = () => {
   }, [project, setNodes, getNodes, getEdges, handleDeleteNode]);
 
   // organizeLayout function
-  const organizeLayout = useCallback(() => {
-    console.log("Organizing layout...");
+  const organizeLayout = useCallback((): void => {
+    if (!reactFlowInstance || !reactFlowWrapper.current) {
+      console.warn('organizeLayout: missing reactFlowInstance or wrapper');
+      return;
+    }
 
+    // 1) grab all nodes & edges
     const allNodes = getNodes();
     const allEdges = getEdges();
-    const layoutableNodes = allNodes.filter(n => n.type !== 'note');
+
+    // 2) separate notes (we don’t re-layout those)
     const noteNodes = allNodes.filter(n => n.type === 'note');
-    const topicalKeywordNode = layoutableNodes.find(n => n.type === 'topicalKeyword');
-    if (!topicalKeywordNode) {
-      console.warn("Cannot organize layout: Topical Keyword node not found.");
+    const layoutable = allNodes.filter(n => n.type !== 'note');
+
+    // 3) find the “root” topicalKeyword
+    const root = layoutable.find(n => n.type === 'topicalKeyword');
+    if (!root) {
+      console.warn('organizeLayout: no topicalKeyword node found');
       return;
     }
 
-    // First, organize the layout with relative positions
-    const nodeWidth = 128;
-    const nodeHeight = 128;
-    const horizontalGap = 120;
-    const verticalGap = 50;
+    // 4) sizing & gaps
+    const NODE_W = 128, NODE_H = 128;
+    const H_GAP = 120, V_GAP = 50;
+    const CX = 0, CY = 0; // temp coords: root at (0,0)
 
-    // We'll use temporary coordinates for the initial layout
-    const tempRootX = 0;
-    const firstColX = tempRootX + nodeWidth + horizontalGap;
-    const rows: Node[][] = [];
-    const processedNodes = new Set<string>();
-    processedNodes.add(topicalKeywordNode.id);
-    const directChildren = getOutgoers(topicalKeywordNode, layoutableNodes, allEdges);
-    directChildren.forEach(rowStartNode => {
-      if (processedNodes.has(rowStartNode.id)) return;
-      const currentRow: Node[] = [];
-      let currentNode: Node | undefined = rowStartNode;
-      while (currentNode) {
-        if (processedNodes.has(currentNode.id)) break;
-        currentRow.push(currentNode);
-        processedNodes.add(currentNode.id);
-        const children: Node[] = getOutgoers(currentNode, layoutableNodes, allEdges);
-        currentNode = children.find((n: Node) => !processedNodes.has(n.id));
+    // 5) compute direct children
+    const directChildren = getOutgoers(root, layoutable, allEdges) as Node<WorkflowNodeData>[];
+
+    // 6) build new positions
+    const positioned: Node<WorkflowNodeData>[] = [];
+    // root
+    positioned.push({ ...root, position: { x: CX, y: CY } });
+
+    if (directChildren.length <= 1) {
+      // single-chain → straight line
+      let curr = directChildren[0], depth = 0;
+      while (curr) {
+        positioned.push({
+          ...curr,
+          position: {
+            x: CX + (depth + 1) * (NODE_W + H_GAP),
+            y: CY
+          }
+        });
+        curr = (getOutgoers(curr, layoutable, allEdges) as Node<WorkflowNodeData>[])[0];
+        depth++;
       }
-      if (currentRow.length > 0) {
-        rows.push(currentRow);
-      }
-    });
+    } else {
+      // branching layout
+      const rows: Node<WorkflowNodeData>[][] = [];
+      const visited = new Set<string>([root.id]);
 
-    const numRows = rows.length;
-    const totalLayoutHeight = numRows * nodeHeight + Math.max(0, numRows - 1) * verticalGap;
-
-    // Calculate a better vertical starting position
-    // We'll use a negative value to ensure nodes are positioned above and below the center
-    const startY = -(totalLayoutHeight / 2) + (nodeHeight / 2);
-    const rootY = 0; // Place the topical keyword node exactly at vertical center
-
-    // Create the organized nodes with temporary positions
-    const organizedNodes: Node[] = [];
-    organizedNodes.push({ ...topicalKeywordNode, position: { x: tempRootX, y: rootY } });
-    // Calculate row positions to ensure they're centered vertically
-    rows.forEach((row, rowIndex) => {
-      // Calculate Y position for this row
-      const currentRowY = startY + rowIndex * (nodeHeight + verticalGap);
-
-      // Position each node in the row
-      row.forEach((node: Node, colIndex: number) => {
-        const nodeX = firstColX + colIndex * (nodeWidth + horizontalGap);
-        organizedNodes.push({ ...node, position: { x: nodeX, y: currentRowY } });
+      directChildren.forEach(child => {
+        if (visited.has(child.id)) return;
+        const row: Node<WorkflowNodeData>[] = [];
+        let c: Node<WorkflowNodeData> | undefined = child;
+        while (c && !visited.has(c.id)) {
+          row.push(c);
+          visited.add(c.id);
+          c = (getOutgoers(c, layoutable, allEdges) as Node<WorkflowNodeData>[])
+            .find(n => !visited.has(n.id));
+        }
+        if (row.length) rows.push(row);
       });
-    });
 
-    // Add any remaining nodes that weren't processed
-    layoutableNodes.forEach((node: Node) => {
-      if (!processedNodes.has(node.id)) {
-        organizedNodes.push(node);
-      }
-    });
+      rows.forEach((row, rIdx) => {
+        const totalH = row.length * NODE_H + (row.length - 1) * V_GAP;
+        const startY = CY - totalH / 2 + NODE_H / 2;
+        row.forEach((node, cIdx) => {
+          positioned.push({
+            ...node,
+            position: {
+              x: CX + NODE_W + H_GAP + cIdx * (NODE_W + H_GAP),
+              y: startY + rIdx * (NODE_H + V_GAP)
+            }
+          });
+        });
+      });
 
-    // Add note nodes
-    organizedNodes.push(...noteNodes);
-
-    // Now, calculate the viewport center
-    const viewportWidth = reactFlowWrapper.current?.clientWidth || window.innerWidth;
-    const viewportHeight = reactFlowWrapper.current?.clientHeight || window.innerHeight;
-    const viewportCenterX = viewportWidth / 2;
-    const viewportCenterY = viewportHeight / 2;
-
-    console.log("Viewport dimensions for centering:", {
-      width: viewportWidth,
-      height: viewportHeight,
-      center: { x: viewportCenterX, y: viewportCenterY }
-    });
-
-    // Find the topical keyword node in the organized nodes
-    const organizedTopicalNode = organizedNodes.find(n => n.type === 'topicalKeyword');
-    if (!organizedTopicalNode) {
-      console.warn("Cannot center layout: Topical Keyword node not found in organized nodes.");
-      return;
-    }
-
-    // Calculate the offset needed to center the topical keyword node
-    const offsetX = viewportCenterX - organizedTopicalNode.position.x;
-    const offsetY = viewportCenterY - organizedTopicalNode.position.y;
-
-    console.log("Centering organized layout:", {
-      topicalKeywordPosition: organizedTopicalNode.position,
-      viewportCenter: { x: viewportCenterX, y: viewportCenterY },
-      offset: { x: offsetX, y: offsetY }
-    });
-
-    // Apply the offset to all nodes to center the topical keyword node
-    const finalNodes = organizedNodes.map(node => ({
-      ...node,
-      position: {
-        x: node.position.x + offsetX,
-        y: node.position.y + offsetY
-      }
-    }));
-
-    console.log("Applying centered layout:", finalNodes);
-
-    // First reset the viewport to ensure proper centering
-    // This helps prevent the initial "nodes appear down" issue
-    if (window.__REACTFLOW_INSTANCE) {
-      window.__REACTFLOW_INSTANCE.setViewport({ x: 0, y: 0, zoom: 1 });
-    }
-
-    // Update nodes immediately - this is important to prevent the warning
-    setNodes(finalNodes);
-
-    // Then set the viewport with a small delay to ensure the nodes are rendered
-    // This approach prevents the initial "nodes appear down" issue
-    requestAnimationFrame(() => {
-      setViewport({ x: 0, y: 0, zoom: 1 });
-
-      // Apply viewport again after a frame to ensure everything is properly centered
-      requestAnimationFrame(() => {
-        if (window.__REACTFLOW_INSTANCE) {
-          window.__REACTFLOW_INSTANCE.setViewport({ x: 0, y: 0, zoom: 1 });
+      // any disconnected node sits at the root
+      layoutable.forEach(n => {
+        if (!visited.has(n.id)) {
+          positioned.push({ ...n, position: { x: CX, y: CY } });
         }
       });
-    });
+    }
 
-  }, [getNodes, getEdges, setNodes, setViewport, reactFlowWrapper]);
+    // 7) put notes back
+    const finalNodes = [...positioned, ...noteNodes];
+    setNodes(finalNodes);
 
+    // 8) compute bounding box of laid-out graph
+    const xs = finalNodes.map(n => n.position.x);
+    const ys = finalNodes.map(n => n.position.y);
+    const minX = Math.min(...xs), maxX = Math.max(...xs) + NODE_W;
+    const minY = Math.min(...ys), maxY = Math.max(...ys) + NODE_H;
+    const diagCenterX = (minX + maxX) / 2;
+    const diagCenterY = (minY + maxY) / 2;
+
+    // 9) figure out current zoom and viewport size
+    const { zoom: currentZoom = 1 } = reactFlowInstance.getViewport();
+    const { width: viewW, height: viewH } = reactFlowWrapper.current.getBoundingClientRect();
+    const viewCenterX = viewW / 2;
+    const viewCenterY = viewH / 2;
+
+    // 10) correct centering math: x + diagCenterX*zoom = viewCenterX
+    const newX = viewCenterX - diagCenterX * currentZoom;
+    const newY = viewCenterY - diagCenterY * currentZoom;
+
+    // 11) apply without touching zoom
+    reactFlowInstance.setViewport({ x: newX, y: newY, zoom: currentZoom });
+  }, [
+    getNodes,
+    getEdges,
+    setNodes,
+    reactFlowInstance,
+    reactFlowWrapper,
+  ]);
   // onAddChildNode function
   const onAddChildNode = useCallback((parentId: string, childTypeOrNext: ContentType | 'next') => {
     // Always push to history before any state change
@@ -721,7 +702,7 @@ const WorkflowEditorContent: React.FC = () => {
       const nodeW = (childNode.width ?? 128) * zoom;
 
       // screen X of the node’s left edge
-      const screenX = childNode.position.x * zoom + x * 2 ;
+      const screenX = childNode.position.x * zoom + x * 2;
 
       // if it’s within one node-width of the right edge, pan left one node-width
       if (screenX > width - nodeW) {
@@ -1203,11 +1184,11 @@ const WorkflowEditorContent: React.FC = () => {
         else {
           // Reset the viewport to ensure proper centering
           if (window.__REACTFLOW_INSTANCE) {
-            window.__REACTFLOW_INSTANCE.setViewport({ x: 0, y: 0, zoom: 1 });
+            reactFlowInstance?.fitView({ padding: 0.1, duration: 400 });
           }
 
           // Also use the React Flow hook for redundancy
-          setViewport({ x: 0, y: 0, zoom: 1 });
+          reactFlowInstance?.fitView({ padding: 0.1, duration: 400 });
         }
 
         // Log the final state for debugging
