@@ -85,6 +85,7 @@ const WorkflowEditorContent: React.FC = () => {
   const [showInfoPanel, setShowInfoPanel] = useState(true);
   const [isInfoPanelExiting, setIsInfoPanelExiting] = useState(false);
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
+  const [zoomLevel, setZoomLevel] = useState(1);
 
 
   // Undo/Redo history state
@@ -407,125 +408,159 @@ const WorkflowEditorContent: React.FC = () => {
     setNodes(newNodes);
   }, [project, setNodes, getNodes, getEdges, handleDeleteNode]);
 
-  // organizeLayout function
   const organizeLayout = useCallback((): void => {
     if (!reactFlowInstance || !reactFlowWrapper.current) {
       console.warn('organizeLayout: missing reactFlowInstance or wrapper');
       return;
     }
 
-    // 1) grab all nodes & edges
+    // 1) grab the user’s current zoom
+    const { zoom: curZoom } = reactFlowInstance.getViewport();
+
+    // 2) grab all nodes & edges
     const allNodes = getNodes();
     const allEdges = getEdges();
 
-    // 2) separate notes (we don’t re-layout those)
+    // 3) separate out notes (we don't re-layout them)
     const noteNodes = allNodes.filter(n => n.type === 'note');
     const layoutable = allNodes.filter(n => n.type !== 'note');
 
-    // 3) find the “root” topicalKeyword
+    // 4) find the “root” topicalKeyword
     const root = layoutable.find(n => n.type === 'topicalKeyword');
     if (!root) {
       console.warn('organizeLayout: no topicalKeyword node found');
       return;
     }
 
-    // 4) sizing & gaps
-    const NODE_W = 128, NODE_H = 128;
-    const H_GAP = 120, V_GAP = 50;
-    const CX = 0, CY = 0; // temp coords: root at (0,0)
+    // 5) layout constants (you can tweak these)
+    const NODE_W = 128;
+    const NODE_H = 128;
+    const H_GAP = 200;
+    const V_GAP = 100;
 
-    // 5) compute direct children
+    // 6) collect direct children
     const directChildren = getOutgoers(root, layoutable, allEdges) as Node<WorkflowNodeData>[];
 
-    // 6) build new positions
+    // 7) build temporary positions around (0,0)
     const positioned: Node<WorkflowNodeData>[] = [];
-    // root
-    positioned.push({ ...root, position: { x: CX, y: CY } });
 
     if (directChildren.length <= 1) {
-      // single-chain → straight line
-      let curr = directChildren[0], depth = 0;
-      while (curr) {
-        positioned.push({
-          ...curr,
-          position: {
-            x: CX + (depth + 1) * (NODE_W + H_GAP),
-            y: CY
-          }
-        });
-        curr = (getOutgoers(curr, layoutable, allEdges) as Node<WorkflowNodeData>[])[0];
+      // single‐chain → straight line
+      positioned.push({ ...root, position: { x: 0, y: 0 } });
+
+      let chainNode = directChildren[0];
+      let depth = 0;
+      while (chainNode) {
         depth++;
+        positioned.push({
+          ...chainNode,
+          position: { x: depth * (NODE_W + H_GAP), y: 0 }
+        });
+
+        const outs = getOutgoers(chainNode, layoutable, allEdges) as Node<WorkflowNodeData>[];
+        chainNode = outs.find(n => !positioned.some(p => p.id === n.id));
       }
+
     } else {
-      // branching layout
-      const rows: Node<WorkflowNodeData>[][] = [];
+      // branching
+      positioned.push({ ...root, position: { x: 0, y: 0 } });
+
       const visited = new Set<string>([root.id]);
+      const rows: Node<WorkflowNodeData>[][] = [];
 
       directChildren.forEach(child => {
         if (visited.has(child.id)) return;
         const row: Node<WorkflowNodeData>[] = [];
-        let c: Node<WorkflowNodeData> | undefined = child;
-        while (c && !visited.has(c.id)) {
-          row.push(c);
-          visited.add(c.id);
-          c = (getOutgoers(c, layoutable, allEdges) as Node<WorkflowNodeData>[])
-            .find(n => !visited.has(n.id));
+        let curr: Node<WorkflowNodeData> | undefined = child;
+
+        while (curr && !visited.has(curr.id)) {
+          row.push(curr);
+          visited.add(curr.id);
+          const outs = getOutgoers(curr, layoutable, allEdges) as Node<WorkflowNodeData>[];
+          curr = outs.find(n => !visited.has(n.id));
         }
         if (row.length) rows.push(row);
       });
 
+      // vertically distribute rows around y=0
+      const rowStep = NODE_H + V_GAP;
+      const mid = (rows.length - 1) / 2;
       rows.forEach((row, rIdx) => {
-        const totalH = row.length * NODE_H + (row.length - 1) * V_GAP;
-        const startY = CY - totalH / 2 + NODE_H / 2;
+        const yBase = (rIdx - mid) * rowStep;
         row.forEach((node, cIdx) => {
           positioned.push({
             ...node,
             position: {
-              x: CX + NODE_W + H_GAP + cIdx * (NODE_W + H_GAP),
-              y: startY + rIdx * (NODE_H + V_GAP)
+              x: NODE_W + H_GAP + cIdx * (NODE_W + H_GAP),
+              y: yBase
             }
           });
         });
       });
 
-      // any disconnected node sits at the root
+      // any other disconnected node stays at root
       layoutable.forEach(n => {
         if (!visited.has(n.id)) {
-          positioned.push({ ...n, position: { x: CX, y: CY } });
+          positioned.push({ ...n, position: { x: 0, y: 0 } });
         }
       });
     }
 
-    // 7) put notes back
-    const finalNodes = [...positioned, ...noteNodes];
+    // 8) translate back to absolute coords
+    const baseX = root.position.x;
+    const baseY = root.position.y;
+    const finalNodes = positioned
+      .map(n => ({
+        ...n,
+        position: {
+          x: n.position.x + baseX,
+          y: n.position.y + baseY
+        }
+      }))
+      .concat(noteNodes);
+
     setNodes(finalNodes);
 
-    // 8) compute bounding box of laid-out graph
-    const xs = finalNodes.map(n => n.position.x);
-    const ys = finalNodes.map(n => n.position.y);
-    const minX = Math.min(...xs), maxX = Math.max(...xs) + NODE_W;
-    const minY = Math.min(...ys), maxY = Math.max(...ys) + NODE_H;
-    const diagCenterX = (minX + maxX) / 2;
-    const diagCenterY = (minY + maxY) / 2;
+    // 9) compute bounding box of the laid-out graph
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    finalNodes.forEach(n => {
+      minX = Math.min(minX, n.position.x);
+      minY = Math.min(minY, n.position.y);
+      maxX = Math.max(maxX, n.position.x + NODE_W);
+      maxY = Math.max(maxY, n.position.y + NODE_H);
+    });
+    const boxW = maxX - minX;
+    const boxH = maxY - minY;
 
-    // 9) figure out current zoom and viewport size
-    const { zoom: currentZoom = 1 } = reactFlowInstance.getViewport();
-    const { width: viewW, height: viewH } = reactFlowWrapper.current.getBoundingClientRect();
-    const viewCenterX = viewW / 2;
-    const viewCenterY = viewH / 2;
+    // 10) measure viewport
+    const vw = reactFlowWrapper.current.clientWidth;
+    const vh = reactFlowWrapper.current.clientHeight;
 
-    // 10) correct centering math: x + diagCenterX*zoom = viewCenterX
-    const newX = viewCenterX - diagCenterX * currentZoom;
-    const newY = viewCenterY - diagCenterY * currentZoom;
+    // 11) compute the zoom that would fit the box (with 10% padding)
+    const fitZoomX = (vw * 0.9) / boxW;
+    const fitZoomY = (vh * 0.9) / boxH;
+    const fitZoom = Math.min(fitZoomX, fitZoomY);
 
-    // 11) apply without touching zoom
-    reactFlowInstance.setViewport({ x: newX, y: newY, zoom: currentZoom });
+    // if the graph is too big, zoom out; otherwise keep user zoom
+    const newZoom = Math.min(curZoom, fitZoom);
+
+    // 12) center that box at newZoom
+    const centerX = minX + boxW / 2;
+    const centerY = minY + boxH / 2;
+    const newX = vw / 2 - centerX * newZoom;
+    const newY = vh / 2 - centerY * newZoom;
+
+    // 13) apply
+    setViewport(
+      { x: newX, y: newY, zoom: newZoom },
+      { duration: 400 }
+    );
   }, [
     getNodes,
     getEdges,
     setNodes,
-    reactFlowInstance,
-    reactFlowWrapper,
+    setViewport,
+    reactFlowInstance
   ]);
   // onAddChildNode function
   const onAddChildNode = useCallback((parentId: string, childTypeOrNext: ContentType | 'next') => {
@@ -1278,8 +1313,6 @@ const WorkflowEditorContent: React.FC = () => {
       setNodes(updatedNodes);
     }
   }, [edges, nodes, setNodes]); // Rerun when edges or nodes change
-
-  const [zoomLevel, setZoomLevel] = useState(1);
 
   const handleZoomIn = useCallback(() => {
     zoomIn();

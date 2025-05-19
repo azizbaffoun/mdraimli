@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Workflow Editor</title>
+  <link rel="stylesheet" href="../dist/assets/style.css" />
+  <style>
+    body { margin: 0; }
+    #root { height: 100vh; }
+    .toolbar { position: fixed; top: 10px; right: 10px; z-index: 1000; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <div class="toolbar">
+    <button id="saveBtn">Save Workflow</button>
+    <input type="file" id="loadInput" style="display:none" accept=".json"/>
+    <button id="loadBtn">Load Workflow</button>
+    <button id="loadLockBtn">Load Locked</button>
+  </div>
+  <script type="module" src="../dist/assets/main.js"></script>
+  <script>
+    // Save: called by React app with JSON string
+    window.passData = function(jsonString) {
+      // Download as file
+      const blob = new Blob([jsonString], {type: "application/json"});
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "workflow.json";
+      a.click();
+      URL.revokeObjectURL(a.href);
+    };
+
+    // Variable to store the load mode ('edit' or 'locked')
+    window.loadMode = 'edit'; // Default to edit
+
+    // Load Edit: Trigger file input for editable workflow
+    document.getElementById('loadBtn').onclick = function() {
+      window.loadMode = 'edit';
+      document.getElementById('loadInput').click();
+    };
+
+    // Load Locked: Trigger file input for locked workflow
+    document.getElementById('loadLockBtn').onclick = function() {
+      window.loadMode = 'locked';
+      document.getElementById('loadInput').click();
+    };
+
+    // Handle file selection for both load types
+    document.getElementById('loadInput').onchange = function(e) {
+      const file = e.target.files[0];
+      // Reset the input value to allow loading the same file again
+      e.target.value = null;
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        try {
+          const data = JSON.parse(evt.target.result);
+          const isLocked = window.loadMode === 'locked';
+          const finalData = { ...data, isLocked: isLocked }; // Set isLocked based on mode
+
+          if (window.loadDataIntoReact) {
+            window.loadDataIntoReact(finalData);
+            // Process badges from loaded workflow
+            if (window.processBadgesFromWorkflow) {
+              window.processBadgesFromWorkflow(finalData);
+            }
+          } else {
+            alert("Editor not ready yet!");
+          }
+        } catch (err) {
+          console.error("Error loading workflow:", err);
+          alert("Invalid workflow file.");
+        }
+      };
+      reader.onerror = function() {
+        alert("Error reading file.");
+      };
+      reader.readAsText(file);
+    };
+
+    // Optional: Save button triggers the React app's save logic
+    document.getElementById('saveBtn').onclick = function() {
+      // Find the save button in the React app and click it, or trigger save logic if exposed
+      // If your React app exposes a save function globally, call it here
+      // Otherwise, instruct users to use the in-app save button
+      alert("Use the in-app Save button to export your workflow.");
+    };
+
+    // Function to set badge number and delay value for any node type
+    window.setNodeBadge = function(nodeId, badgeNumber, delayValue) {
+      // Wait for the ReactFlow instance to be available
+      setTimeout(() => {
+        // Get the ReactFlow instance
+        const reactFlowInstance = window.__REACTFLOW_INSTANCE;
+
+        if (!reactFlowInstance) {
+          console.error('ReactFlow instance not found');
+          return;
+        }
+
+        try {
+          // Get the current nodes
+          const { getNodes, setNodes } = reactFlowInstance;
+          const nodes = getNodes();
+
+          // Find the node with the given ID
+          const nodeIndex = nodes.findIndex(node => node.id === nodeId);
+
+          if (nodeIndex === -1) {
+            console.error(`Node with ID ${nodeId} not found`);
+            return;
+          }
+
+          // Update the node data
+          const updatedNodes = [...nodes];
+          updatedNodes[nodeIndex] = {
+            ...updatedNodes[nodeIndex],
+            data: {
+              ...updatedNodes[nodeIndex].data,
+              badgeNumber: badgeNumber !== undefined ? badgeNumber : undefined,
+              delayValue: delayValue || undefined
+            }
+          };
+
+          // Set the updated nodes
+          setNodes(updatedNodes);
+          console.log(`Updated node ${nodeId} with badge number ${badgeNumber} and delay value ${delayValue}`);
+        } catch (error) {
+          console.error('Error updating node:', error);
+        }
+      }, 500);
+    };
+
+    // Add node popup functionality
+    window.showNodeBadgePopup = function(nodeId, nodeType) {
+      console.log(`Showing popup for node ${nodeId} of type ${nodeType}`);
+      
+      // Create popup container
+      const popup = document.createElement('div');
+      popup.style.position = 'fixed';
+      popup.style.top = '50%';
+      popup.style.left = '50%';
+      popup.style.transform = 'translate(-50%, -50%)';
+      popup.style.backgroundColor = 'white';
+      popup.style.padding = '20px';
+      popup.style.borderRadius = '8px';
+      popup.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+      popup.style.zIndex = '9999';
+      
+      // Get current values if they exist
+      let currentBadgeNumber = undefined;
+      let currentDelayValue = undefined;
+      
+      try {
+        const reactFlowInstance = window.__REACTFLOW_INSTANCE;
+        if (reactFlowInstance) {
+          const nodes = reactFlowInstance.getNodes();
+          const node = nodes.find(n => n.id === nodeId);
+          if (node && node.data) {
+            currentBadgeNumber = node.data.badgeNumber;
+            currentDelayValue = node.data.delayValue;
+          }
+        }
+      } catch (error) {
+        console.error('Error getting current node values:', error);
+      }
+      
+      // Create form elements with unique IDs to avoid conflicts
+      
+      // Add event listeners with direct function references
+      const saveHandler = function() {
+        console.log("Save button clicked");
+        const badgeNumberInput = document.getElementById(badgeNumberId);
+        const delayValueInput = document.getElementById(delayValueId);
+        
+        const badgeNumber = badgeNumberInput.value !== '' ? 
+          parseInt(badgeNumberInput.value) : undefined;
+        const delayValue = delayValueInput.value || undefined;
+        
+        console.log(`Saving badge: ${badgeNumber}, delay: ${delayValue} for node: ${nodeId}`);
+        window.setNodeBadge(nodeId, badgeNumber, delayValue);
+        document.body.removeChild(popup);
+      };
+      
+      const cancelHandler = function() {
+        console.log("Cancel button clicked");
+        document.body.removeChild(popup);
+      };
+      
+      document.getElementById(saveBtnId).addEventListener('click', saveHandler);
+      document.getElementById(cancelBtnId).addEventListener('click', cancelHandler);
+    };
+
+    // Expose function to open badge popup from node settings
+    window.openNodeBadgeSettings = function(nodeId) {
+      const reactFlowInstance = window.__REACTFLOW_INSTANCE;
+      if (!reactFlowInstance) {
+        console.error('ReactFlow instance not found');
+        return;
+      }
+      
+      try {
+        const nodes = reactFlowInstance.getNodes();
+        const node = nodes.find(n => n.id === nodeId);
+        if (node) {
+          window.showNodeBadgePopup(nodeId, node.type || 'unknown');
+        } else {
+          console.error(`Node with ID ${nodeId} not found`);
+        }
+      } catch (error) {
+        console.error('Error opening node badge settings:', error);
+      }
+    };
+
+    // Listen for clicks on node settings buttons
+    document.addEventListener('click', function(event) {
+      // Check if the click was on a node settings button
+      const target = event.target;
+      if (target && (
+          target.classList.contains('node-settings-button') || 
+          target.closest('.node-settings-button') ||
+          (target.classList.contains('settings-icon') || target.closest('.settings-icon'))
+      )) {
+        // Find the node ID from the clicked element
+        let element = target;
+        while (element && !element.dataset.nodeId) {
+          element = element.parentElement;
+        }
+        
+        if (element && element.dataset.nodeId) {
+          const nodeId = element.dataset.nodeId;
+          console.log('Settings clicked for node:', nodeId);
+          window.openNodeBadgeSettings(nodeId);
+        }
+      }
+    });
+
+    // Function to process all nodes in a workflow and set badges based on data
+    window.processBadgesFromWorkflow = function(workflowData) {
+      if (!workflowData || !workflowData.nodes || !Array.isArray(workflowData.nodes)) {
+        console.error('Invalid workflow data');
+        return;
+      }
+
+      // Process each node in the workflow
+      workflowData.nodes.forEach(node => {
+        // Check if the node has badge data
+        if (node.data && (node.data.badgeNumber !== undefined || node.data.delayValue)) {
+          // Set the badge for this node
+          window.setNodeBadge(node.id, node.data.badgeNumber, node.data.delayValue);
+        }
+      });
+
+      console.log('Processed badges for all nodes in workflow');
+    };
+
+    // Monitor for node changes
+    window.monitorNodeChanges = function() {
+      console.log("Starting node monitoring");
+      
+      // Check for ReactFlow instance periodically
+      const checkInterval = setInterval(() => {
+        const reactFlowInstance = window.__REACTFLOW_INSTANCE;
+        if (!reactFlowInstance) {
+          console.log('Waiting for ReactFlow instance...');
+          return;
+        }
+        
+        // Clear the interval once we have the instance
+        clearInterval(checkInterval);
+        console.log('ReactFlow instance found, setting up node monitoring');
+        
+        // Set up a mutation observer to watch for node changes
+        const observer = new MutationObserver(() => {
+          try {
+            const currentNodes = reactFlowInstance.getNodes();
+            const currentNodeIds = currentNodes.map(node => node.id);
+            
+            // Find new nodes by comparing with previous node IDs
+            const newNodeIds = currentNodeIds.filter(id => !window.previousNodeIds.includes(id));
+            
+            if (newNodeIds.length > 0) {
+              console.log('New nodes detected:', newNodeIds);
+              
+              // Show popup for each new node that's not a start or topicalKeyword node
+              newNodeIds.forEach(nodeId => {
+                const node = currentNodes.find(n => n.id === nodeId);
+                if (node && node.type !== 'start' && node.type !== 'topicalKeyword') {
+                  window.showNodeBadgePopup(nodeId, node.type || 'unknown');
+                }
+              });
+            }
+            
+            // Update previous node IDs
+            window.previousNodeIds = currentNodeIds;
+          } catch (error) {
+            console.error('Error in node monitoring:', error);
+          }
+        });
+        
+        // Observe the ReactFlow container
+        const reactFlowContainer = document.querySelector('.react-flow');
+        if (reactFlowContainer) {
+          observer.observe(reactFlowContainer, { 
+            childList: true, 
+            subtree: true,
+            attributes: true
+          });
+          console.log('Observing ReactFlow container for changes');
+        } else {
+          console.error('ReactFlow container not found');
+        }
+        
+        // Also hook directly into setNodes for redundancy
+        const originalSetNodes = reactFlowInstance.setNodes;
+        reactFlowInstance.setNodes = function(nodes) {
+          const result = originalSetNodes(nodes);
+          
+          // Check for new nodes after a short delay
+          setTimeout(() => {
+            const currentNodes = reactFlowInstance.getNodes();
+            const currentNodeIds = currentNodes.map(node => node.id);
+            
+            // Find new nodes
+            const newNodeIds = currentNodeIds.filter(id => !window.previousNodeIds.includes(id));
+            
+            if (newNodeIds.length > 0) {
+              console.log('New nodes detected via setNodes:', newNodeIds);
+              
+              // Show popup for each new node that's not a start or topicalKeyword node
+              newNodeIds.forEach(nodeId => {
+                const node = currentNodes.find(n => n.id === nodeId);
+                if (node && node.type !== 'start' && node.type !== 'topicalKeyword') {
+                  window.showNodeBadgePopup(nodeId, node.type || 'unknown');
+                }
+              });
+              
+              // Update previous node IDs
+              window.previousNodeIds = currentNodeIds;
+            }
+          }, 100);
+          
+          return result;
+        };
+      }, 500);
+    };
+
+    // Initialize monitoring when the page loads
+    window.addEventListener('load', function() {
+      console.log('Page loaded, initializing node monitoring');
+      window.previousNodeIds = [];
+      window.monitorNodeChanges();
+      
+      // Also listen for clicks on node creation buttons
+      document.addEventListener('click', function(event) {
+        // Check if the click was on a node creation button
+        const target = event.target;
+        if (target && (
+            target.classList.contains('node-button') || 
+            target.closest('.node-button') ||
+            (target.tagName === 'IMG' && target.closest('button'))
+        )) {
+          console.log('Node creation button clicked');
+          
+          // Wait a bit for the node to be created
+          setTimeout(() => {
+            const reactFlowInstance = window.__REACTFLOW_INSTANCE;
+            if (reactFlowInstance) {
+              const currentNodes = reactFlowInstance.getNodes();
+              const currentNodeIds = currentNodes.map(node => node.id);
+              
+              // Find new nodes
+              const newNodeIds = currentNodeIds.filter(id => !window.previousNodeIds.includes(id));
+              
+              if (newNodeIds.length > 0) {
+                console.log('New nodes detected after button click:', newNodeIds);
+                
+                // Show popup for the last new node if it's not a start or topicalKeyword node
+                const nodeId = newNodeIds[newNodeIds.length - 1];
+                const node = currentNodes.find(n => n.id === nodeId);
+                if (node && node.type !== 'start' && node.type !== 'topicalKeyword') {
+                  window.showNodeBadgePopup(nodeId, node.type || 'unknown');
+                }
+                
+                // Update previous node IDs
+                window.previousNodeIds = currentNodeIds;
+              }
+            }
+          }, 500);
+        }
+      });
+    });
+  </script>
+</body>
+</html>
