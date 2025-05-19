@@ -448,8 +448,9 @@ const WorkflowEditorContent: React.FC = () => {
       // single‐chain → straight line
       positioned.push({ ...root, position: { x: 0, y: 0 } });
 
-      let chainNode = directChildren[0];
+      let chainNode: Node<WorkflowNodeData> | undefined = directChildren[0];
       let depth = 0;
+
       while (chainNode) {
         depth++;
         positioned.push({
@@ -458,7 +459,10 @@ const WorkflowEditorContent: React.FC = () => {
         });
 
         const outs = getOutgoers(chainNode, layoutable, allEdges) as Node<WorkflowNodeData>[];
-        chainNode = outs.find(n => !positioned.some(p => p.id === n.id));
+        const nextNode: Node<WorkflowNodeData> | undefined =
+          outs.find(n => !positioned.some(p => p.id === n.id));
+
+        chainNode = nextNode;
       }
 
     } else {
@@ -550,7 +554,7 @@ const WorkflowEditorContent: React.FC = () => {
     const newX = vw / 2 - centerX * newZoom;
     const newY = vh / 2 - centerY * newZoom;
 
-    // 13) apply
+    // 13) apply with smooth transition
     setViewport(
       { x: newX, y: newY, zoom: newZoom },
       { duration: 400 }
