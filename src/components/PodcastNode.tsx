@@ -185,7 +185,7 @@ const PodcastNode: React.FC<NodeProps<PodcastNodeData>> = ({ id, data, selected 
         </div>
 
         {/* Right Side Elements - Only show if not locked or not last node */}
-        {data.canAddChild && !data.isRightConnected && (!data.isLocked || !data.isLastNode) && !(data.isLocked && !data.isRightConnected) && (
+        {(data.canAddChild && (!data.isLocked || !data.isLastNode) && !(data.isLocked && !data.isRightConnected) || (selected && !data.isLocked)) && (
           <>
             <div
               className="podcast-node-connector-plus absolute right-[-16.5px] top-[50%] transform -translate-y-1/2 cursor-pointer group z-30 hover:scale-110 transition-transform"
