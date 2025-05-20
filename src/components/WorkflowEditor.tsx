@@ -14,12 +14,13 @@ import ReactFlow, {
   Viewport,
   OnNodesChange,
   OnEdgesChange,
-  getOutgoers,
   NodeChange,
   EdgeChange,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { v4 as uuidv4 } from 'uuid';
+import dagre from 'dagre';
+
 
 // Import Node Components
 import StartNode from '@/components/StartNode';
@@ -408,356 +409,275 @@ const WorkflowEditorContent: React.FC = () => {
     setNodes(newNodes);
   }, [project, setNodes, getNodes, getEdges, handleDeleteNode]);
 
-  const organizeLayout = useCallback((): void => {
-    if (!reactFlowInstance || !reactFlowWrapper.current) {
-      console.warn('organizeLayout: missing reactFlowInstance or wrapper');
-      return;
-    }
+const organizeLayout = useCallback((): void => {
+  if (!reactFlowInstance || !reactFlowWrapper.current) {
+    console.warn('organizeLayout: missing reactFlowInstance or wrapper');
+    return;
+  }
 
-    // 1) grab the user’s current zoom
-    const { zoom: curZoom } = reactFlowInstance.getViewport();
+  // 1) grab the user’s current zoom
+  const { zoom: curZoom } = reactFlowInstance.getViewport();
 
-    // 2) grab all nodes & edges
-    const allNodes = getNodes();
-    const allEdges = getEdges();
+  // 2) grab all nodes & edges
+  const allNodes = getNodes();
+  const allEdges = getEdges();
 
-    // 3) separate out notes (we don't re-layout them)
-    const noteNodes = allNodes.filter(n => n.type === 'note');
-    const layoutable = allNodes.filter(n => n.type !== 'note');
+  // 3) separate out notes (we don't re-layout them)
+  const noteNodes = allNodes.filter(n => n.type === 'note');
+  const layoutable = allNodes.filter(n => n.type !== 'note');
 
-    // 4) find the “root” topicalKeyword
-    const root = layoutable.find(n => n.type === 'topicalKeyword');
-    if (!root) {
-      console.warn('organizeLayout: no topicalKeyword node found');
-      return;
-    }
+  // 4) find the “root” topicalKeyword
+  const root = layoutable.find(n => n.type === 'topicalKeyword');
+  if (!root) {
+    console.warn('organizeLayout: no topicalKeyword node found');
+    return;
+  }
 
-    // 5) layout constants (you can tweak these)
-    const NODE_W = 128;
-    const NODE_H = 128;
-    const H_GAP = 200;
-    const V_GAP = 100;
+  // 5) layout constants
+  const NODE_W = 128;
+  const NODE_H = 128;
+  const H_GAP   = 50; // horizontal gap between ranks
+  const V_GAP   = 150; // vertical gap between siblings
 
-    // 6) collect direct children
-    const directChildren = getOutgoers(root, layoutable, allEdges) as Node<WorkflowNodeData>[];
+  // ——— DAGRE SETUP ———
+  const dag = new dagre.graphlib.Graph();
+  dag.setDefaultEdgeLabel(() => ({}));
+  dag.setGraph({
+    rankdir: 'LR',      // left → right
+    nodesep: H_GAP,     // horizontal separation
+    ranksep: V_GAP      // vertical separation
+  });
 
-    // 7) build temporary positions around (0,0)
-    const positioned: Node<WorkflowNodeData>[] = [];
+  // add nodes to dagre
+  layoutable.forEach(n => {
+    dag.setNode(n.id, { width: NODE_W, height: NODE_H });
+  });
 
-    if (directChildren.length <= 1) {
-      // single‐chain → straight line
-      positioned.push({ ...root, position: { x: 0, y: 0 } });
+  // add edges to dagre
+  allEdges.forEach(e => {
+    dag.setEdge(e.source, e.target);
+  });
 
-      let chainNode: Node<WorkflowNodeData> | undefined = directChildren[0];
-      let depth = 0;
+  // run the layout
+dagre.layout(dag);
 
-      while (chainNode) {
-        depth++;
-        positioned.push({
-          ...chainNode,
-          position: { x: depth * (NODE_W + H_GAP), y: 0 }
-        });
-
-        const outs = getOutgoers(chainNode, layoutable, allEdges) as Node<WorkflowNodeData>[];
-        const nextNode: Node<WorkflowNodeData> | undefined =
-          outs.find(n => !positioned.some(p => p.id === n.id));
-
-        chainNode = nextNode;
+  // 7) pull dagre’s x/y back into React‐Flow positions
+  //    (centering each node by subtracting half its width/height)
+  const laidOut = layoutable.map(n => {
+    const d = dag.node(n.id)!;
+    return {
+      ...n,
+      position: {
+        x: d.x - NODE_W / 2,
+        y: d.y - NODE_H / 2
       }
+    };
+  });
 
-    } else {
-      // branching
-      positioned.push({ ...root, position: { x: 0, y: 0 } });
+  // 8) re–merge notes (untouched) back in
+  const finalNodes = [...laidOut, ...noteNodes];
 
-      const visited = new Set<string>([root.id]);
-      const rows: Node<WorkflowNodeData>[][] = [];
+  // update React‐Flow
+  setNodes(finalNodes);
 
-      directChildren.forEach(child => {
-        if (visited.has(child.id)) return;
-        const row: Node<WorkflowNodeData>[] = [];
-        let curr: Node<WorkflowNodeData> | undefined = child;
+  // 9–13) now do your original bounding‐box centering + zoom clamp:
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  finalNodes.forEach(n => {
+    minX = Math.min(minX, n.position.x);
+    minY = Math.min(minY, n.position.y);
+    maxX = Math.max(maxX, n.position.x + NODE_W);
+    maxY = Math.max(maxY, n.position.y + NODE_H);
+  });
+  const boxW = maxX - minX;
+  const boxH = maxY - minY;
 
-        while (curr && !visited.has(curr.id)) {
-          row.push(curr);
-          visited.add(curr.id);
-          const outs = getOutgoers(curr, layoutable, allEdges) as Node<WorkflowNodeData>[];
-          curr = outs.find(n => !visited.has(n.id));
-        }
-        if (row.length) rows.push(row);
-      });
+  const vw = reactFlowWrapper.current.clientWidth;
+  const vh = reactFlowWrapper.current.clientHeight;
 
-      // vertically distribute rows around y=0
-      const rowStep = NODE_H + V_GAP;
-      const mid = (rows.length - 1) / 2;
-      rows.forEach((row, rIdx) => {
-        const yBase = (rIdx - mid) * rowStep;
-        row.forEach((node, cIdx) => {
-          positioned.push({
-            ...node,
-            position: {
-              x: NODE_W + H_GAP + cIdx * (NODE_W + H_GAP),
-              y: yBase
-            }
-          });
-        });
-      });
+  const fitZoomX = (vw * 0.9) / boxW;
+  const fitZoomY = (vh * 0.9) / boxH;
+  const fitZoom  = Math.min(fitZoomX, fitZoomY);
+  const newZoom  = Math.min(curZoom, fitZoom);
 
-      // any other disconnected node stays at root
-      layoutable.forEach(n => {
-        if (!visited.has(n.id)) {
-          positioned.push({ ...n, position: { x: 0, y: 0 } });
-        }
-      });
-    }
+  const centerX = minX + boxW / 2;
+  const centerY = minY + boxH / 2;
+  const newX = vw / 2 - centerX * newZoom;
+  const newY = vh / 2 - centerY * newZoom;
 
-    // 8) translate back to absolute coords
-    const baseX = root.position.x;
-    const baseY = root.position.y;
-    const finalNodes = positioned
-      .map(n => ({
-        ...n,
-        position: {
-          x: n.position.x + baseX,
-          y: n.position.y + baseY
-        }
-      }))
-      .concat(noteNodes);
-
-    setNodes(finalNodes);
-
-    // 9) compute bounding box of the laid-out graph
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    finalNodes.forEach(n => {
-      minX = Math.min(minX, n.position.x);
-      minY = Math.min(minY, n.position.y);
-      maxX = Math.max(maxX, n.position.x + NODE_W);
-      maxY = Math.max(maxY, n.position.y + NODE_H);
-    });
-    const boxW = maxX - minX;
-    const boxH = maxY - minY;
-
-    // 10) measure viewport
-    const vw = reactFlowWrapper.current.clientWidth;
-    const vh = reactFlowWrapper.current.clientHeight;
-
-    // 11) compute the zoom that would fit the box (with 10% padding)
-    const fitZoomX = (vw * 0.9) / boxW;
-    const fitZoomY = (vh * 0.9) / boxH;
-    const fitZoom = Math.min(fitZoomX, fitZoomY);
-
-    // if the graph is too big, zoom out; otherwise keep user zoom
-    const newZoom = Math.min(curZoom, fitZoom);
-
-    // 12) center that box at newZoom
-    const centerX = minX + boxW / 2;
-    const centerY = minY + boxH / 2;
-    const newX = vw / 2 - centerX * newZoom;
-    const newY = vh / 2 - centerY * newZoom;
-
-    // 13) apply with smooth transition
-    setViewport(
-      { x: newX, y: newY, zoom: newZoom },
-      { duration: 400 }
-    );
-  }, [
-    getNodes,
-    getEdges,
-    setNodes,
-    setViewport,
-    reactFlowInstance
-  ]);
+  setViewport(
+    { x: newX, y: newY, zoom: newZoom },
+    { duration: 400 }
+  );
+}, [
+  getNodes,
+  getEdges,
+  setNodes,
+  setViewport,
+  reactFlowInstance
+]);
   // onAddChildNode function
-  const onAddChildNode = useCallback((parentId: string, childTypeOrNext: ContentType | 'next') => {
-    // Always push to history before any state change
-    setHistory(prev => [...prev, { nodes: getNodes(), edges: getEdges() }]);
-    setFuture([]);
+  // 1) first, handleReplaceNode (hoisted so you can reference it below)
+  const handleReplaceNode = useCallback<
+    (nodeId: string, newType: ContentType) => void
+  >(
+    (nodeId, newType) => {
+      // Push current state to history before change
+      setHistory(prev => [...prev, { nodes: getNodes(), edges: getEdges() }]);
+      setFuture([]);
 
-    // Close any open menu to prevent popupSelect from opening after adding a node
-    setOpenMenu(null);
-
-    const parentNode = getNode(parentId);
-    // Determine requested child type
-    let requestedChildType: ContentType;
-    if (childTypeOrNext === 'next') {
-      switch (parentNode?.type) {
-        case 'article': requestedChildType = 'video'; break;
-        case 'video': requestedChildType = 'podcast'; break;
-        case 'podcast': requestedChildType = 'socialMedia'; break;
-        default:
-          console.error('[onAddChildNode - next] Invalid parent type for sequential add:', parentNode?.type);
-          return;
+      const nodeToReplace = getNode(nodeId);
+      if (!nodeToReplace) {
+        console.error('Node to replace not found:', nodeId);
+        return;
       }
-    } else {
-      requestedChildType = childTypeOrNext;
-    }
-
-    // (Moved type checks above for rule enforcement)
-    if (!parentNode || parentNode.type === 'note') return;
-    // Only restrict adding children for TopicalKeyword nodes if needed
-    if (parentNode.type === 'topicalKeyword' && parentNode.data?.canAddChild === false) {
-      console.log(`[Workflow Rule] TopicalKeyword node ${parentId} cannot add more children.`);
-      return;
-    }
-    if (parentNode.type === 'socialMedia') {
-      console.log('[Workflow Rule] Cannot add children to Social Media node.');
-      return;
-    }
-    let prevNextNodeId: string | null = null;
-    if (parentNode.type !== 'topicalKeyword') {
-      // Find the outgoing edge (if any) from this node
-      const outgoingEdge = edges.find(edge => edge.source === parentId);
-      if (outgoingEdge) {
-        prevNextNodeId = outgoingEdge.target;
+      if (nodeToReplace.type === 'topicalKeyword') {
+        console.warn('Cannot replace topical keyword node');
+        return;
       }
-      // Remove all outgoing edges from this node before adding the new one
-      setEdges((currentEdges) => currentEdges.filter(edge => edge.source !== parentId));
-    }
 
-    if (parentNode?.type === 'topicalKeyword') {
-      if (showInfoPanel) {
+      const newNode: Node<ContentNodeData> = {
+        ...nodeToReplace,
+        type: newType,
+        data: {
+          ...nodeToReplace.data,
+          isEntering: nodeToReplace.type !== 'note',
+          isNew: true,
+          canAddChild: newType !== 'socialMedia',
+          onAddChildNode: (p, t) => onAddChildNodeRef.current?.(p, t),
+          onDelete: handleDeleteNode,
+          onReplaceNode: handleReplaceNode,
+          isLeftConnected: nodeToReplace.data.isLeftConnected,
+          isRightConnected: nodeToReplace.data.isRightConnected,
+        }
+      };
+
+      setNodes(nds => nds.map(n => n.id === nodeId ? newNode : n));
+    },
+    [
+      getNode, getNodes, getEdges,
+      setHistory, setFuture,
+      setNodes,
+      onAddChildNodeRef,
+      handleDeleteNode
+    ]
+  );
+
+
+  // 2) then, onAddChildNode with an explicit signature
+  const onAddChildNode = useCallback<
+    (parentId: string, childTypeOrNext: ContentType | 'next') => void
+  >(
+    (parentId, childTypeOrNext) => {
+      setHistory(h => [...h, { nodes: getNodes(), edges: getEdges() }]);
+      setFuture([]);
+
+      setOpenMenu(null);
+
+      const parentNode = getNode(parentId);
+      if (!parentNode || parentNode.type === 'note') return;
+
+      // resolve “next” shortcut
+      let requestedChildType: ContentType;
+      if (childTypeOrNext === 'next') {
+        switch (parentNode.type) {
+          case 'article': requestedChildType = 'video'; break;
+          case 'video': requestedChildType = 'podcast'; break;
+          case 'podcast': requestedChildType = 'socialMedia'; break;
+          default:
+            console.error('[onAddChildNode] invalid next for', parentNode.type);
+            return;
+        }
+      } else {
+        requestedChildType = childTypeOrNext;
+      }
+
+      if (parentNode.type === 'socialMedia') {
+        console.log('[Workflow Rule] Cannot add children to Social Media node.');
+        return;
+      }
+      if (parentNode.type === 'topicalKeyword' && showInfoPanel) {
         setIsInfoPanelExiting(true);
       }
-    }
-    // Use only UUID for the ID
-    const childNodeId = uuidv4();
-    let newNodePosition: XYPosition;
-    const horizontalOffset = (parentNode.width ?? 128) + 120;
-    const verticalOffset = (parentNode.height ?? 128) + 50;
-    if (parentNode.type === 'topicalKeyword') {
-      const directChildrenCount = edges.filter(e => e.source === parentId).length;
-      newNodePosition = {
-        x: parentNode.position.x + horizontalOffset,
-        y: parentNode.position.y + (directChildrenCount * verticalOffset)
+
+      const H_SPACING = (parentNode.width ?? 128) + 120;
+      const V_SPACING = (parentNode.height ?? 128) + 50;
+      const siblingCount = edges.filter(e => e.source === parentId).length;
+
+      const newNodePosition: XYPosition = {
+        x: parentNode.position.x + H_SPACING,
+        y: parentNode.position.y + siblingCount * V_SPACING,
       };
-    } else {
-      newNodePosition = {
-        x: parentNode.position.x + horizontalOffset,
-        y: parentNode.position.y,
-      };
-    }
-    const childNode: Node<ContentNodeData> = {
-      id: childNodeId,
-      type: requestedChildType,
-      position: newNodePosition,
-      width: 128,
-      height: 128,
-      selectable: true,
-      data: {
-        title: 'Untitled',
-        isEntering: true,
-        isNew: true,
-        canAddChild: requestedChildType !== 'socialMedia',
-        onAddChildNode: (parentId: string, childType: ContentType) => {
-          onAddChildNode(parentId, childType);
-        },
-        onDelete: handleDeleteNode,
-        onReplaceNode: handleReplaceNode,
-        ...(requestedChildType === 'video' && { isLeftConnected: true, isRightConnected: false })
-      }
-    };
-    const newEdge: Edge = {
-      // Use plain UUIDs for edge ID
-      id: `e-${parentId}-${childNodeId}`,
-      source: parentId,
-      target: childNodeId, // Target the plain UUID
-      sourceHandle: 'right-source',
-      targetHandle: 'left-target',
-      type: 'customGradientEdge',
-      data: {},
-    };
-    setNodes((nds) => {
-      // Add the new child node
-      let updatedNodes = nds.concat(childNode);
-      // If there was a previous next node, shift all downstream nodes to the right
-      if (prevNextNodeId) {
-        // Constants for spacing
-        const nodeWidth = 128;
-        const horizontalGap = 120;
-        // Traverse the chain starting from prevNextNodeId
-        let currentId = prevNextNodeId;
-        let prevNode: Node<ContentNodeData> = childNode;
-        const visited = new Set<string>();
-        while (currentId && !visited.has(currentId)) {
-          visited.add(currentId);
-          const idx = updatedNodes.findIndex(n => n.id === currentId);
-          if (idx === -1) break;
-          const node = updatedNodes[idx];
-          // Shift this node to the right of prevNode
-          updatedNodes = updatedNodes.map(n =>
-            n.id === node.id ? {
-              ...n,
-              position: {
-                x: prevNode.position.x + nodeWidth + horizontalGap,
-                y: prevNode.position.y
-              }
-            } : n
-          );
-          // Find the next node in the chain (outgoing edge from currentId)
-          const nextEdge = edges.find(e => e.source === currentId);
-          // Only assign prevNode if it is a ContentNodeData node (not a start node)
-          const maybeNode = updatedNodes.find(n => n.id === node.id);
-          if (maybeNode && maybeNode.type !== 'start' && 'title' in maybeNode.data) {
-            prevNode = maybeNode as Node<ContentNodeData>;
-          }
-          currentId = nextEdge ? nextEdge.target : "";
+
+      const childNodeId = uuidv4();
+      const childNode: Node<ContentNodeData> = {
+        id: childNodeId,
+        type: requestedChildType,
+        position: newNodePosition,
+        width: 128,
+        height: 128,
+        selectable: true,
+        data: {
+          title: 'Untitled',
+          isEntering: true,
+          isNew: true,
+          canAddChild: requestedChildType !== 'socialMedia',
+          onAddChildNode: (p, t) => onAddChildNodeRef.current?.(p, t),
+          onDelete: handleDeleteNode,
+          onReplaceNode: handleReplaceNode,
+          ...(requestedChildType === 'video' && {
+            isLeftConnected: true,
+            isRightConnected: false,
+          }),
         }
-      }
-      return updatedNodes;
-    });
-    // Edges were already filtered above for non-TopicalKeyword nodes, so just add the new edge
-    setEdges((eds) => {
-      let updatedEdges = addEdge(newEdge, eds);
-      // If there was a previous next node, connect the new node to it
-      if (prevNextNodeId) {
-        const pushEdge: Edge = {
-          id: `e-${childNodeId}-${prevNextNodeId}`,
-          source: childNodeId,
-          target: prevNextNodeId,
-          sourceHandle: 'right-source',
-          targetHandle: 'left-target',
-          type: 'customGradientEdge',
-          data: {},
-        };
-        updatedEdges = addEdge(pushEdge, updatedEdges);
-      }
-      return updatedEdges;
-    });
-    if (parentNode.type !== 'topicalKeyword') {
-      setNodes((nds) =>
-        nds.map(node =>
-          node.id === parentId
-            ? { ...node, data: { ...node.data, canAddChild: false } }
-            : node
-        )
-      );
-    }
-    // AFTER React-Flow renders that node, recenter:
-    requestAnimationFrame(() => {
-      const { x, y, zoom } = getViewport();
-      const wrapper = reactFlowWrapper.current!;
-      const { width } = wrapper.getBoundingClientRect();
+      };
 
-      // use your node’s width (128px by default)
-      const nodeW = (childNode.width ?? 128) * zoom;
+      const newEdge: Edge = {
+        id: `e-${parentId}-${childNodeId}`,
+        source: parentId,
+        target: childNodeId,
+        sourceHandle: 'right-source',
+        targetHandle: 'left-target',
+        type: 'customGradientEdge',
+        data: {},
+      };
 
-      // screen X of the node’s left edge
-      const screenX = childNode.position.x * zoom + x * 2;
+      // append node + edge
+      setNodes(nds => nds.concat(childNode));
+      setEdges(eds => addEdge(newEdge, eds));
 
-      // if it’s within one node-width of the right edge, pan left one node-width
-      if (screenX > width - nodeW) {
-        setViewport(
-          {
-            x: x - nodeW,   // shift left by one node width 
-            y,
-            zoom
-          },
-          { duration: 400 }
+      // if not a topicalKeyword root, disable its "+"
+      if (parentNode.type !== 'topicalKeyword') {
+        setNodes(nds =>
+          nds.map(n =>
+            n.id === parentId
+              ? { ...n, data: { ...n.data, canAddChild: false } }
+              : n
+          )
         );
       }
-    });
 
-  }, [getViewport, setViewport, setNodes, setEdges, reactFlowWrapper, getNode, getNodes, getEdges, nodes, edges, setNodes, setEdges, showInfoPanel, setIsInfoPanelExiting, handleDeleteNode, setOpenMenu]);
-
+      // scroll into view
+      requestAnimationFrame(() => {
+        const { x, y, zoom } = getViewport();
+        const wrapW = reactFlowWrapper.current!.getBoundingClientRect().width;
+        const nodeW = (childNode.width ?? 128) * zoom;
+        const screenX = newNodePosition.x * zoom + x * 2;
+        if (screenX > wrapW - nodeW) {
+          setViewport({ x: x - nodeW, y, zoom }, { duration: 400 });
+        }
+      });
+    },
+    [
+      getNode, getNodes, getEdges,
+      setHistory, setFuture,
+      setOpenMenu,
+      edges, showInfoPanel, setIsInfoPanelExiting,
+      setNodes, setEdges,
+      onAddChildNodeRef,
+      handleDeleteNode, handleReplaceNode,
+      getViewport, setViewport, reactFlowWrapper
+    ]
+  );
   // Store the latest version of onAddChildNode in the ref
   useEffect(() => {
     onAddChildNodeRef.current = onAddChildNode;
@@ -916,6 +836,8 @@ const WorkflowEditorContent: React.FC = () => {
 
     // 2. Serialize the JSON (compact)
     const jsonString = JSON.stringify(flowState);
+
+    console.log("Workflow data to save:", jsonString);
 
     // 3. Log the JSON to console (or send it to a server)
     localStorage.setItem('workflowData', jsonString);
@@ -1447,47 +1369,6 @@ const WorkflowEditorContent: React.FC = () => {
   const nodesWithMenu = useMemo(() => {
     return nodes.map(getNodeWithMenu);
   }, [nodes, getNodeWithMenu]);
-
-  // Add handleReplaceNode function after handleDeleteNode
-  const handleReplaceNode = useCallback((nodeId: string, newType: ContentType) => {
-    // Push current state to history before change
-    setHistory(prev => [...prev, { nodes: getNodes(), edges: getEdges() }]);
-    setFuture([]);
-
-    const nodeToReplace = getNode(nodeId);
-    if (!nodeToReplace) {
-      console.error('Node to replace not found:', nodeId);
-      return;
-    }
-
-    // Don't allow replacing topical keyword nodes
-    if (nodeToReplace.type === 'topicalKeyword') {
-      console.warn('Cannot replace topical keyword node');
-      return;
-    }
-
-    // Create new node with same position and connections but new type
-    const newNode: Node<ContentNodeData> = {
-      ...nodeToReplace,
-      type: newType,
-      data: {
-        ...nodeToReplace.data,
-        isEntering: nodeToReplace.type !== 'note', // Only add animation if current node is not a note
-        isNew: true,
-        canAddChild: newType !== 'socialMedia',
-        onAddChildNode: (parentId: string, childType: ContentType) => {
-          onAddChildNode(parentId, childType);
-        },
-        onDelete: handleDeleteNode,
-        onReplaceNode: handleReplaceNode,
-        isLeftConnected: nodeToReplace.data.isLeftConnected,
-        isRightConnected: nodeToReplace.data.isRightConnected
-      }
-    };
-
-    // Update nodes state
-    setNodes(nds => nds.map(node => node.id === nodeId ? newNode : node));
-  }, [getNode, getNodes, getEdges, setNodes, onAddChildNode, handleDeleteNode]);
 
   const isAnyLocked = nodes.some(node => node.data && node.data.isLocked === true);
 
