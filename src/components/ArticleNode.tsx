@@ -29,9 +29,11 @@ interface ArticleNodeData extends ContentNodeData {
   setOpenMenu?: React.Dispatch<React.SetStateAction<{ type: 'add' | 'popselect'; nodeId: string; } | null>>;
   badgeNumber?: number;
   timeString?: string;
+  showNavigation?: boolean;
 }
 
 import NodeAddMenu from './NodeAddMenu';
+import NavigationMenu from './NavigationMenu/NavigationMenu';
 
 const ArticleNode: React.FC<NodeProps<ArticleNodeData>> = ({ id, data, selected }) => {
   const animationClass = data.isEntering ? 'node-bouncing-in' : '';
@@ -96,6 +98,9 @@ const ArticleNode: React.FC<NodeProps<ArticleNodeData>> = ({ id, data, selected 
     <div
       className={`${animationClass} relative`}
     >
+        {data.showNavigation && data.isSelected && (
+          <NavigationMenu isOpen={data.isSelected} />
+        )}
       {/* Only show PopupSelect if not locked */}
       {selected && !data.isLocked && (
         <div ref={popupAnchorRef}>

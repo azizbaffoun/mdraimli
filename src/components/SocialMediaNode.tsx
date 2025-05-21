@@ -25,10 +25,12 @@ interface SocialMediaNodeData extends ContentNodeData {
   isLastNode?: boolean;
   badgeNumber?: number;
   timeString?: string;
+  showNavigation?: boolean;
 }
 
 // Node component
 import { notifyNode } from '@/types/workflowTypes';
+import NavigationMenu from './NavigationMenu/NavigationMenu';
 
 const SocialMediaNode: React.FC<NodeProps<SocialMediaNodeData>> = ({ id, data, selected }) => {
   const animationClass = data.isEntering ? 'node-bouncing-in' : '';
@@ -69,6 +71,9 @@ const SocialMediaNode: React.FC<NodeProps<SocialMediaNodeData>> = ({ id, data, s
     <div
       className={`relative ${animationClass}`}
     >
+      {data.showNavigation && data.isSelected && (
+        <NavigationMenu isOpen={data.isSelected} />
+      )}
       {/* Only show PopupSelect if not locked */}
       {selected && !data.isLocked && (
         <div ref={popupAnchorRef}>

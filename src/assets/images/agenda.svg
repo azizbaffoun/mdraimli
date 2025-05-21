@@ -1,0 +1,25 @@
+<svg id="task-square" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlinkx"
+    width="18.043" height="18.043" viewBox="0 0 18.043 18.043">
+    <defs>
+        <linearGradient id="linear-gradient" y1="0.365" x2="1" y2="0.058"
+            gradientUnits="objectBoundingBox">
+            <stop offset="0" stop-color="#3799db" />
+            <stop offset="1" stop-color="#2db4a6" />
+        </linearGradient>
+    </defs>
+    <path id="Path_728" data-name="Path 728"
+        d="M16.655,9.389H12.249a.629.629,0,1,1,0-1.259h4.406a.629.629,0,1,1,0,1.259Z"
+        transform="translate(-2.917 -2.356)" fill="url(#linear-gradient)" />
+    <path id="Path_729" data-name="Path 729"
+        d="M6.889,9.777a.627.627,0,0,1-.445-.184l-.629-.629a.629.629,0,1,1,.89-.89l.184.184L8.332,6.814a.629.629,0,1,1,.89.89L7.334,9.593A.627.627,0,0,1,6.889,9.777Z"
+        transform="translate(-1.954 -2.115)" fill="url(#linear-gradient)" />
+    <path id="Path_730" data-name="Path 730"
+        d="M16.655,16.389H12.249a.629.629,0,0,1,0-1.259h4.406a.629.629,0,0,1,0,1.259Z"
+        transform="translate(-2.917 -3.482)" fill="url(#linear-gradient)" />
+    <path id="Path_731" data-name="Path 731"
+        d="M6.889,16.777a.627.627,0,0,1-.445-.184l-.629-.629a.629.629,0,0,1,.89-.89l.184.184,1.443-1.443a.629.629,0,1,1,.89.89L7.334,16.593A.627.627,0,0,1,6.889,16.777Z"
+        transform="translate(-1.954 -3.241)" fill="url(#linear-gradient)" />
+    <path id="Path_732" data-name="Path 732"
+        d="M12.789,19.293H7.754c-2.325,0-3.9-.492-4.956-1.548S1.25,15.114,1.25,12.789V7.754c0-2.325.492-3.9,1.548-4.956S5.429,1.25,7.754,1.25h5.035c2.325,0,3.9.492,4.956,1.548s1.548,2.631,1.548,4.956v5.035c0,2.325-.492,3.9-1.548,4.956S15.114,19.293,12.789,19.293ZM7.754,2.509c-1.969,0-3.261.375-4.066,1.179s-1.179,2.1-1.179,4.066v5.035c0,1.969.375,3.261,1.179,4.066s2.1,1.179,4.066,1.179h5.035c1.969,0,3.261-.375,4.066-1.179s1.179-2.1,1.179-4.066V7.754c0-1.969-.375-3.261-1.179-4.066s-2.1-1.179-4.066-1.179Z"
+        transform="translate(-1.25 -1.25)" fill="url(#linear-gradient)" />
+</svg>

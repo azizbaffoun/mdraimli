@@ -848,7 +848,7 @@ dagre.layout(dag);
   // --- Add useEffect for loading data ---
   useEffect(() => {
     // Define the function globally on the window object
-    window.loadDataIntoReact = (workflowData: WorkflowData & { isLocked?: boolean }) => {
+    window.loadDataIntoReact = (workflowData: WorkflowData & { isLocked?: boolean, showNavigation?: boolean }) => {
       console.log("React App: Received data via loadDataIntoReact", workflowData);
 
       let nodesToLoad = workflowData.nodes;
@@ -856,6 +856,13 @@ dagre.layout(dag);
         nodesToLoad = nodesToLoad.map(node => ({
           ...node,
           data: { ...node.data, isLocked: true }
+        }));
+      }
+
+      if (workflowData.showNavigation) {
+        nodesToLoad = nodesToLoad.map(node => ({
+          ...node,
+          data: { ...node.data, showNavigation: true }
         }));
       }
 
