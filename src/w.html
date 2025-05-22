@@ -59,14 +59,15 @@
       document.getElementById('loadInput').click();
     };
 
-    document.addEventListener('click', function (e) {
-      var target = e.target;
+    function deleteNode(nodeId) {
+      const rf = window.__REACTFLOW_INSTANCE;
+      if (!rf) return console.error('RF instance not found');
 
-      if (target.classList.contains('delete-node')) {
-        var nodeId = target.getAttribute('data-nodeid');
-        alert(nodeId);
-      }
-    });
+      // filter out the node
+      rf.setNodes(nodes => nodes.filter(n => n.id !== nodeId));
+      // if you need to clean up its edges too:
+      rf.setEdges(edges => edges.filter(e => e.source !== nodeId && e.target !== nodeId));
+    }
 
     // Handle file selection for both load types
     document.getElementById('loadInput').onchange = function (e) {
@@ -239,9 +240,8 @@
       // Check if the click was on a node settings button
       const target = event.target;
       if (target && (
-        target.classList.contains('node-settings-button') ||
-        target.closest('.node-settings-button') ||
-        (target.classList.contains('settings-icon') || target.closest('.settings-icon'))
+        target.classList.contains('delete-note-trigger') ||
+        target.closest('.delete-note-trigger')
       )) {
         // Find the node ID from the clicked element
         let element = target;

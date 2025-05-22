@@ -18,6 +18,7 @@ const PopupSelect: React.FC<PopupSelectProps> = ({
   onSettingsClick,
   onDeleteClick,
   isTopicalKeywordNode = false,
+  nodeId
 }) => {
   const handleSettingsClick = () => {
     // Call the onSettingsClick handler which will set replaceMenuOpen to true
@@ -39,6 +40,13 @@ const PopupSelect: React.FC<PopupSelectProps> = ({
         e.stopPropagation();
       }}
     >
+
+      {/* handle delete trigger */}
+       {!isTopicalKeywordNode && (
+            <div onClick={() => { (window as any).showDeleteModal(nodeId); }} className='delete-note-trigger absolute top-0 right-0 block' style={{width: '50px', height: '40px', top: '10px'}}></div>
+        )}
+
+      
       <svg
         xmlns="http://www.w3.org/2000/svg"
         width={svgWidth}
