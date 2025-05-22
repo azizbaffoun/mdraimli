@@ -59,6 +59,15 @@
       document.getElementById('loadInput').click();
     };
 
+    document.addEventListener('click', function (e) {
+      var target = e.target;
+
+      if (target.classList.contains('delete-node')) {
+        var nodeId = target.getAttribute('data-nodeid');
+        alert(nodeId);
+      }
+    });
+
     // Handle file selection for both load types
     document.getElementById('loadInput').onchange = function (e) {
       const file = e.target.files[0];

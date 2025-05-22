@@ -156,7 +156,6 @@ const SocialMediaNode: React.FC<NodeProps<SocialMediaNodeData>> = ({ id, data, s
           delayValue={data.delayValue}
           color="#fc8500"
           nodeName="Social Post"
-          gradientId="social-media-node-gradient"
         />
       </div>
     </div>
