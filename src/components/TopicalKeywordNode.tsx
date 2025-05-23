@@ -134,7 +134,7 @@ const TopicalKeywordNode: React.FC<NodeProps<ExtendedTopicalKeywordNodeData & {
         </div>
       )}
       <div
-        className={`relative node-wrapper group node-type-${data.nodeType || 'topicalKeyword'} w-32 h-32 transition-transform duration-200 ${selected ? 'selected' : ''} ${data.isRightConnected ? 'is-connected' : ''}`}
+        className={`relative node-wrapper group node-type-${data.nodeType || 'topicalKeyword'} w-[126px] h-[126px] transition-transform duration-200 ${selected ? 'selected' : ''} ${data.isRightConnected ? 'is-connected' : ''}`}
         style={{ '--node-color': nodeColor } as React.CSSProperties}
         onClick={(e) => {
           const target = e.target as HTMLElement;

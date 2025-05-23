@@ -116,7 +116,7 @@ const PodcastNode: React.FC<NodeProps<PodcastNodeData>> = ({ id, data, selected 
         </div>
       )}
       <div
-        className={`node-wrapper group node-type-podcast w-32 h-32 transition-transform duration-200 ${selected ? 'selected' : ''} ${data.isRightConnected ? 'is-connected' : ''}`}
+        className={`node-wrapper group node-type-podcast w-[126px] h-[126px] transition-transform duration-200 ${selected ? 'selected' : ''} ${data.isRightConnected ? 'is-connected' : ''}`}
         onMouseEnter={() => !data.isLocked && console.log(`[${id}] Mouse ENTER node wrapper`)}
         onMouseLeave={() => !data.isLocked && console.log(`[${id}] Mouse LEAVE node wrapper`)}
         style={{ '--node-color': '#b99bd6', position: 'relative' } as React.CSSProperties}

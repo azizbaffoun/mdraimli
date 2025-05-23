@@ -89,7 +89,7 @@ const SocialMediaNode: React.FC<NodeProps<SocialMediaNodeData>> = ({ id, data, s
         </div>
       )}
       <div
-        className={`relative node-wrapper group node-type-${data.nodeType || 'socialMedia'} w-32 h-32 transition-transform duration-200 ${selected ? 'selected' : ''} ${data.isRightConnected ? 'is-connected' : ''}`}
+        className={`relative node-wrapper group node-type-${data.nodeType || 'socialMedia'} w-[126px] h-[126px] transition-transform duration-200 ${selected ? 'selected' : ''} ${data.isRightConnected ? 'is-connected' : ''}`}
         onMouseEnter={() => !data.isLocked && console.log(`[${id}] Mouse ENTER node wrapper`)}
         onMouseLeave={() => !data.isLocked && console.log(`[${id}] Mouse LEAVE node wrapper`)}
         style={{ '--node-color': nodeColor } as React.CSSProperties}

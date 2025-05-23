@@ -33,6 +33,7 @@
   </div>
   <script type="module" src="../dist/assets/main.js"></script>
   <script>
+    window.showDeleteModal = function () { }
     // Save: called by React app with JSON string
     window.passData = function (jsonString) {
       // Download as file
@@ -59,15 +60,61 @@
       document.getElementById('loadInput').click();
     };
 
-    function deleteNode(nodeId) {
-      const rf = window.__REACTFLOW_INSTANCE;
-      if (!rf) return console.error('RF instance not found');
+    // function deleteNode(nodeId) {
+    //   const rf = window.__REACTFLOW_INSTANCE;
+    //   if (!rf) return console.error('RF instance not found');
 
-      // filter out the node
-      rf.setNodes(nodes => nodes.filter(n => n.id !== nodeId));
-      // if you need to clean up its edges too:
-      rf.setEdges(edges => edges.filter(e => e.source !== nodeId && e.target !== nodeId));
-    }
+    //   // filter out the node
+    //   rf.setNodes(nodes => nodes.filter(n => n.id !== nodeId));
+    //   // if you need to clean up its edges too:
+    //   rf.setEdges(edges => edges.filter(e => e.source !== nodeId && e.target !== nodeId));
+    // }
+
+function deleteNode(nodeId) {
+  const rf = window.__REACTFLOW_INSTANCE;
+  if (!rf) {
+    console.error("RF instance not found");
+    return;
+  }
+
+  const allNodes = rf.getNodes();
+  const allEdges = rf.getEdges();
+
+  // 1) Find all parent→deleted and deleted→child edges
+  const parentEdges = allEdges.filter(e => e.target === nodeId);
+  const childEdges  = allEdges.filter(e => e.source === nodeId);
+
+  // 2) Remove the node and any edge touching it
+  const remainingNodes = allNodes.filter(n => n.id !== nodeId);
+  const remainingEdges = allEdges.filter(e => e.source !== nodeId && e.target !== nodeId);
+
+  // 3) Build a new edge for every parent→child pair, copying ALL props
+  const reconEdges = [];
+  parentEdges.forEach(parentEdge => {
+    childEdges.forEach(childEdge => {
+      reconEdges.push({
+        id: `e-${parentEdge.source}-${childEdge.target}-${Math.random().toString(36).slice(2,6)}`,
+        source: parentEdge.source,
+        target: childEdge.target,
+        type:        childEdge.type        ?? parentEdge.type,
+        animated:    childEdge.animated    ?? parentEdge.animated,
+        style:       childEdge.style       ?? parentEdge.style,
+        markerEnd:   childEdge.markerEnd   ?? parentEdge.markerEnd,
+        sourceHandle: childEdge.sourceHandle ?? parentEdge.sourceHandle,
+        targetHandle: childEdge.targetHandle ?? parentEdge.targetHandle,
+        data:        { ...parentEdge.data, ...childEdge.data }
+      });
+    });
+  });
+
+  // 4) Write back your nodes + edges
+  rf.setNodes(() => remainingNodes);
+  rf.setEdges(() => [...remainingEdges, ...reconEdges]);
+
+  console.log(
+    `Deleted ${nodeId}. Reparented children [${childEdges.map(e=>e.target).join(", ")}] to parents [${parentEdges.map(e=>e.source).join(", ")}]`
+  );
+}
 
     // Handle file selection for both load types
     document.getElementById('loadInput').onchange = function (e) {

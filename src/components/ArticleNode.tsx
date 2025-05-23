@@ -116,7 +116,7 @@ const ArticleNode: React.FC<NodeProps<ArticleNodeData>> = ({ id, data, selected 
         </div>
       )}
       <div
-        className={`node-wrapper group node-type-article w-32 h-32 transition-transform duration-200 ${selected ? 'selected' : ''} ${data.isRightConnected ? 'is-connected' : ''}`}
+        className={`node-wrapper group node-type-article w-[126px] h-[126px] transition-transform duration-200 ${selected ? 'selected' : ''} ${data.isRightConnected ? 'is-connected' : ''}`}
         onMouseEnter={() => !data.isLocked && console.log(`[ArticleNode ${id}] Mouse ENTER node wrapper`)}
         onMouseLeave={() => !data.isLocked && console.log(`[ArticleNode ${id}] Mouse LEAVE node wrapper`)}
         style={{ '--node-color': '#8fa8f1', position: 'relative' } as React.CSSProperties}

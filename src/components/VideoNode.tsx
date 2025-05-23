@@ -107,7 +107,7 @@ const VideoNode: React.FC<NodeProps<VideoNodeData>> = ({ id, data, selected }) =
         </div>
       )}
       <div
-        className={`node-wrapper node-type-video w-32 h-32`}
+        className={`node-wrapper node-type-video w-[126px] h-[126px]`}
         style={{ position: 'relative' }}
         onClick={(e) => {
           const target = e.target as HTMLElement;
