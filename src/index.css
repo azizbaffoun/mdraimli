@@ -32,7 +32,7 @@ body {
   /* allow the arrow to overflow */
   overflow: visible;
   margin-left: 0;
-  min-width: 190px;
+  min-width: 210px;
 }
 
 /* left-pointing arrow */

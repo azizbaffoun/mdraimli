@@ -988,32 +988,10 @@ dagre.layout(dag);
           }));
 
           // The zoom will be calculated again after nodes are rendered
-        }
-        // Standard centering for non-locked workflows
-        else {
-          // Find the topical keyword node to use as the center reference
-          const topicalKeywordNode = nodesToLoad.find(node => node.type === 'topicalKeyword');
-
-          // If we found a topical keyword node, position it at the center of the viewport
-          if (topicalKeywordNode) {
-            // Calculate the offset needed to center the topical keyword node
-            const offsetX = viewportCenterX - topicalKeywordNode.position.x;
-            const offsetY = viewportCenterY - topicalKeywordNode.position.y;
-
-            console.log("Centering workflow in viewport", {
-              viewportCenter: { x: viewportCenterX, y: viewportCenterY },
-              topicalKeywordPosition: topicalKeywordNode.position,
-              offset: { x: offsetX, y: offsetY }
-            });
-
-            // Apply the offset to all nodes to maintain their relative positions
-            nodesToLoad = nodesToLoad.map(node => ({
-              ...node,
-              position: {
-                x: node.position.x + offsetX,
-                y: node.position.y + offsetY
-              }
-            }));
+        } else {
+          // Apply original viewport for non-locked workflows
+          if (workflowData.viewport) {
+            setViewport(workflowData.viewport, { duration: 0 });
           }
         }
 
@@ -1150,16 +1128,6 @@ dagre.layout(dag);
 
           // Also use the React Flow hook for redundancy
           setViewport({ x: 0, y: 0, zoom });
-        }
-        // For regular workflows, use zoom level 1
-        else {
-          // Reset the viewport to ensure proper centering
-          if (window.__REACTFLOW_INSTANCE) {
-            reactFlowInstance?.fitView({ padding: 0.1, duration: 400 });
-          }
-
-          // Also use the React Flow hook for redundancy
-          reactFlowInstance?.fitView({ padding: 0.1, duration: 400 });
         }
 
         // Log the final state for debugging

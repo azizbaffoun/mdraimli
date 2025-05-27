@@ -12,12 +12,12 @@ export default function NavigationMenu({ isOpen, nodeId }: Props) {
     <div className={style.navigationMenu + ' ' + (isOpen ? style.open : '')}>
       <ul>
         <li>
-          <a href={`campaign/agenda/${nodeId}`}>
+          <a href={`/campaign/agenda/${nodeId}`}>
             <img src={agendaImg} alt="agenda Logo" />
             Show In Agenda</a>
         </li>
         <li>
-          <a href={`campaign/calendar/${nodeId}`}>
+          <a href={`/campaign/calendar/${nodeId}`}>
             <img src={calendarImg} alt="Calendar Logo" />
             Show In Calendar</a>
         </li>

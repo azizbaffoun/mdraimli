@@ -188,7 +188,7 @@ const ArticleNode: React.FC<NodeProps<ArticleNodeData>> = ({ id, data, selected 
         </div>
 
         {/* Right Side Elements - Only show if not locked or not last node */}
-        {(data.canAddChild && (!data.isLocked || !data.isLastNode) && !(data.isLocked && !data.isRightConnected) || (selected && !data.isLocked)) && (
+        {(data.canAddChild && (!data.isLocked || !data.isLastNode) && !(data.isLocked && !data.isRightConnected) || (selected && !data.isLocked)) && !data.showNavigation && (
           <>
             <div
               className="article-node-connector-plus absolute right-[-16.5px] top-[50%] transform -translate-y-1/2 cursor-pointer group z-30 hover:scale-110 transition-transform"
@@ -220,7 +220,7 @@ const ArticleNode: React.FC<NodeProps<ArticleNodeData>> = ({ id, data, selected 
         )}
 
         {/* Right connector - Only show if right connected or if not locked/not last node */}
-        {(data.isRightConnected || (!data.isLocked || !data.isLastNode)) && !(data.isLocked && !data.isRightConnected) && (
+        {(data.isRightConnected || (!data.isLocked || !data.isLastNode)) && !(data.isLocked && !data.isRightConnected) && (!data.showNavigation || data.isRightConnected) && (
           <div
             className={`article-node-connector-right-connected absolute right-[-16.5px] top-[50%] transform -translate-y-1/2 pointer-events-none z-20`}
             style={{ marginTop: 0 }} // Ensure no additional margin affects alignment

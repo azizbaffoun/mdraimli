@@ -11,7 +11,7 @@
   z-index: 1000;
   transform: translate(-50%, -100%);
   transition: all 0.3s ease-in-out;
-  min-width: 185px;
+  min-width: 190px;
 }
 
 .navigationMenu.open {
