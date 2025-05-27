@@ -98,11 +98,11 @@ const PodcastNode: React.FC<NodeProps<PodcastNodeData>> = ({ id, data, selected 
     <div
       className={`${animationClass} relative`}
     >
-      {data.showNavigation && data.isSelected && (
-        <NavigationMenu isOpen={data.isSelected} />
+      {data.showNavigation && selected && (
+        <NavigationMenu nodeId={id} isOpen={selected} />
       )}
       {/* Only show PopupSelect if not locked */}
-      {selected && !data.isLocked && (
+      {selected && !data.isLocked && !data.showNavigation && (
         <div ref={popupAnchorRef}>
           <PopupSelect
             onSettingsClick={handleSettingsClick}

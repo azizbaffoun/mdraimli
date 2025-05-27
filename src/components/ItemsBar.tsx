@@ -13,7 +13,7 @@ import podcastIcon from '@/assets/icons/podcast icon.svg';
 import socialMediaIcon from '@/assets/icons/social media icon.svg';
 
 // Import other necessary components/icons
-import toolsIcon from '@/assets/icons/tools.svg'; 
+import toolsIcon from '@/assets/icons/tools.svg';
 import BottomMenuBackground from './BottomMenuBackground';
 import IconButton from './IconButton';
 // Import ContentType from the shared types file
@@ -28,7 +28,9 @@ interface ItemsBarProps {
   onAddNote?: () => void;
   onOrganizeLayout?: () => void;
   onUndo?: () => void;
- onRedo?: () => void;
+  onRedo?: () => void;
+  showNavigation?: boolean;
+
 }
 
 // Define Separator component for reuse
@@ -40,12 +42,14 @@ const ItemsBar: React.FC<ItemsBarProps> = ({
   isVisible,
   selectedNodeId,
   onIconClick,
-  onSave, 
+  onSave,
   onAddNote,
   onOrganizeLayout,
   onUndo,
- onRedo
+  onRedo,
+  showNavigation = false, // Default to false if not provided
 }) => {
+
   // Define the utility icons and their labels/actions
   const utilityItems = [
     { icon: saveIcon, label: 'Save', action: onSave },
@@ -54,6 +58,10 @@ const ItemsBar: React.FC<ItemsBarProps> = ({
     { icon: undoIcon, label: 'Undo', action: onUndo },
     { icon: redoIcon, label: 'Redo', action: onRedo },
   ];
+
+  const visibleUtilityItems = showNavigation
+  ? utilityItems.filter(item => item.label !== 'Undo' && item.label !== 'Redo')
+  : utilityItems;
 
   // Define the creation icons and their labels/types
   const creationItems = [
@@ -78,7 +86,7 @@ const ItemsBar: React.FC<ItemsBarProps> = ({
     <div className={`${baseClasses} ${visibilityClasses}`}>
       <div className="relative flex items-center justify-center p-2">
         <BottomMenuBackground />
-        
+
         <div className="relative z-10 flex items-center space-x-2 pr-2">
           {/* Tools Icon and Text */}
           <div className="flex items-center pl-[16px] pt-[17px] pb-[18px] mr-0">
@@ -88,7 +96,7 @@ const ItemsBar: React.FC<ItemsBarProps> = ({
           <div className="ml-[21px]"><Separator /></div>
 
           {/* Utility Buttons */}
-          {utilityItems.map((item) => (
+          {visibleUtilityItems.map((item) => (
             <IconButton
               key={item.label}
               iconSrc={item.icon}
@@ -98,10 +106,10 @@ const ItemsBar: React.FC<ItemsBarProps> = ({
             />
           ))}
 
-          <Separator />
+          {!showNavigation && <Separator />}
 
           {/* Creation Buttons */}
-          {creationItems.map((item) => (
+          {!showNavigation && creationItems.map((item) => (
             <IconButton
               key={item.type}
               iconSrc={item.icon}

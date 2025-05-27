@@ -99,10 +99,10 @@ const ArticleNode: React.FC<NodeProps<ArticleNodeData>> = ({ id, data, selected 
       className={`${animationClass} relative`}
     >
         {data.showNavigation && data.isSelected && (
-          <NavigationMenu isOpen={data.isSelected} />
+          <NavigationMenu nodeId={id} isOpen={data.isSelected} />
         )}
       {/* Only show PopupSelect if not locked */}
-      {selected && !data.isLocked && (
+      {selected && !data.isLocked && !data.showNavigation &&(
         <div ref={popupAnchorRef}>
           <PopupSelect
             onSettingsClick={handleSettingsClick}

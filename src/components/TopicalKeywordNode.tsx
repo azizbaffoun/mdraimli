@@ -115,7 +115,7 @@ const TopicalKeywordNode: React.FC<NodeProps<ExtendedTopicalKeywordNodeData & {
       {/* Only show PopupSelect if not locked and selected */}
       {selected && !data.isLocked && !menuOpen && (
         <div ref={popupAnchorRef}>
-          <PopupSelect
+          {false && <PopupSelect
             onSettingsClick={handleSettingsClick}
             onDeleteClick={handleDeleteClick}
             isTopicalKeywordNode={true}
@@ -124,7 +124,7 @@ const TopicalKeywordNode: React.FC<NodeProps<ExtendedTopicalKeywordNodeData & {
             isReplaceMenuOpen={replaceMenuOpen}
             onCloseReplaceMenu={handleCloseReplaceMenu}
             setOpenMenu={setOpenMenu}
-          />
+          />}
           <TopReplace
             isOpen={replaceMenuOpen}
             onSelect={handleTopReplaceSelect}

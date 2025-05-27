@@ -91,9 +91,9 @@ const VideoNode: React.FC<NodeProps<VideoNodeData>> = ({ id, data, selected }) =
   return (
     <div className={`${animationClass} relative`}>
       {data.showNavigation && data.isSelected && (
-        <NavigationMenu isOpen={data.isSelected} />
+        <NavigationMenu nodeId={id} isOpen={data.isSelected} />
       )}
-      {selected && !data.isLocked && (
+      {selected && !data.isLocked && !data.showNavigation && (
         <div ref={popupAnchorRef}>
           <PopupSelect
             onSettingsClick={handleSettingsClick}

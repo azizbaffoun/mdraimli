@@ -72,10 +72,10 @@ const SocialMediaNode: React.FC<NodeProps<SocialMediaNodeData>> = ({ id, data, s
       className={`relative ${animationClass}`}
     >
       {data.showNavigation && data.isSelected && (
-        <NavigationMenu isOpen={data.isSelected} />
+        <NavigationMenu nodeId={id} isOpen={data.isSelected} />
       )}
       {/* Only show PopupSelect if not locked */}
-      {selected && !data.isLocked && (
+      {selected && !data.isLocked && !data.showNavigation && (
         <div ref={popupAnchorRef}>
           <PopupSelect
             onSettingsClick={handleSettingsClick}

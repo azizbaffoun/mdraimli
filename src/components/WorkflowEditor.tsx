@@ -87,6 +87,7 @@ const WorkflowEditorContent: React.FC = () => {
   const [isInfoPanelExiting, setIsInfoPanelExiting] = useState(false);
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
   const [zoomLevel, setZoomLevel] = useState(1);
+  const [showNavigation, setShowNavigation] = useState(false)
 
 
   // Undo/Redo history state
@@ -859,6 +860,8 @@ dagre.layout(dag);
         }));
       }
 
+      setShowNavigation(workflowData.showNavigation || false);
+
       if (workflowData.showNavigation) {
         nodesToLoad = nodesToLoad.map(node => ({
           ...node,
@@ -1420,6 +1423,7 @@ dagre.layout(dag);
         onUndo={handleUndo}
         onRedo={handleRedo}
         onSave={saveWorkflow}
+        showNavigation={showNavigation}
       />}
 
       <ZoomControl
